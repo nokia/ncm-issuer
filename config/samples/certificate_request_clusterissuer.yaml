@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate-clusterissuer
+  namespace: default
+spec:
+  dnsNames:
+  - test.example.com
+  issuerRef:
+    group: certmanager.ncm.nokia.com
+    kind: ClusterIssuer
+    name: clusterissuer-sample
+  secretName: certificate-clusterissuer-tls
+  subject:
+    organizations:
+    - AcceptMyCert

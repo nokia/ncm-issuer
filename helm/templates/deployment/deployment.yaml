@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}"
+  labels:
+{{ include "ncm-issuer.labels.standard" . | indent 4 }}
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+  {{ include "ncm-issuer.app" . | indent 4}}
+  strategy:
+{{ toYaml .Values.updateStrategy | indent 4 }}
+  template:
+    metadata:
+      labels:
+    {{ include "ncm-issuer.app" . | indent 4}}
+    spec:
+{{- if ne .Values.rbac.sa "default" }}
+      serviceAccountName: {{ .Values.rbac.sa }}
+{{- end }}
+{{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.global.priorityClassName | quote }}
+{{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: ncm-issuer
+          args:
+            - --metrics-bind-address=:{{ .Values.metrics.port }}
+{{- if and .Values.enableLeaderElection (gt (.Values.replicaCount | int64) 1) }}
+            - --leader-elect
+{{- end }}
+          image: {{ .Values.registry }}/ncm-issuer:{{ .Chart.Version }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+          - containerPort: {{ .Values.metrics.port }}
+{{ if .Values.livenessProbe }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+{{ end }}
+{{ if .Values.readinessProbe }}
+          readinessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+{{ end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          volumeMounts:
+          - name: tmpdir
+            mountPath: /tmp
+      volumes:
+      - name: tmpdir
+        emptyDir: {}
+    {{- if .Values.controller.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.controller.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.controller.tolerations }}
+      tolerations:
+{{ toYaml .Values.controller.tolerations | indent 8 }}
+    {{- end }}

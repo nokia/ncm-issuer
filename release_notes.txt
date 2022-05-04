@@ -1,0 +1,18 @@
+Version 0.6.8 (Build Version 0.1.140)
+- Changed secret name generation method
+- Added release_notes.txt file
+- Fixed bug connected to illegal characters in secret names
+
+Version 0.6.9 (Build Version 0.1.141)
+- Renewal process will not be started without certificate details
+
+Version 1.0.0 (Build Version 0.1.149)
+- Changed name of project
+- Added support for private key rotation policy set to "always"
+- Changed CRD version to v1
+- Upgrade golang version to 1.16.15
+- Added CSR approve check
+- Support for cert-manager using API v1
+
+Version 1.0.1 (Build Version 1.0.0)
+- Added Ncm Issuer version to logging

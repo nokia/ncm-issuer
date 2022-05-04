@@ -1,0 +1,22 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{include "ncm-issuer.name" .}}-svc
+  labels:
+{{ include "ncm-issuer.labels.standard" . | indent 4}}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.metrics.port }}"
+    prometheus.io/path: "/application/prometheus"
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.http.port }}
+      protocol: TCP
+      name: {{ .Values.service.name }}-http
+      targetPort: {{ .Values.metrics.port }}
+  selector:
+{{ include "ncm-issuer.template.labels" . | indent 4 }}
+

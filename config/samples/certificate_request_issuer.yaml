@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate-issuer
+  namespace: default
+spec:
+  dnsNames:
+  - test.example.com
+  issuerRef:
+    group: certmanager.ncm.nokia.com
+    kind: Issuer
+    name: issuer-sample
+  secretName: certificate-issuer-tls
+  subject:
+    organizations:
+    - AcceptMyCert
+

@@ -1,0 +1,18 @@
+{{- if .Values.certManagerRbac.create }}
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.certManagerRbac.role }}
+rules:
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - signers
+  verbs:
+  - approve
+  resourceNames:
+  - issuers.certmanager.ncm.nokia.com/*
+  - clusterissuers.certmanager.ncm.nokia.com/*
+
+{{- end }}

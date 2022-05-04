@@ -1,0 +1,12 @@
+apiVersion: certmanager.ncm.nokia.com/v1
+kind: Issuer
+metadata:
+  name: issuer-sample
+  namespace: default
+spec:
+  secretName: ncm-rest-api-creds
+  CASNAME: bcmtncm
+  ncmSERVER: http://10.76.91.240:8084/rest_bcmt
+  profileId: '1001'
+  #TlsSecretName: test-secret
+

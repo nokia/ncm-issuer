@@ -1,0 +1,75 @@
+registry: k8s-registry:5000
+replicaCount: 2
+priorityClassName: ""
+imagePullSecrets: []
+imagePullPolicy: Always
+resources:
+  # Limits to cap the resource usage in case of unexpected.
+  #   NOTE! exceeding memory limit will cause pod to be killed by kubernetes.
+  limits:
+    cpu: 200m
+    memory: 250Mi
+  # Requests to help kubernetes start pods on a node that has sufficient capacity.
+  requests:
+    cpu: 200m
+    memory: 250Mi
+
+updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+
+rbac:
+  create: true
+# If create is set to false below objects should be created manually. 
+# Only rbac.sa will be used further by this chart.
+  sa: ncm-issuer-sa
+  binding: ncm-issuer-role-binding
+  role: ncm-issuer-role
+
+certManagerRbac:
+  create: true
+  namespace: cert-manager
+  sa: cert-manager
+  binding: cert-manager-controller-approve:ncm-certmanager-nokia-com
+  role: cert-manager-controller-approve:ncm-certmanager-nokia-comv
+
+# since NCM is outside of k8s cluster, so need external connection with NCM.
+# edge control is generally used to connect external network.
+# prefer edge node
+controller:
+  nodeSelector: {}
+
+  tolerations:
+  #- key: 'is_edge'
+  #  operator: 'Equal'
+  #  value: 'true'
+  #  effect: 'NoExecute'
+
+service:
+  name: ncm-issuer-svc
+  type: ClusterIP
+  externalPort: 80
+  http:
+    port: 80
+
+# enabled crd : e.g. Certifier.certmanager.ncm.nokia.com
+crdEnabled: true
+
+# enable readinessProbe, livenessProbe
+livenessProbe: false
+readinessProbe: false
+
+# enable leader election
+enableLeaderElection: true
+
+securityContext:
+  #runAsUser: 65532
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  runAsNonRoot: true
+
+metrics:
+  port: 8080
