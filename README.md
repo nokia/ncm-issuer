@@ -22,11 +22,17 @@ Building process generates an docker image that can be loaded at target machine.
 
 1. Download the source code
 2. Vendor dependencies
-   `$ go mod vendor`
+   ```
+   $ go mod vendor
+   ```
 4. Create an image
-   `$ make docker_build_img`
+   ```
+   $ make docker_build_img
+   ```
 6. Save the image
-   `$ make save`
+   ```
+   $ make save
+   ```
 
 The image of NCM Issuer will be saved in ./builds/ncm-issuer-images/ directory.
 
@@ -34,17 +40,27 @@ The image of NCM Issuer will be saved in ./builds/ncm-issuer-images/ directory.
 NCM Issuer uses Helm chart in installation process. You can read more about Helm [here](https://helm.sh/).
 
 1. Load an image with NCM Issuer
-   ```$ docker load -i IMAGE_NAME```
+   ```
+   $ docker load -i IMAGE_NAME
+   ```
 2. Create a namespace for NCM Issuer resources
-   ```$ kubectl create namespace ncm-issuer```
+   ```
+   $ kubectl create namespace ncm-issuer
+   ```
 3. Install package using Helm
-   ```$ helm install -n ncm-issuer ncm-issuer /helm/.```
+   ```
+   $ helm install -n ncm-issuer ncm-issuer /helm/.
+   ```
 
 To check if the package has been installed properly type:
-```$ helm list -A | grep -i ncm-issuer```
+```
+$ helm list -A | grep -i ncm-issuer
+```
 
 Output of this command should look like this:
-```ncm-issuer ncm-issuer 1 2022-04-12 17:36:12.120909878 +0200 CEST deployed ncm-issuer-1.0.0 1.0.1```
+```
+ncm-issuer ncm-issuer 1 2022-04-12 17:36:12.120909878 +0200 CEST deployed ncm-issuer-1.0.0 1.0.1
+```
 
 Great! Everything is working right now!
 
@@ -52,17 +68,25 @@ Great! Everything is working right now!
 NCM Issuer requires to create some k8s secrets with credentials to NCM REST API and TLS client configuration.
 
 ### NCM REST API credentials
-```$ kubectl create secret generic SECRET_NAME -n NAMESPACE --from-literal=username=USERNAME --from-literal=usrPassword=PASSWORD```
+```
+$ kubectl create secret generic SECRET_NAME -n NAMESPACE --from-literal=username=USERNAME --from-literal=usrPassword=PASSWORD
+```
 
 ### TLS without client auth
-```$ kubectl create -n NAMESPACE secret generic SECRET_NAME --from-file=cacert=CA_FOR_REST_API.pem```
+```
+$ kubectl create -n NAMESPACE secret generic SECRET_NAME --from-file=cacert=CA_FOR_REST_API.pem
+```
 
 ### TLS with client auth
-```$ kubectl create -n NAMESPACE secret generic SECRET_NAME --from-file=cacert=CA_FOR_REST_API.pem --from-file=key=CLIENT_AUTH_PKEY.pem --from-file=cert=CLIENT_AUTH_CERT.pem ```
+```
+$ kubectl create -n NAMESPACE secret generic SECRET_NAME --from-file=cacert=CA_FOR_REST_API.pem --from-file=key=CLIENT_AUTH_PKEY.pem --from-file=cert=CLIENT_AUTH_CERT.pem
+```
 
 
 You can check if the secret has been properly created by running this command:
-```$ kubectl -n NAMESPACE describe secrets SECRET_NAME```
+```
+$ kubectl -n NAMESPACE describe secrets SECRET_NAME
+```
 
 ## Usage
 NCM Issuer extends [cert-manager](https://cert-manager.io/) functionalities but way of usage stays the same. There are additional fields in .yaml file (Issuer definition) that are needed to be filled.
@@ -110,7 +134,9 @@ Setting the **reenrollmentOnRenew** field to “true” will force new enrollmen
 The **noRoot** field is responsible for controlling the value of ca.crt secret. By default (when this field is not included or set to “false”) Root CA of the certificate is saved to the ca.crt. If noRoot field is set to “true” then issuer of the certificate is saved there.
 
 To create an issuer from created .yaml file type:
-```$ kubectl apply -f issuer.yaml```
+```
+$ kubectl apply -f issuer.yaml
+```
 
 ### Enroll a certificate
 To enroll a certificate just follow instructions from [cert-manager site](https://cert-manager.io/docs/usage/). The enroll process is exactly the same!
