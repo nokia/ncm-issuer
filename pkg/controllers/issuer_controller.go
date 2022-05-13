@@ -20,6 +20,7 @@ import (
 	certmanagerv1 "cm/api/v1"
 	"cm/pkg/pkiutil"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-logr/logr"
 	core "k8s.io/api/core/v1"
@@ -122,8 +123,9 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	invalidStr := checkIssuerSpec(issuerSpec)
 	if len(invalidStr) != 0 {
 		reason = "incorrect setting"
+		err = errors.New(reason)
 		completeMessage = fmt.Sprintf("Incorrect Spec config: %v", invalidStr)
-		log.Error(nil, "Incorrect Spec config setting")
+		log.Error(err, "Incorrect Spec config setting")
 		return ctrl.Result{}, err
 	}
 

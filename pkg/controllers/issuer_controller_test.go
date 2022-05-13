@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 	"testing"
 
 	nokiaAPI "cm/api/v1"
@@ -26,18 +27,18 @@ const (
 )
 
 type testCase struct {
-	kind                         string
-	name                         types.NamespacedName
-	objects                      []client.Object
-	expectedResult               ctrl.Result
-	expectedError                error
-	expectedReadyConditionStatus metav1.ConditionStatus
+	kind             string
+	name             types.NamespacedName
+	objects          []client.Object
+	expectedResult   ctrl.Result
+	expectedErrorMsg string
 }
 
 func TestIssuerReconcile(t *testing.T) {
 	tests := map[string]testCase{
-		"success": {
-			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "issuer1"},
+		"successIssuer": {
+			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "issuer"},
+			kind: Issuer,
 			objects: []client.Object{
 				&nokiaAPI.Issuer{
 					TypeMeta: metav1.TypeMeta{
@@ -45,7 +46,7 @@ func TestIssuerReconcile(t *testing.T) {
 						APIVersion: "v1",
 					},
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer1",
+						Name:      "issuer",
 						Namespace: "ncm-issuer",
 					}, Spec: nokiaAPI.IssuerSpec{
 						NcmSERVER:            "127.0.0.1",
@@ -58,7 +59,6 @@ func TestIssuerReconcile(t *testing.T) {
 						AuthSecretName:       "secretName1",
 						ProfileId:            "100",
 						TlsSecretName:        "secretName2",
-						AuthNamespace:        "namespaceAuth",
 					},
 					Status: nokiaAPI.IssuerStatus{Conditions: []nokiaAPI.IssuerCondition{
 						{Type: "",
@@ -89,6 +89,121 @@ func TestIssuerReconcile(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorMsg: "",
+			expectedResult:   ctrl.Result{},
+		},
+		"successClusterIssuer": {
+			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "clsissuer"},
+			kind: ClusterIssuer,
+			objects: []client.Object{
+				&nokiaAPI.ClusterIssuer{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       ClusterIssuer,
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "clsissuer",
+						Namespace: "ncm-issuer",
+					}, Spec: nokiaAPI.IssuerSpec{
+						NcmSERVER:            "127.0.0.1",
+						CASNAME:              "CA1",
+						CASHREF:              "kdhu84hrjl",
+						LittleEndian:         true,
+						ReenrollmentOnRenew:  true,
+						UseProfileIDForRenew: true,
+						NoRoot:               true,
+						AuthSecretName:       "secretName1",
+						ProfileId:            "100",
+						TlsSecretName:        "secretName2",
+						AuthNamespace:        "namespaceAuth",
+					},
+					Status: nokiaAPI.IssuerStatus{Conditions: []nokiaAPI.IssuerCondition{
+						{Type: "",
+							Status:             "",
+							LastTransitionTime: nil,
+						},
+					}},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "secretName1",
+						Namespace: "namespaceAuth",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("green_user"),
+						"usrPassword": []byte("green_password"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "secretName2",
+						Namespace: "namespaceAuth",
+					},
+					Data: map[string][]byte{
+						"key":    []byte("randomkeyhere"),
+						"cert":   []byte("certpemhere"),
+						"cacert": []byte("cacertpemhere"),
+					},
+				},
+			},
+			expectedErrorMsg: "",
+			expectedResult:   ctrl.Result{},
+		},
+		"missingServerIssuer": {
+			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "issuer"},
+			kind: Issuer,
+			objects: []client.Object{
+				&nokiaAPI.Issuer{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       Issuer,
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer",
+						Namespace: "ncm-issuer",
+					}, Spec: nokiaAPI.IssuerSpec{
+						NcmSERVER:            "",
+						CASNAME:              "CA1",
+						CASHREF:              "kdhu84hrjl",
+						LittleEndian:         true,
+						ReenrollmentOnRenew:  true,
+						UseProfileIDForRenew: true,
+						NoRoot:               true,
+						AuthSecretName:       "secretName1",
+						ProfileId:            "100",
+						TlsSecretName:        "secretName2",
+					},
+					Status: nokiaAPI.IssuerStatus{Conditions: []nokiaAPI.IssuerCondition{
+						{Type: "",
+							Status:             "",
+							LastTransitionTime: nil,
+						},
+					}},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "secretName1",
+						Namespace: "namespaceAuth",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("green_user"),
+						"usrPassword": []byte("green_password"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "secretName2",
+						Namespace: "namespaceAuth",
+					},
+					Data: map[string][]byte{
+						"key":    []byte("randomkeyhere"),
+						"cert":   []byte("certpemhere"),
+						"cacert": []byte("cacertpemhere"),
+					},
+				},
+			},
+			expectedErrorMsg: "incorrect setting",
+			expectedResult:   ctrl.Result{},
 		},
 	}
 
@@ -99,10 +214,9 @@ func TestIssuerReconcile(t *testing.T) {
 	for name, testCase := range tests {
 		t.Run(name, func(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCase.objects...).Build()
-
 			issuerController := &IssuerReconciler{
 				Client:   fakeClient,
-				Kind:     Issuer,
+				Kind:     testCase.kind,
 				Scheme:   scheme,
 				Clock:    clock.RealClock{},
 				Recorder: record.NewFakeRecorder(10),
@@ -110,8 +224,24 @@ func TestIssuerReconcile(t *testing.T) {
 
 			ctx := context.TODO()
 			result, err := issuerController.Reconcile(ctx, reconcile.Request{NamespacedName: testCase.name})
-			assert.NoError(t, err)
-			assert.Equal(t, ctrl.Result{}, result, "Unexpected result")
+			if testCase.expectedErrorMsg != "" {
+				if !ErrorContains(err, testCase.expectedErrorMsg) {
+					t.Errorf("Unexpected error: %v", err)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, testCase.expectedResult, result, "Unexpected result")
 		})
 	}
+}
+
+func ErrorContains(resultErr error, wantedErrMsg string) bool {
+	if resultErr == nil {
+		return wantedErrMsg == ""
+	}
+	if wantedErrMsg == "" {
+		return false
+	}
+	return strings.Contains(resultErr.Error(), wantedErrMsg)
 }
