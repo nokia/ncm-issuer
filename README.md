@@ -2,6 +2,14 @@
 <a href="https://github.com/nokia/ncm-issuer/actions">
 <img alt="Tests Status" src="https://github.com/nokia/ncm-issuer/workflows/Tests/badge.svg"/>
 </a>
+	
+ <a href="https://goreportcard.com/report/github.com/nokia/ncm-issuer">
+ <img alt="Tests Status" src="https://goreportcard.com/badge/github.com/nokia/ncm-issuer"/>
+ </a>
+
+ </p>
+ <p align="center">
+ <img src="https://i.postimg.cc/2SjTLZ8H/render1653315525910.gif"/>
 </p>
 
 # NCM Issuer
