@@ -17,12 +17,12 @@ limitations under the License.
 package controllers
 
 import (
-	certmanagerv1 "cm/api/v1"
-	"cm/pkg/pkiutil"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/go-logr/logr"
+	certmanagerv1 "github.com/nokia/ncm-issuer/api/v1"
+	"github.com/nokia/ncm-issuer/pkg/pkiutil"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

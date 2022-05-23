@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	nokiaAPI "cm/api/v1"
+	nokiaAPI "github.com/nokia/ncm-issuer/api/v1"
 )
 
 const (

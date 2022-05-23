@@ -1,8 +1,8 @@
 package pkiutil
 
 import (
-	cmv1 "cm/api/v1"
 	"fmt"
+	cmv1 "github.com/nokia/ncm-issuer/api/v1"
 	"k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -74,4 +74,3 @@ func MyCRDHasCondition(status cmv1.IssuerStatus, c cmv1.IssuerCondition) bool {
 	}
 	return false
 }
-

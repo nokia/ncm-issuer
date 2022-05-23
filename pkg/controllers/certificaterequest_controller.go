@@ -17,14 +17,14 @@ limitations under the License.
 package controllers
 
 import (
-	certmanagerv1 "cm/api/v1"
-	"cm/pkg/pkiutil"
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
 	apiutil "github.com/jetstack/cert-manager/pkg/api/util"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	certmanagerv1 "github.com/nokia/ncm-issuer/api/v1"
+	"github.com/nokia/ncm-issuer/pkg/pkiutil"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -152,7 +152,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, SetStatusErrMsg)
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	// once CRD resource is ready, the config data should be ready
@@ -163,7 +163,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "Fail to set certificateRequest status")
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	if apiutil.CertificateRequestIsDenied(&cr) {
@@ -173,7 +173,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			log.Error(err, SetStatusErrMsg)
 		}
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	if !apiutil.CertificateRequestIsApproved(&cr) {
@@ -540,7 +540,7 @@ func (r *CertificateRequestReconciler) waitCheckFindca(ctx context.Context, req 
 		} else {
 			log.Info(inFuncStr, "time", nowTime.Time, "OK", "find the NCM external server ")
 
-			// udpate new Certifier status change, which trigger new round of reconcile
+			// update new Certifier status change, which trigger new round of reconcile
 			// status is updated from CertificateRequestReasonPending to CertificateRequestReasonFailed
 			CertificateRequestPendingList[CrPendingKey] = nil
 			_ = r.setStatus(ctx, &newcr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Now the external NCM server is OK to find.")

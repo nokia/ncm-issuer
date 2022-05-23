@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	certmanagerv1 "cm/api/v1"
-	"cm/pkg/controllers"
+	certmanagerv1 "github.com/nokia/ncm-issuer/api/v1"
+	"github.com/nokia/ncm-issuer/pkg/controllers"
 	//+kubebuilder:scaffold:imports
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 )
