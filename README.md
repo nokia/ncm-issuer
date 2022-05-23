@@ -1,6 +1,6 @@
 <p align="center">
 <a href="https://github.com/nokia/ncm-issuer/actions">
-<img alt="Tests Status" src="https://github.com/nokia/ncm-issuer/workflows/unit_test.yml/badge.svg"/>
+<img alt="Tests Status" src="https://github.com/nokia/ncm-issuer/workflows/Tests/badge.svg"/>
 </a>
 </p>
 
