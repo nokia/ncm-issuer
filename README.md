@@ -1,3 +1,5 @@
+![Unit Tests](https://github.com/nokia/ncm-issuer/actions/workflows/unit_test.yml/badge.svg)
+
 # NCM Issuer
 NCM Issuer allows to integrate cert-manager plugin with [Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/).
 
