@@ -2,20 +2,12 @@
 <a href="https://github.com/nokia/ncm-issuer/actions">
 <img alt="Tests Status" src="https://github.com/nokia/ncm-issuer/workflows/Tests/badge.svg"/>
 </a>
-	
-<a href="https://goreportcard.com/report/github.com/nokia/ncm-issuer">
-<img alt="Tests Status" src="https://goreportcard.com/badge/github.com/nokia/ncm-issuer"/>
-</a>
-
-</p>
-<p align="center">
-<img src="https://i.postimg.cc/2SjTLZ8H/render1653315525910.gif"/>
 </p>
 
 # NCM Issuer
-NCM Issuer allows to integrate cert-manager plugin with [Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/).
+NCM Issuer cert-manager plugin allows to integrate with [Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) PKI system.
 
-Cert-manager is a native Kubernetes certificate management controller which allows CNFs to get their certificates from a variety of CAs (Certification Authorities). It ensures certificates are valid and up to date, it also attempts to renew certificates at a configured time before expiration.
+Cert-manager is a native Kubernetes certificate management controller which allows applications to get their certificates from a variety of CAs (Certification Authorities). It ensures certificates are valid and up to date, it also attempts to renew certificates at a configured time before expiration.
 
 ## Requirements
 ### To build:
@@ -29,10 +21,10 @@ Cert-manager is a native Kubernetes certificate management controller which allo
 - **[NCM 21 release](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)** (or higher)
 - **[kubernetes](https://kubernetes.io/)** 1.18-1.21
 - **[cert-manager](https://cert-manager.io/docs/installation/)** >= 1.0.0
-- **[Helm](https://helm.sh/docs/intro/install/)**
+- **[Helm](https://helm.sh/docs/intro/install/)** v3
 
 ## Build from source
-Building process generates an docker image that can be loaded at target machine.
+Building process generates a docker image that can be loaded at target machine.
 
 1. Download the source code
 2. Vendor dependencies
@@ -103,7 +95,7 @@ $ kubectl -n NAMESPACE describe secrets SECRET_NAME
 ```
 
 ## Usage
-NCM Issuer extends [cert-manager](https://cert-manager.io/) functionalities but way of usage stays the same. There are additional fields in .yaml file (Issuer definition) that are needed to be filled.
+NCM Issuer extends [cert-manager](https://cert-manager.io/) functionalities, but way of usage stays the same. There are additional fields in .yaml file (Issuer definition) that are needed to be filled.
 
 ### Create an issuer
 
@@ -131,7 +123,7 @@ For **name** variable use some descriptive name of your choice for your issuing 
 
 For **namespace** use the one you have created before.
 
-For **secretName** use the secret name with rest credentials.
+For **secretName** use the secret name with NCM REST API endpoint credentials.
 
 For **tlsSecretName** use the secret name with TLS certificate.
 
@@ -143,7 +135,7 @@ If the **profileId** field is defined, then the profile ID will be set in enroll
 
 Setting the **useProfileIDForRenew** field to “true” is necessary to include the defined profileID value in the */update* request during the renewal process. Otherwise, certificate update operations won’t include it.
 
-Setting the **reenrollmentOnRenew** field to “true” will force new enrollment of the certificate when renewal process is executed. In this case NCM Issuer uses the NCM */requests* REST API endpoint to get a renewed certificate. By default (when this field is not included or set to “false”) the */update* REST API endpoint is used to renew the certificate (it is the default recommended setting).
+Setting the **reenrollmentOnRenew** field to “true” will force new enrollment of the certificate when renewal process is executed. In this case NCM Issuer uses the NCM */requests* REST API endpoint to get a renewed certificate. By default (when this field is not included or set to “false”) the */update* NCM REST API endpoint is used to renew the certificate (it is the default recommended setting).
 
 The **noRoot** field is responsible for controlling the value of ca.crt secret. By default (when this field is not included or set to “false”) Root CA of the certificate is saved to the ca.crt. If noRoot field is set to “true” then issuer of the certificate is saved there.
 
