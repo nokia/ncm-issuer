@@ -1,5 +1,5 @@
-registry: k8s-registry:5000
-replicaCount: 2
+registry: docker.io/misiektoja
+replicaCount: 1
 priorityClassName: ""
 imagePullSecrets: []
 imagePullPolicy: Always
