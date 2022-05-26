@@ -1,4 +1,4 @@
-# workflow to run the acme2certifier unittest suite
+# workflow to run the ncm-issuer unittest suite
 
 name: Markdown Link check
 
