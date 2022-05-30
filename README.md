@@ -80,13 +80,13 @@ NCM Issuer uses Helm chart in installation process. You can read more about Helm
 3. Install package using Helm
 
    ```bash
-   $ helm install -n ncm-issuer ncm-issuer /helm/.
+   $ helm install -n ncm-issuer ncm-issuer ./helm/.
    ```
 
 To check if the package has been installed properly type:
 
 ```bash
-$ helm list -A | grep -i ncm-issuer
+$ helm list -n ncm-issuer
 ```
 
 Output of this command should look like this:
@@ -182,3 +182,34 @@ $ kubectl apply -f issuer.yaml
 ### Enroll a certificate
 
 To enroll a certificate just follow instructions from [cert-manager site](https://cert-manager.io/docs/usage/). The enroll process is exactly the same!
+
+Sample .yaml file to enroll NCM issued certificate:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: NCM_CERTIFICATE_NAME
+  namespace: APPLICATION_NAMESPACE_NAME
+spec:
+  commonName: CERTIFICATE_COMMON_NAME
+  dnsNames:
+    - CERTIFICATE_SAN_DNS
+  issuerRef:
+    group: certmanager.ncm.nokia.com
+    kind: Issuer
+    name: ISSUER_NAME
+  secretName: SECRET_NAME_FOR_NCM_CERTIFICATE
+```
+
+```bash
+$ kubectl apply -f certificate.yaml
+```
+
+### Troubleshooting
+
+In case of issues despite checking status of created resources, you could also check ncm-issuer pod logs:
+
+```bash
+$ kubectl -n ncm-issuer logs -f `kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`
+```
