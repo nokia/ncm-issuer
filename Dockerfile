@@ -12,8 +12,8 @@ COPY vendor/ vendor/
 # Copy the go source
 COPY main.go main.go
 COPY api/ api/
-COPY pkg/pkiutil pkiutil/
-COPY pkg/controllers controllers/
+COPY pkg/pkiutil pkg/pkiutil/
+COPY pkg/controllers pkg/controllers/
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 env GO111MODULE=on go build -mod=vendor -o builds/manager main.go
