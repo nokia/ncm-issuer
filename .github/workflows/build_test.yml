@@ -1,0 +1,50 @@
+name: build ncm-issuer by using different go versions
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 2 * * 6'
+
+jobs:
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goversion: ['1.16', '1.16.15', '1.17', '1.17.8']
+    steps:
+    - name: "checkout GIT"
+      uses: actions/checkout@v2
+
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.goversion }}
+    - run: go version
+
+    - name: "modify Dockerfile"
+      run: |
+         sudo sed -i "s/FROM golang:1.16.15/FROM golang:${{ matrix.goversion }}/g" Dockerfile
+         cat Dockerfile
+
+    - name: "build plugin"
+      run: |
+        go mod vendor
+        make docker_build_img
+        make save
+
+    - name: "[ * ] collecting logs"
+      if: ${{ failure() }}
+      run: |
+        mkdir -p ${{ github.workspace }}/artifact/upload
+        sudo cp -rp * ${{ github.workspace }}/artifact/data/
+        sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz
+
+    - name: "[ * ] uploading artificates"
+      uses: actions/upload-artifact@v2
+      if: ${{ failure() }}
+      with:
+        name: issuer_build-${{ matrix.goversion }}.tar.gz
+        path: ${{ github.workspace }}/artifact/upload/
