@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ncm-issuer
+---
+apiVersion: certmanager.ncm.nokia.com/v1
+kind: Issuer
+metadata:
+   name: ncm
+   namespace: ncm-issuer
+spec:
+   secretName: ncm-issuer
+   tlsSecretName: ncm-issuer-bundle
+   CASNAME: SubCA
+   # CASHREF: HREF_FROM_NCM
+   ncmSERVER: NCM_SRV
+   # profileId: PROFILE_ID
+   reenrollmentOnRenew: false
+   useProfileIDForRenew: false
+   noRoot: false
