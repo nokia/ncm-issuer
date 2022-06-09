@@ -80,16 +80,16 @@ jobs:
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
 
-    - name: "create certificate ressource"
+    - name: "create certificate resource"
       run: |
-        sudo microk8s.kubectl apply -f data/cert-ressource.yml
+        sudo microk8s.kubectl apply -f data/cert-resource.yml
 
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
       with:
         time: 10s
 
-    - name: "check certificate ressource"
+    - name: "check certificate resource"
       run: |
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
@@ -104,7 +104,7 @@ jobs:
         sudo  microk8s.kubectl get namespaces > data/logs/get_namespaces.log
         sudo microk8s.kubectl get po -A > data/logs/get_pods.log
         sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
-        sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_screts.log
+        sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
         sudo microk8s.kubectl describe issuer.certmanager.ncm.nokia.com  -n ncm-issuer > data/logs/describe_issuer.log
         sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
