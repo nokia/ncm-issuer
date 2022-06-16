@@ -29,14 +29,12 @@ jobs:
         go mod vendor
         make docker_build_img
         make save
-
     - name: "install microk8s"
       run: |
         sudo snap install microk8s --classic --channel=${{ matrix.k8sversion }}/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
-
     - name: "install cert-manager charts"
       run: |
         sudo microk8s.kubectl create namespace cert-manager
@@ -64,12 +62,10 @@ jobs:
     - name: "install plugin"
       run: |
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
-
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
-
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
       with:
@@ -79,11 +75,9 @@ jobs:
       run: |
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
-
     - name: "create certificate resource"
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
-
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
       with:
@@ -96,7 +90,6 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Issued"
-
     - name: "[ * ] collecting test logs"
       continue-on-error: true
       if: ${{ failure() }}
@@ -112,6 +105,128 @@ jobs:
         sudo  microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
         sudo microk8s.kubectl describe certificate ncm-cert -n ncm-issuer > data/logs/describe_certificate.log
+        mkdir -p ${{ github.workspace }}/artifact/upload
+        sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
+        sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
+    - name: "[ * ] uploading artificates"
+      uses: actions/upload-artifact@v2
+      if: ${{ failure() }}
+      with:
+        name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgrversion }}.tar.gz
+        path: ${{ github.workspace }}/artifact/upload/
+
+  clusterissuer_test:
+    name: "ncm-clusterissuer test"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8sversion: ['1.21', '1.22', '1.23', '1.24']
+        certmgrversion: ['1.6.1', '1.7', '1.8']
+    steps:
+
+    - name: "checkout GIT"
+      uses: actions/checkout@v2
+    - uses: actions/setup-go@v3
+    - run: go version
+
+    - name: "build plugin"
+      run: |
+        go mod vendor
+        make docker_build_img
+        make save
+
+    - name: "install microk8s"
+      run: |
+        sudo snap install microk8s --classic --channel=${{ matrix.k8sversion }}/stable
+        sudo microk8s status --wait-ready
+        sudo microk8s enable helm3
+        sudo microk8s enable dns
+
+    - name: "install cert-manager charts"
+      run: |
+        sudo microk8s.kubectl create namespace cert-manager
+        sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
+        sudo microk8s.helm3 repo update
+        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
+        echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
+    - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
+
+    - name: "prepare environment / create namespace and secret"
+      run: |
+        mkdir -p data/logs
+        echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
+        cp .github/*.yml data/
+        sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
+        sed -i "s|kind: Issuer|kind: ClusterIssuer|g" data/ncm-issuer.yml
+        sed -i "s|secretName: ncm-issuer|authNameSpace: ncm-issuer-auth\n   secretName: ncm-issuer|g" data/ncm-issuer.yml
+        sed -i "s|namespace: ncm-issuer|namespace: ncm-cert|g" data/cert-resource.yml
+        sed -i "s|kind: Issuer|kind: ClusterIssuer|g" data/cert-resource.yml
+        sudo microk8s.kubectl create namespace ncm-cert
+        sudo microk8s.kubectl create namespace ncm-issuer
+        sudo microk8s.kubectl create namespace ncm-issuer-auth
+        sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer-auth --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
+        sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer-auth --from-file=cacert=data/ca_bundle.pem
+      env:
+        NCM_HOST: ${{ secrets.NCM_HOST }}
+        NCM_USER: ${{ secrets.NCM_USER }}
+        NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
+        NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
+
+    - name: "install plugin"
+      run: |
+        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
+
+    - name: "create issuer"
+      run: |
+        sudo microk8s.kubectl apply -f data/ncm-issuer.yml
+        sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer
+
+
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "check issuer status"
+      run: |
+        sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer
+        sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
+
+    - name: "create certificate resource"
+      run: |
+        cat data/cert-resource.yml
+        sudo microk8s.kubectl apply -f data/cert-resource.yml
+
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "check certificate resource"
+      run: |
+        sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert
+        sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert  | grep "The certificate has been successfully issued"
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Approved"
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Issued"
+
+    - name: "[ * ] collecting test logs"
+      continue-on-error: true
+      if: ${{ failure() }}
+      run: |
+        sudo  microk8s.kubectl get namespaces > data/logs/get_namespaces.log
+        sudo microk8s.kubectl get po -A > data/logs/get_pods.log
+        sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
+        sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets_ncm-issuer.log
+        sudo microk8s.kubectl get secrets -n ncm-issuer-auth > data/logs/get_secrets_ncm-issuer-auth.log
+        sudo microk8s.kubectl get secrets -n ncm-cert > data/logs/get_secrets_ncm-issuer-cert.log
+        sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
+        sudo microk8s.kubectl describe clusterissuer.certmanager.ncm.nokia.com  -n ncm-issuer > data/logs/describe_issuer.log
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
+        sudo microk8s.kubectl get certificaterequest -n ncm-cert > data/logs/get_csr.log
+        sudo  microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert > data/logs/describe_csr.log
+        sudo microk8s.kubectl get certificate -n ncm-cert > data/logs/get_certificate.log
+        sudo microk8s.kubectl describe certificate ncm-cert -n ncm-cert > data/logs/describe_certificate.log
         mkdir -p ${{ github.workspace }}/artifact/upload
         sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
