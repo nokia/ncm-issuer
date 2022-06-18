@@ -97,8 +97,10 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Ca:" | awk '{print $2}' | base64 -d > /tmp/ca.pem
         openssl x509 -in /tmp/cert.der -text -noout | grep "Public Key Algorithm: id-ecPublicKey"
         openssl x509 -in /tmp/cert.der -text -noout | grep "NIST CURVE: P-${{ matrix.keysize }}"
+        openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
@@ -213,8 +215,10 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Ca:" | awk '{print $2}' | base64 -d > /tmp/ca.pem
         openssl x509 -in /tmp/cert.der -text -noout | grep "Public Key Algorithm: rsaEncryption"
         openssl x509 -in /tmp/cert.der -text -noout | grep "RSA Public-Key: (${{ matrix.keysize }} bit)"
+        openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
