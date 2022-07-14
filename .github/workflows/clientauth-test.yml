@@ -1,4 +1,4 @@
-name: enrollment tests
+name: clientauth tests
 
 on:
   push:
