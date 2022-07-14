@@ -95,7 +95,7 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Issued"
-        exit 1
+
     - name: "[ * ] collecting test logs"
       continue-on-error: true
       if: ${{ failure() }}
