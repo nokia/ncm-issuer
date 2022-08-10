@@ -16,3 +16,6 @@ Version 1.0.0 (Build Version 0.1.149)
 
 Version 1.0.1 (Build Version 1.0.0)
 - Added Ncm Issuer version to logging
+
+Version 1.0.2 (Build Version 1.0.1)
+- Update go version to 1.17

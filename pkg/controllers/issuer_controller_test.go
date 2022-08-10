@@ -26,15 +26,16 @@ const (
 	Issuer        = "Issuer"
 )
 
-type testCase struct {
-	kind             string
-	name             types.NamespacedName
-	objects          []client.Object
-	expectedResult   ctrl.Result
-	expectedErrorMsg string
-}
-
 func TestIssuerReconcile(t *testing.T) {
+
+	type testCase struct {
+		kind             string
+		name             types.NamespacedName
+		objects          []client.Object
+		expectedResult   ctrl.Result
+		expectedErrorMsg string
+	}
+
 	tests := map[string]testCase{
 		"successIssuer": {
 			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "issuer"},
