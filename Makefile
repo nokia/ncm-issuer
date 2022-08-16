@@ -2,7 +2,7 @@
 export GOFLAGS=-mod=vendor
 export GO111MODULE=on
 
-BUILD_VERSION ?= 1.0.0
+BUILD_VERSION ?= 1.0.1
 IMG_NAME ?= ncm-issuer
 
 # Image URL to use all building/pushing image targets
@@ -11,7 +11,7 @@ IMG ?= ncm-issuer:${BUILD_VERSION}
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
 APP_NAME ?= ncm-issuer
-APP_VERSION ?= 1.0.1
+APP_VERSION ?= 1.0.2
 
 # DevOPS Artifactory Repositories
 ARTIFACTORY_URL ?= repo.lab.pl.alcatel-lucent.com
