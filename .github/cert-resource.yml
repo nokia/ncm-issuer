@@ -14,6 +14,8 @@ spec:
     - foo.bar.local
   renewBefore: 120h
   secretName: mysecret-secret
+  privateKey:
+    rotationPolicy: Always
   issuerRef:
     group: certmanager.ncm.nokia.com
     kind: Issuer
