@@ -121,8 +121,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8sversion: ['1.21', '1.22', '1.23', '1.24']
-        certmgrversion: ['1.6.1', '1.7', '1.8']
+        k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25']
+        certmgrversion: ['1.6.1', '1.7', '1.8', '1.9']
     steps:
 
     - name: "checkout GIT"
