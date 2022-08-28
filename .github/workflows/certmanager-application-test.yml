@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8sversion: ['1.21', '1.22', '1.23', '1.24']
-        certmgrversion: ['1.6.1', '1.7', '1.8']
+        k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25']
+        certmgrversion: ['1.6.1', '1.8', '1.9']
     steps:
 
     - name: "checkout GIT"
@@ -26,12 +26,14 @@ jobs:
         go mod vendor
         make docker_build_img
         make save
+
     - name: "install microk8s"
       run: |
         sudo snap install microk8s --classic --channel=${{ matrix.k8sversion }}/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
+
     - name: "install cert-manager charts"
       run: |
         sudo microk8s.kubectl create namespace cert-manager
@@ -40,6 +42,12 @@ jobs:
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
+
+    - name: "install kubectl cert-manager plugin"
+      run: |
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/kubectl-cert_manager-$OS-$ARCH.tar.gz
+          tar xzf kubectl-cert-manager.tar.gz
+          sudo mv kubectl-cert_manager /usr/local/bin
 
     - name: "prepare environment / create namespace and secret"
       run: |
@@ -75,13 +83,15 @@ jobs:
     - name: "create certificate resource"
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
-    - name: "sleep for 10s"
+
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
@@ -90,6 +100,21 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Ca:" | awk '{print $2}' | base64 -d > /tmp/ca.pem
         openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
+
+    - name: "renew certificate"
+      run: |
+        sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-issuer
+
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "check certificate resource"
+      run: |
+        sudo microk8s.kubectl get certificaterequest -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
@@ -121,8 +146,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8sversion: ['1.21', '1.22', '1.23', '1.24']
-        certmgrversion: ['1.6.1', '1.7', '1.8']
+        k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25']
+        certmgrversion: ['1.6.1', '1.8', '1.9']
     steps:
 
     - name: "checkout GIT"
@@ -151,6 +176,12 @@ jobs:
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
+
+    - name: "install kubectl cert-manager plugin"
+      run: |
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/kubectl-cert_manager-$OS-$ARCH.tar.gz
+          tar xzf kubectl-cert-manager.tar.gz
+          sudo mv kubectl-cert_manager /usr/local/bin
 
     - name: "prepare environment / create namespace and secret"
       run: |
@@ -198,13 +229,14 @@ jobs:
         cat data/cert-resource.yml
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
-    - name: "sleep for 10s"
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert
@@ -213,6 +245,21 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Ca:" | awk '{print $2}' | base64 -d > /tmp/ca.pem
         openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
+
+    - name: "renew certificate"
+      run: |
+        sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-cert
+
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "check certificate resource"
+      run: |
+        sudo microk8s.kubectl get certificaterequest -n ncm-cert
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert | grep "No CertificateRequest found for this Certificate"
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
