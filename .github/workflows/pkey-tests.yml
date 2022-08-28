@@ -87,10 +87,10 @@ jobs:
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
-    - name: "sleep for 10s"
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
@@ -110,10 +110,10 @@ jobs:
       run: |
         sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-issuer
 
-    - name: "sleep for 10s"
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
@@ -227,10 +227,10 @@ jobs:
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
-    - name: "sleep for 10s"
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
@@ -250,10 +250,10 @@ jobs:
       run: |
         sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-issuer
 
-    - name: "sleep for 10s"
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
