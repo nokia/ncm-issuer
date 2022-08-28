@@ -26,12 +26,14 @@ jobs:
         go mod vendor
         make docker_build_img
         make save
+
     - name: "install microk8s"
       run: |
         sudo snap install microk8s --classic --channel=${{ matrix.k8sversion }}/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
+
     - name: "install cert-manager charts"
       run: |
         sudo microk8s.kubectl create namespace cert-manager
@@ -40,6 +42,12 @@ jobs:
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
+
+    - name: "install kubectl cert-manager plugin"
+      run: |
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/kubectl-cert_manager-$OS-$ARCH.tar.gz
+          tar xzf kubectl-cert-manager.tar.gz
+          sudo mv kubectl-cert_manager /usr/local/bin
 
     - name: "prepare environment / create namespace and secret"
       run: |
@@ -64,10 +72,12 @@ jobs:
     - name: "install plugin"
       run: |
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
+
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
+
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
       with:
@@ -77,6 +87,7 @@ jobs:
       run: |
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
+
     - name: "create certificate resource"
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
@@ -87,11 +98,27 @@ jobs:
 
     - name: "check certificate resource"
       run: |
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Issued"
+
+    - name: "renew certificate"
+      run: |
+        sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-issuer
+
+    - name: "sleep for 15s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 15s
+
+    - name: "check certificate resource"
+      run: |
+        sudo microk8s.kubectl get certificaterequest -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
