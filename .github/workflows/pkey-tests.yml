@@ -42,13 +42,19 @@ jobs:
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
+    - name: "install kubectl cert-manager plugin"
+      run: |
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/kubectl-cert_manager-$OS-$ARCH.tar.gz
+          tar xzf kubectl-cert-manager.tar.gz
+          sudo mv kubectl-cert_manager /usr/local/bin
+
     - name: "prepare environment / create namespace and secret"
       run: |
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
-        sed -i "s/secretName: mysecret-secret/secretName: mysecret-secret\n  privateKey:\n    algorithm: ECDSA\n    size: ${{ matrix.keysize }}/g" data/cert-resource.yml
+        sed -i "s/rotationPolicy: Always/rotationPolicy: Always\n    algorithm: ECDSA\n    size: ${{ matrix.keysize }}/g" data/cert-resource.yml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
@@ -81,13 +87,14 @@ jobs:
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
-    - name: "sleep for 10s"
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
@@ -98,6 +105,21 @@ jobs:
         openssl x509 -in /tmp/cert.der -text -noout | grep "Public Key Algorithm: id-ecPublicKey"
         openssl x509 -in /tmp/cert.der -text -noout | grep "NIST CURVE: P-${{ matrix.keysize }}"
         openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
+
+    - name: "renew certificate"
+      run: |
+        sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-issuer
+
+    - name: "sleep for 15s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 15s
+
+    - name: "check certificate resource"
+      run: |
+        sudo microk8s.kubectl get certificaterequest -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
@@ -160,13 +182,19 @@ jobs:
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
+    - name: "install kubectl cert-manager plugin"
+      run: |
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/kubectl-cert_manager-$OS-$ARCH.tar.gz
+          tar xzf kubectl-cert-manager.tar.gz
+          sudo mv kubectl-cert_manager /usr/local/bin
+
     - name: "prepare environment / create namespace and secret"
       run: |
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
-        sed -i "s/secretName: mysecret-secret/secretName: mysecret-secret\n  privateKey:\n    algorithm: RSA\n    size: ${{ matrix.keysize }}/g" data/cert-resource.yml
+        sed -i "s/rotationPolicy: Always/rotationPolicy: Always\n    algorithm: RSA\n    size: ${{ matrix.keysize }}/g" data/cert-resource.yml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
@@ -199,13 +227,14 @@ jobs:
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
-    - name: "sleep for 10s"
+    - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
       with:
-        time: 10s
+        time: 15s
 
     - name: "check certificate resource"
       run: |
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
@@ -216,6 +245,21 @@ jobs:
         openssl x509 -in /tmp/cert.der -text -noout | grep "Public Key Algorithm: rsaEncryption"
         openssl x509 -in /tmp/cert.der -text -noout | grep "RSA Public-Key: (${{ matrix.keysize }} bit)"
         openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
+
+    - name: "renew certificate"
+      run: |
+        sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-issuer
+
+    - name: "sleep for 15s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 15s
+
+    - name: "check certificate resource"
+      run: |
+        sudo microk8s.kubectl get certificaterequest -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true

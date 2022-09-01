@@ -1,4 +1,4 @@
-name: key algorithm tests
+name: caname-href tests
 
 on:
   push:
