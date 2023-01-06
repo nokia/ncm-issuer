@@ -49,7 +49,7 @@ type Client struct {
 	useProfileIDforRenew bool
 
 	HTTPClient *http.Client
-	Log        logr.Logger
+	log        logr.Logger
 }
 
 type ClientError struct {
@@ -58,7 +58,7 @@ type ClientError struct {
 }
 
 func (c *ClientError) Error() string {
-	return fmt.Sprintf("NCM API Client error type=%s error=%w", c.Type, c.Message)
+	return fmt.Sprintf("NCM API Client error type=%s error=%v", c.Type, c.Message)
 }
 
 type CAsResponse struct {
@@ -131,7 +131,7 @@ func NewClient(ncmConfig *controllers.NcmConfig, log logr.Logger) (*Client, erro
 		password:             ncmConfig.UsrPassword,
 		useProfileIDforRenew: ncmConfig.UseProfileIDForRenew,
 		HTTPClient:           HTTPClient,
-		Log:                  log,
+		log:                  log,
 	}
 
 	return c, nil
@@ -205,7 +205,7 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 }
 
 func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
-	c.Log.V(1).Info("retrying request to the second NCM EXTERNAL API")
+	c.log.V(1).Info("retrying request to the second NCM EXTERNAL API")
 
 	ncmServer2URL, err := url.Parse(c.ncmServer2)
 	if err != nil {
@@ -249,7 +249,7 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil && os.IsTimeout(err) && c.allowRetry {
-		c.Log.V(1).Info("connection timeout exceeded while connecting to the main NCM EXTERNAL API")
+		c.log.V(1).Info("connection timeout exceeded while connecting to the main NCM EXTERNAL API")
 
 		resp, err := c.retryRequest(req)
 		if err != nil {
