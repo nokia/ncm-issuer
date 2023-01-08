@@ -112,7 +112,7 @@ func (c *ClientError) Error() string {
 type CAsResponse struct {
 	TotalCount int          `json:"totalCount"`
 	Href       string       `json:"href"`
-	CAsList    []CAResponse `json:"cas"`
+	CAList     []CAResponse `json:"cas"`
 }
 
 type CAResponse struct {
@@ -371,7 +371,7 @@ func (c *Client) GetCA(path string) (CAResponse, error) {
 }
 
 func (c *Client) SendCSR(pem []byte, CA CAResponse, profileId string) (CSRResponse, error) {
-	filePath, err := writePemToTempFile("/tmp/ncm", pem)
+	filePath, err := WritePemToTempFile("/tmp/ncm", pem)
 	if err != nil {
 		return CSRResponse{}, &ClientError{Type: "writing file error", Message: err}
 	}

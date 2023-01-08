@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 )
 
@@ -22,7 +23,7 @@ func newUUID() (string, error) {
 }
 
 // Writes PEM to temp file (dirprefix is dir prefix)
-func writePemToTempFile(dirprefix string, pem []byte) (string, error) {
+func WritePemToTempFile(dirprefix string, pem []byte) (string, error) {
 	myuuid, err := newUUID()
 	if err != nil {
 		return "", err
@@ -46,4 +47,13 @@ func writePemToTempFile(dirprefix string, pem []byte) (string, error) {
 	csrfile.Close()
 
 	return path, err
+}
+
+func GetPathFromCertURL(certURL string) (string, error) {
+	parsedURL, err := url.Parse(certURL)
+	if err != nil {
+		return "", fmt.Errorf("cannot parsed given URL: url=%s", certURL)
+	}
+
+	return parsedURL.Path, nil
 }
