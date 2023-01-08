@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nokia/ncm-issuer/pkg/controllers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,6 +25,55 @@ const (
 	CSRURL      = "/v1/requests"
 )
 
+// NCM config set up with secret and used for NCM API Client configuration
+type NCMConfig struct {
+	Username    string
+	UsrPassword string
+	NcmSERVER   string
+	NcmSERVER2  string
+
+	// CAs for BCMTNCM
+	CASNAME string
+
+	// href for BCMTNCM
+	CASHREF string
+
+	ReenrollmentOnRenew  bool
+	UseProfileIDForRenew bool
+
+	// NCM root CA
+	InstaCA string
+
+	// bigEndian or littleEndian: bE Cert -> Issuers; lE Issuers -> Cert
+	LittleEndianPem bool
+
+	// Determines whether Issuer of the Cert should be taken into consideration instead of root
+	NoRoot bool
+
+	// TLS CA Cert
+	CACert string
+
+	// TLS client Key
+	Key string
+
+	// TLS client Cert
+	Cert string
+
+	// Determines whether SSL certificate verification between client instance and NCM EXTERNAL API
+	// should be enabled
+	InsecureSkipVerify bool
+
+	// Determines whether mTLS should be enabled
+	MTLS bool
+}
+
+// Used to separate different configurations for different namespaces
+type NCMConfigKey struct {
+	Namespace string
+	Name      string
+}
+
+// Client used to communicate with the NCM EXTERNAL API
 type Client struct {
 	// Main NCM EXTERNAL API server address
 	ncmServer string
@@ -116,20 +164,20 @@ func (a *APIError) Error() string {
 }
 
 // Creates a new client used to perform requests to the NCM EXTERNAL API
-func NewClient(ncmConfig *controllers.NcmConfig, log logr.Logger) (*Client, error) {
-	HTTPClient, err := configureHTTPClient(ncmConfig)
+func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
+	HTTPClient, err := configureHTTPClient(cfg)
 
 	if err != nil {
 		return nil, &ClientError{Type: "client creation error", Message: err}
 	}
 
 	c := &Client{
-		ncmServer:            ncmConfig.NcmSERVER,
-		ncmServer2:           ncmConfig.NcmSERVER2,
-		allowRetry:           ncmConfig.NcmSERVER2 != "",
-		user:                 ncmConfig.Username,
-		password:             ncmConfig.UsrPassword,
-		useProfileIDforRenew: ncmConfig.UseProfileIDForRenew,
+		ncmServer:            cfg.NcmSERVER,
+		ncmServer2:           cfg.NcmSERVER2,
+		allowRetry:           cfg.NcmSERVER2 != "",
+		user:                 cfg.Username,
+		password:             cfg.UsrPassword,
+		useProfileIDforRenew: cfg.UseProfileIDForRenew,
 		HTTPClient:           HTTPClient,
 		log:                  log,
 	}
@@ -138,8 +186,8 @@ func NewClient(ncmConfig *controllers.NcmConfig, log logr.Logger) (*Client, erro
 }
 
 // Configures http.Client used for connection to NCM EXTERNAL API according to NCM config
-func configureHTTPClient(ncmConfig *controllers.NcmConfig) (*http.Client, error) {
-	if !strings.HasPrefix(ncmConfig.NcmSERVER, "https") {
+func configureHTTPClient(cfg *NCMConfig) (*http.Client, error) {
+	if !strings.HasPrefix(cfg.NcmSERVER, "https") {
 		HTTPClient := &http.Client{
 			Timeout: HTTPTimeout * time.Second,
 		}
@@ -149,15 +197,15 @@ func configureHTTPClient(ncmConfig *controllers.NcmConfig) (*http.Client, error)
 
 	var tlsConfig *tls.Config
 
-	if ncmConfig.InsecureSkipVerify {
+	if cfg.InsecureSkipVerify {
 		tlsConfig = &tls.Config{InsecureSkipVerify: true}
 	} else {
 		CACertPool := x509.NewCertPool()
-		CACertPool.AppendCertsFromPEM([]byte(ncmConfig.Cacert))
+		CACertPool.AppendCertsFromPEM([]byte(cfg.CACert))
 
-		if ncmConfig.Mtls {
+		if cfg.MTLS {
 			// Reads the key pair for client certificate
-			clientCert, err := tls.LoadX509KeyPair(ncmConfig.Cert, ncmConfig.Key)
+			clientCert, err := tls.LoadX509KeyPair(cfg.Cert, cfg.Key)
 			if err != nil {
 				return nil, err
 			}
