@@ -25,7 +25,11 @@ type IssuerSpec struct {
 	// Define external NCM REST API URL here, as of now http/https are supported
 	NcmSERVER string `json:"ncmSERVER"`
 
-	// the name of the logical CA on the NCM instance.
+	// +optional
+	// Secondary external NCM REST API URL in case of lack of connection to the main one
+	NcmSERVER2 string `json:"ncmSERVER2"`
+
+	// The name of the logical CA on the NCM instance.
 	// make sure the names are unique across whole NCM installation
 	CASNAME string `json:"CASNAME"`
 
@@ -35,7 +39,7 @@ type IssuerSpec struct {
 	UseProfileIDForRenew bool   `json:"useProfileIDForRenew"`
 	NoRoot               bool   `json:"noRoot"`
 
-	// the secret which contains REST API username and password
+	// The secret which contains REST API username and password
 	AuthSecretName string `json:"secretName"`
 
 	// +optional
@@ -43,7 +47,7 @@ type IssuerSpec struct {
 	ProfileId string `json:"profileId,omitempty"`
 
 	// +optional
-	// the secret which contains TLS configuration to external NCM server
+	// The secret which contains TLS configuration to external NCM server
 	// the secret must contain 3 fields:
 	// cacert for root CA; key, cert for client CA and key pair.
 	//
