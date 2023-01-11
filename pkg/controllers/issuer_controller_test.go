@@ -51,6 +51,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Namespace: "ncm-issuer",
 					}, Spec: nokiaAPI.IssuerSpec{
 						NcmSERVER:            "127.0.0.1",
+						NcmSERVER2:           "",
 						CASNAME:              "CA1",
 						CASHREF:              "kdhu84hrjl",
 						LittleEndian:         true,
@@ -107,6 +108,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Namespace: "ncm-issuer",
 					}, Spec: nokiaAPI.IssuerSpec{
 						NcmSERVER:            "127.0.0.1",
+						NcmSERVER2:           "",
 						CASNAME:              "CA1",
 						CASHREF:              "kdhu84hrjl",
 						LittleEndian:         true,
@@ -164,6 +166,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Namespace: "ncm-issuer",
 					}, Spec: nokiaAPI.IssuerSpec{
 						NcmSERVER:            "",
+						NcmSERVER2:           "",
 						CASNAME:              "CA1",
 						CASHREF:              "kdhu84hrjl",
 						LittleEndian:         true,
