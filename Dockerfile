@@ -14,6 +14,7 @@ COPY main.go main.go
 COPY api/ api/
 COPY pkg/pkiutil pkg/pkiutil/
 COPY pkg/controllers pkg/controllers/
+COPY pkg/ncmapi pkg/ncmapi/
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 env GO111MODULE=on go build -mod=vendor -o builds/manager main.go

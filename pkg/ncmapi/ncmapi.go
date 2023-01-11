@@ -25,17 +25,17 @@ const (
 	CSRURL      = "/v1/requests"
 )
 
-// NCM config set up with secret and used for NCM API Client configuration
+// NCMConfig set up with secret and used for NCM API Client configuration
 type NCMConfig struct {
 	Username    string
 	UsrPassword string
 	NcmSERVER   string
 	NcmSERVER2  string
 
-	// CAs for BCMTNCM
+	// CAs for bcmtncm
 	CASNAME string
 
-	// href for BCMTNCM
+	// href for bcmtncm
 	CASHREF string
 
 	ReenrollmentOnRenew  bool
@@ -67,7 +67,7 @@ type NCMConfig struct {
 	MTLS bool
 }
 
-// Used to separate different configurations for different namespaces
+// NCMConfigKey used to separate different configurations for different namespaces
 type NCMConfigKey struct {
 	Namespace string
 	Name      string
@@ -94,10 +94,10 @@ type Client struct {
 	allowRetry bool
 
 	// Determines whether the profile ID should be used during a certificate renewal operation
-	useProfileIDforRenew bool
+	useProfileIDForRenew bool
 
-	HTTPClient *http.Client
-	log        logr.Logger
+	client *http.Client
+	log    logr.Logger
 }
 
 type ClientError struct {
@@ -163,9 +163,9 @@ func (a *APIError) Error() string {
 	return fmt.Sprintf("NCM EXTERNAL API Error slug=%s error=%s", a.Slug, a.ErrorMessage)
 }
 
-// Creates a new client used to perform requests to the NCM EXTERNAL API
+// NewClient creates a new client used to perform requests to the NCM EXTERNAL API
 func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
-	HTTPClient, err := configureHTTPClient(cfg)
+	client, err := configureHTTPClient(cfg)
 
 	if err != nil {
 		return nil, &ClientError{Type: "client creation error", Message: err}
@@ -177,8 +177,8 @@ func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
 		allowRetry:           cfg.NcmSERVER2 != "",
 		user:                 cfg.Username,
 		password:             cfg.UsrPassword,
-		useProfileIDforRenew: cfg.UseProfileIDForRenew,
-		HTTPClient:           HTTPClient,
+		useProfileIDForRenew: cfg.UseProfileIDForRenew,
+		client:               client,
 		log:                  log,
 	}
 
@@ -188,11 +188,11 @@ func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
 // Configures http.Client used for connection to NCM EXTERNAL API according to NCM config
 func configureHTTPClient(cfg *NCMConfig) (*http.Client, error) {
 	if !strings.HasPrefix(cfg.NcmSERVER, "https") {
-		HTTPClient := &http.Client{
+		client := &http.Client{
 			Timeout: HTTPTimeout * time.Second,
 		}
 
-		return HTTPClient, nil
+		return client, nil
 	}
 
 	var tlsConfig *tls.Config
@@ -222,14 +222,14 @@ func configureHTTPClient(cfg *NCMConfig) (*http.Client, error) {
 	}
 
 	// Creates an HTTPS client and supply it with created CA pool (and client CA if mTLS is enabled)
-	HTTPClient := &http.Client{
+	client := &http.Client{
 		Timeout: HTTPTimeout * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
 	}
 
-	return HTTPClient, nil
+	return client, nil
 }
 
 func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
@@ -261,7 +261,7 @@ func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
 	}
 
 	req.URL.Host = ncmServer2URL.Host
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, &ClientError{Type: "http.Client.Do error", Message: err}
 	}
@@ -295,7 +295,7 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil && os.IsTimeout(err) && c.allowRetry {
 		c.log.V(1).Info("connection timeout exceeded while connecting to the main NCM EXTERNAL API")
 
@@ -344,7 +344,7 @@ func (c *Client) GetCAs() (CAsResponse, error) {
 
 func (c *Client) GetCA(path string) (CAResponse, error) {
 	params := url.Values{}
-	req, err := c.newRequest(http.MethodGet, CAsURL+path, strings.NewReader(params.Encode()))
+	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(params.Encode()))
 	if err != nil {
 		return CAResponse{}, err
 	}
@@ -376,6 +376,14 @@ func (c *Client) SendCSR(pem []byte, CA CAResponse, profileId string) (CSRRespon
 		return CSRResponse{}, &ClientError{Type: "writing file error", Message: err}
 	}
 
+	params := map[string]string{
+		"ca": CA.Href,
+	}
+
+	if profileId != "" {
+		params["profileId"] = profileId
+	}
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return CSRResponse{}, &ClientError{Type: "opening file error", Message: err}
@@ -390,19 +398,11 @@ func (c *Client) SendCSR(pem []byte, CA CAResponse, profileId string) (CSRRespon
 		return CSRResponse{}, &ClientError{Type: "writer error", Message: err}
 	}
 
-	params := map[string]string{
-		"ca": CA.Href,
-	}
-
-	if profileId != "" {
-		params["profileId"] = profileId
-	}
+	_, _ = io.Copy(part, file)
 
 	for k, v := range params {
 		_ = writer.WriteField(k, v)
 	}
-
-	_, _ = io.Copy(part, file)
 
 	err = writer.Close()
 	if err != nil {
@@ -531,7 +531,7 @@ func (c *Client) RenewCertificate(path string, certDuration metav1.Duration, pro
 		"notAfter":  notAfter.Format(time.RFC3339Nano),
 	}
 
-	if profileId != "" && c.useProfileIDforRenew {
+	if profileId != "" && c.useProfileIDForRenew {
 		newData["profileId"] = profileId
 	}
 
