@@ -166,7 +166,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
-	cfgKey := ncmapi.NCMConfigKey{secretName.Namespace, req.NamespacedName.Name}
+	cfgKey := ncmapi.NCMConfigKey{Namespace: secretName.Namespace, Name: req.NamespacedName.Name}
 	NCMConfigMap[cfgKey] = &cfg
 	reason = "Verified"
 	completeMessage = "Signing CA verified and ready to issue certificates"
