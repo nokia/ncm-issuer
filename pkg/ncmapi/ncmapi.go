@@ -27,44 +27,22 @@ const (
 
 // NCMConfig set up with secret and used for NCM API Client configuration
 type NCMConfig struct {
-	Username    string
-	UsrPassword string
-	NcmSERVER   string
-	NcmSERVER2  string
-
-	// CAs for bcmtncm
-	CASNAME string
-
-	// href for bcmtncm
-	CASHREF string
-
+	Username             string
+	UsrPassword          string
+	NcmSERVER            string
+	NcmSERVER2           string
+	CASNAME              string // CAs for bcmtncm
+	CASHREF              string // href for bcmtncm
 	ReenrollmentOnRenew  bool
 	UseProfileIDForRenew bool
-
-	// NCM root CA
-	InstaCA string
-
-	// bigEndian or littleEndian: bE Cert -> Issuers; lE Issuers -> Cert
-	LittleEndianPem bool
-
-	// Determines whether Issuer of the Cert should be taken into consideration instead of root
-	NoRoot bool
-
-	// TLS CA Cert
-	CACert string
-
-	// TLS client Key
-	Key string
-
-	// TLS client Cert
-	Cert string
-
-	// Determines whether SSL certificate verification between client instance and NCM EXTERNAL API
-	// should be enabled
-	InsecureSkipVerify bool
-
-	// Determines whether mTLS should be enabled
-	MTLS bool
+	InstaCA              string // NCM root CA
+	LittleEndianPem      bool   // bigEndian or littleEndian: bE Cert -> Issuers; lE Issuers -> Cert
+	NoRoot               bool   // determines whether Issuer of the Cert should be taken into consideration instead of root
+	CACert               string // TLS CA Cert
+	Key                  string // TLS client Key
+	Cert                 string // TLS client Cert
+	InsecureSkipVerify   bool   // determines whether SSL certificate verification between client instance and NCM EXTERNAL API should be enabled
+	MTLS                 bool   // determines whether mTLS should be enabled
 }
 
 // NCMConfigKey used to separate different configurations for different namespaces
@@ -75,38 +53,28 @@ type NCMConfigKey struct {
 
 // Client used to communicate with the NCM EXTERNAL API
 type Client struct {
-	// Main NCM EXTERNAL API server address
-	ncmServer string
-
-	// Secondary NCM EXTERNAL API server address in case of the lack of connection
-	// to the main one (can be empty)
-	ncmServer2 string
-
-	// User used for authentication to NCM EXTERNAL API
-	user string
-
-	// Password used for authentication to NCM EXTERNAL API
-	password string
+	ncmServer  string // main NCM EXTERNAL API server address
+	ncmServer2 string // Secondary NCM EXTERNAL API server address in case of the lack of connection to the main one (can be empty)
+	user       string // user used for authentication to NCM EXTERNAL API
+	password   string // password used for authentication to NCM EXTERNAL API
 
 	// Determines whether, in the case of lack of the connection to the main server (no response within
 	// a certain time period), there is an address of a second server to which client can send the
 	// same request
 	allowRetry bool
 
-	// Determines whether the profile ID should be used during a certificate renewal operation
-	useProfileIDForRenew bool
-
-	client *http.Client
-	log    logr.Logger
+	useProfileIDForRenew bool // determines whether the profile ID should be used during a certificate renewal operation
+	client               *http.Client
+	log                  logr.Logger
 }
 
 type ClientError struct {
-	Type    string
-	Message error
+	Reason       string
+	ErrorMessage error
 }
 
 func (c *ClientError) Error() string {
-	return fmt.Sprintf("NCM API Client error type=%s error=%v", c.Type, c.Message)
+	return fmt.Sprintf("NCM API Client Error reason=%s err=%v", c.Reason, c.ErrorMessage)
 }
 
 type CAsResponse struct {
@@ -155,25 +123,35 @@ type RenewCertificateResponse struct {
 }
 
 type APIError struct {
-	Slug         string `json:"error_slug"`
-	ErrorMessage string `json:"error"`
+	Message       string `json:"message,omitempty"`
+	Status        int    `json:"status"`
+	StatusMessage string `json:"statusMessage"`
 }
 
 func (a *APIError) Error() string {
-	return fmt.Sprintf("NCM EXTERNAL API Error slug=%s error=%s", a.Slug, a.ErrorMessage)
+	return fmt.Sprintf("NCM EXTERNAL API Error status=%d, message=%s, statusMessage=%s", a.Status, a.Message, a.StatusMessage)
 }
 
 // NewClient creates a new client used to perform requests to the NCM EXTERNAL API
 func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
-	client, err := configureHTTPClient(cfg)
-
+	ncmServerURL, err := url.Parse(cfg.NcmSERVER)
 	if err != nil {
-		return nil, &ClientError{Type: "client creation error", Message: err}
+		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
+	}
+
+	ncmServer2URL, err := url.Parse(cfg.NcmSERVER2)
+	if err != nil {
+		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
+	}
+
+	client, err := configureHTTPClient(cfg)
+	if err != nil {
+		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
 	}
 
 	c := &Client{
-		ncmServer:            cfg.NcmSERVER,
-		ncmServer2:           cfg.NcmSERVER2,
+		ncmServer:            ncmServerURL.String(),
+		ncmServer2:           ncmServer2URL.String(),
 		allowRetry:           cfg.NcmSERVER2 != "",
 		user:                 cfg.Username,
 		password:             cfg.UsrPassword,
@@ -233,16 +211,12 @@ func configureHTTPClient(cfg *NCMConfig) (*http.Client, error) {
 }
 
 func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
-	ncmServerURL, err := url.Parse(c.ncmServer)
-	if err != nil {
-		return nil, &ClientError{Type: "URL parsing error", Message: err}
-	}
-
+	ncmServerURL, _ := url.Parse(c.ncmServer)
 	ncmServerURL.Path = path
 
 	req, err := http.NewRequest(method, ncmServerURL.String(), body)
 	if err != nil {
-		return nil, &ClientError{Type: "http.NewRequest creation error", Message: err}
+		return nil, &ClientError{Reason: "cannot create new request", ErrorMessage: err}
 	}
 
 	req.SetBasicAuth(c.user, c.password)
@@ -253,42 +227,34 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 }
 
 func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
-	c.log.V(1).Info("retrying request to the second NCM EXTERNAL API")
-
-	ncmServer2URL, err := url.Parse(c.ncmServer2)
-	if err != nil {
-		return nil, &ClientError{Type: "URL parsing error", Message: err}
-	}
-
+	c.log.Info("retrying request to secondary NCM EXTERNAL API")
+	ncmServer2URL, _ := url.Parse(c.ncmServer2)
 	req.URL.Host = ncmServer2URL.Host
+
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, &ClientError{Type: "http.Client.Do error", Message: err}
+		return nil, &ClientError{Reason: "cannot perform request", ErrorMessage: err}
 	}
 
 	return resp, nil
 }
 
 func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, &ClientError{Type: "response body read error", Message: err}
-		}
-
-		return body, nil
-
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, &ClientError{Type: "response body read error", Message: err}
+		return nil, &ClientError{Reason: "cannot read response body", ErrorMessage: err}
+	}
+
+	defer resp.Body.Close()
+
+	if status := resp.StatusCode; status >= 200 && status < 300 {
+		return body, nil
 	}
 
 	apiError := APIError{}
 	err = json.Unmarshal(body, &apiError)
 	if err != nil {
-		return nil, &ClientError{Type: "json unmarshal error", Message: err}
+		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
 	}
 
 	return nil, &apiError
@@ -296,84 +262,87 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
-	if err != nil && os.IsTimeout(err) && c.allowRetry {
-		c.log.V(1).Info("connection timeout exceeded while connecting to the main NCM EXTERNAL API")
+	if err != nil {
+		if c.allowRetry && os.IsTimeout(err) {
+			c.log.Info("connection timeout exceeded during request to main NCM EXTERNAL API")
+			resp, err = c.retryRequest(req)
+			if err != nil {
+				return nil, err
+			}
+			return resp, err
+		}
+		return nil, err
+	}
 
-		resp, err := c.retryRequest(req)
+	if c.allowRetry && resp.StatusCode == http.StatusInternalServerError {
+		c.log.Info("got 500 status code from main NCM EXTERNAL API")
+		resp, err = c.retryRequest(req)
 		if err != nil {
 			return nil, err
 		}
-
 		return resp, nil
-
-	} else if err != nil {
-		return nil, &ClientError{Type: "http.Client.Do error", Message: err}
 	}
 
 	return resp, nil
 }
 
-func (c *Client) GetCAs() (CAsResponse, error) {
+func (c *Client) GetCAs() (*CAsResponse, error) {
 	params := url.Values{}
 	req, err := c.newRequest(http.MethodGet, CAsURL, strings.NewReader(params.Encode()))
 	if err != nil {
-		return CAsResponse{}, err
+		return nil, err
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return CAsResponse{}, err
+		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	body, err := c.validateResponse(resp)
 	if err != nil {
-		return CAsResponse{}, err
+		return nil, err
 	}
 
 	cas := CAsResponse{}
 	err = json.Unmarshal(body, &cas)
 	if err != nil {
-		return CAsResponse{}, &ClientError{Type: "json unmarshal error", Message: err}
+		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
 	}
 
-	return cas, nil
+	return &cas, nil
 
 }
 
-func (c *Client) GetCA(path string) (CAResponse, error) {
+func (c *Client) GetCA(path string) (*CAResponse, error) {
 	params := url.Values{}
 	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(params.Encode()))
 	if err != nil {
-		return CAResponse{}, err
+		return nil, err
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return CAResponse{}, err
+		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	body, err := c.validateResponse(resp)
 	if err != nil {
-		return CAResponse{}, err
+		return nil, err
 	}
 
 	ca := CAResponse{}
 	err = json.Unmarshal(body, &ca)
 	if err != nil {
-		return CAResponse{}, &ClientError{Type: "json unmarshal error", Message: err}
+		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
 	}
 
-	return ca, nil
+	return &ca, nil
 }
 
-func (c *Client) SendCSR(pem []byte, CA CAResponse, profileId string) (CSRResponse, error) {
+func (c *Client) SendCSR(pem []byte, CA *CAResponse, profileId string) (*CSRResponse, error) {
 	filePath, err := WritePemToTempFile("/tmp/ncm", pem)
 	if err != nil {
-		return CSRResponse{}, &ClientError{Type: "writing file error", Message: err}
+		return nil, &ClientError{Reason: "cannot write PEM to file", ErrorMessage: err}
 	}
 
 	params := map[string]string{
@@ -386,7 +355,7 @@ func (c *Client) SendCSR(pem []byte, CA CAResponse, profileId string) (CSRRespon
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return CSRResponse{}, &ClientError{Type: "opening file error", Message: err}
+		return nil, &ClientError{Reason: "cannot open file", ErrorMessage: err}
 	}
 
 	defer file.Close()
@@ -395,7 +364,7 @@ func (c *Client) SendCSR(pem []byte, CA CAResponse, profileId string) (CSRRespon
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("pkcs10", filepath.Base(filePath))
 	if err != nil {
-		return CSRResponse{}, &ClientError{Type: "writer error", Message: err}
+		return nil, &ClientError{Reason: "cannot create new form-data header", ErrorMessage: err}
 	}
 
 	_, _ = io.Copy(part, file)
@@ -406,96 +375,90 @@ func (c *Client) SendCSR(pem []byte, CA CAResponse, profileId string) (CSRRespon
 
 	err = writer.Close()
 	if err != nil {
-		return CSRResponse{}, &ClientError{Type: "writer error", Message: err}
+		return nil, &ClientError{Reason: "cannot close writer", ErrorMessage: err}
 	}
 
 	req, err := c.newRequest(http.MethodPost, CSRURL, body)
 	if err != nil {
-		return CSRResponse{}, err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	err = os.Remove(filePath)
 	if err != nil {
-		return CSRResponse{}, &ClientError{Type: "removing file error", Message: err}
+		return nil, &ClientError{Reason: "cannot remove file", ErrorMessage: err}
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return CSRResponse{}, err
+		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	respBody, err := c.validateResponse(resp)
 	if err != nil {
-		return CSRResponse{}, err
+		return nil, err
 	}
 
 	csr := CSRResponse{}
 	err = json.Unmarshal(respBody, &csr)
 	if err != nil {
-		return CSRResponse{}, &ClientError{Type: "json unmarshal error", Message: err}
+		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
 	}
 
-	return csr, nil
+	return &csr, nil
 }
 
-func (c *Client) CheckCSRStatus(path string) (CSRStatusResponse, error) {
+func (c *Client) CheckCSRStatus(path string) (*CSRStatusResponse, error) {
 	params := url.Values{}
 	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(params.Encode()))
 	if err != nil {
-		return CSRStatusResponse{}, err
+		return nil, err
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return CSRStatusResponse{}, err
+		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	body, err := c.validateResponse(resp)
 	if err != nil {
-		return CSRStatusResponse{}, err
+		return nil, err
 	}
 
 	csrStatus := CSRStatusResponse{}
 	err = json.Unmarshal(body, &csrStatus)
 	if err != nil {
-		return CSRStatusResponse{}, &ClientError{Type: "json unmarshal error", Message: err}
+		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
 	}
 
-	return csrStatus, nil
+	return &csrStatus, nil
 }
 
-func (c *Client) DownloadCertificate(path string) (CertificateDownloadResponse, error) {
+func (c *Client) DownloadCertificate(path string) (*CertificateDownloadResponse, error) {
 	params := url.Values{}
 	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(params.Encode()))
 	if err != nil {
-		return CertificateDownloadResponse{}, err
+		return nil, err
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return CertificateDownloadResponse{}, err
+		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	body, err := c.validateResponse(resp)
 	if err != nil {
-		return CertificateDownloadResponse{}, err
+		return nil, err
 	}
 
-	certificate := CertificateDownloadResponse{}
-	err = json.Unmarshal(body, &certificate)
+	crt := CertificateDownloadResponse{}
+	err = json.Unmarshal(body, &crt)
 	if err != nil {
-		return CertificateDownloadResponse{}, &ClientError{Type: "json unmarshal error", Message: err}
+		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
 	}
 
-	return certificate, nil
+	return &crt, nil
 }
 
 func (c *Client) DownloadCertificateInPEM(path string) ([]byte, error) {
@@ -512,8 +475,6 @@ func (c *Client) DownloadCertificateInPEM(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
 	body, err := c.validateResponse(resp)
 	if err != nil {
 		return nil, err
@@ -522,7 +483,7 @@ func (c *Client) DownloadCertificateInPEM(path string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *Client) RenewCertificate(path string, certDuration metav1.Duration, profileId string) (RenewCertificateResponse, error) {
+func (c *Client) RenewCertificate(path string, certDuration metav1.Duration, profileId string) (*RenewCertificateResponse, error) {
 	notBefore := time.Now()
 	notAfter := notBefore.Add(certDuration.Duration)
 
@@ -538,28 +499,26 @@ func (c *Client) RenewCertificate(path string, certDuration metav1.Duration, pro
 	jsonData, _ := json.Marshal(&newData)
 	req, err := c.newRequest(http.MethodPost, path+"/update", strings.NewReader(string(jsonData)))
 	if err != nil {
-		return RenewCertificateResponse{}, err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return RenewCertificateResponse{}, err
+		return nil, err
 	}
-
-	defer resp.Body.Close()
 
 	body, err := c.validateResponse(resp)
 	if err != nil {
-		return RenewCertificateResponse{}, err
+		return nil, err
 	}
 
-	renewedCertificate := RenewCertificateResponse{}
-	err = json.Unmarshal(body, &renewedCertificate)
+	renewedCrt := RenewCertificateResponse{}
+	err = json.Unmarshal(body, &renewedCrt)
 	if err != nil {
-		return RenewCertificateResponse{}, &ClientError{Type: "json unmarshal error", Message: err}
+		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
 	}
 
-	return renewedCertificate, nil
+	return &renewedCrt, nil
 }
