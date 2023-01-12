@@ -413,7 +413,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, nil
 		}
 
-		enduserCAInPEM, err := ncmClient.DownloadCertificateInPEM(renewedCertURLPath)
+		enduserCAInPEM, err = ncmClient.DownloadCertificateInPEM(renewedCertURLPath)
 		if err != nil {
 			log.Error(err, "failed to download Certificate", "certURL", renewCertResp.Certificate)
 
@@ -507,7 +507,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, nil
 		}
 
-		enduserCAInPEM, err := ncmClient.DownloadCertificateInPEM(enduserCAURLPath)
+		enduserCAInPEM, err = ncmClient.DownloadCertificateInPEM(enduserCAURLPath)
 		if err != nil {
 			log.Error(err, "failed to download Certificate", "certURL", csrStatusResp.Certificate)
 
