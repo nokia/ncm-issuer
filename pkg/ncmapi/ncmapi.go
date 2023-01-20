@@ -227,7 +227,7 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 }
 
 func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
-	c.log.Info("retrying request to secondary NCM EXTERNAL API")
+	c.log.Info("retrying request to secondary NCM EXTERNAL API", "serverURL", c.ncmServer2)
 	ncmServer2URL, _ := url.Parse(c.ncmServer2)
 	req.URL.Host = ncmServer2URL.Host
 
@@ -235,6 +235,7 @@ func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot perform request", ErrorMessage: err}
 	}
+	c.log.Info("received proper response from secondary NCM EXTERNAL API", "serverURL", c.ncmServer2)
 
 	return resp, nil
 }
@@ -264,7 +265,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
 		if c.allowRetry && os.IsTimeout(err) {
-			c.log.Info("connection timeout exceeded during request to main NCM EXTERNAL API")
+			c.log.Info("main NCM EXTERNAL API seems not responding", "serverURL", c.ncmServer, "err", err)
 			resp, err = c.retryRequest(req)
 			if err != nil {
 				return nil, err
@@ -275,7 +276,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	}
 
 	if c.allowRetry && resp.StatusCode == http.StatusInternalServerError {
-		c.log.Info("got 500 status code from main NCM EXTERNAL API")
+		c.log.Info("main NCM EXTERNAL API cannot handle request", "serverURL", c.ncmServer, "status", resp.StatusCode)
 		resp, err = c.retryRequest(req)
 		if err != nil {
 			return nil, err
