@@ -11,24 +11,30 @@ import (
 
 func TestNewClientCreation(t *testing.T) {
 	tests := []struct {
-		name string
-		cfg  *NCMConfig
+		name           string
+		cfg            *NCMConfig
+		expectedClient *Client
+		expectedError  error
 	}{
 		{
-			name: "invalidNCMServerURL",
+			name: "invalid NCM EXTERNAL API URL",
 			cfg: &NCMConfig{
 				NcmSERVER: "https://malformed url.com:80",
 			},
+			expectedClient: nil,
+			expectedError:  &ClientError{},
 		},
 		{
-			name: "invalidNCMServer2URL",
+			name: "invalid 2nd NCM EXTERNAL API URL",
 			cfg: &NCMConfig{
 				NcmSERVER:  "https://working-url.com:3000",
 				NcmSERVER2: "https://malformed url.com:-17",
 			},
+			expectedClient: nil,
+			expectedError:  &ClientError{},
 		},
 		{
-			name: "invalidKeyPair",
+			name: "invalid key pair",
 			cfg: &NCMConfig{
 				NcmSERVER:          "https://working-url.com:3000",
 				NcmSERVER2:         "https://working-url2.com:3000",
@@ -38,9 +44,11 @@ func TestNewClientCreation(t *testing.T) {
 				InsecureSkipVerify: false,
 				MTLS:               true,
 			},
+			expectedClient: nil,
+			expectedError:  &ClientError{},
 		},
 		{
-			name: "properClientCreation",
+			name: "proper client creation",
 			cfg: &NCMConfig{
 				Username:           "user",
 				UsrPassword:        "password",
@@ -52,62 +60,57 @@ func TestNewClientCreation(t *testing.T) {
 				InsecureSkipVerify: true,
 				MTLS:               false,
 			},
+			expectedClient: &Client{},
+			expectedError:  nil,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			log := testr.TestLogger{T: t}
-			if client, err := NewClient(tt.cfg, log); err != nil {
-				assert.ErrorIs(t, err, err.(*ClientError))
-			} else {
-				assert.IsType(t, &Client{}, client)
-			}
-		})
+		log := testr.TestLogger{T: t}
+		client, err := NewClient(tt.cfg, log)
+		assert.IsType(t, tt.expectedClient, client, "%s failed", tt.name)
+		assert.IsType(t, tt.expectedError, err, "%s failed", tt.name)
 	}
 }
 
 func TestResponseValidation(t *testing.T) {
 	tests := []struct {
-		name string
-		resp *http.Response
+		name          string
+		resp          *http.Response
+		expectedError error
 	}{
 		{
-			name: "notValidResponse",
+			name: "not valid response",
 			resp: &http.Response{
 				StatusCode: 400,
 				Body:       io.NopCloser(bytes.NewReader([]byte(`{"message": "", "status": 400, "statusMessage": "Bad Request"}`))),
 			},
+			expectedError: &APIError{},
 		},
 		{
-			name: "validResponse",
+			name: "valid response",
 			resp: &http.Response{
 				StatusCode: 200,
 				Body:       io.NopCloser(bytes.NewReader([]byte(`{"random": "field"}`))),
 			},
+			expectedError: nil,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			log := testr.TestLogger{T: t}
-			client, _ := NewClient(&NCMConfig{
-				Username:           "user",
-				UsrPassword:        "password",
-				NcmSERVER:          "https://working-url.com:3000",
-				NcmSERVER2:         "",
-				CACert:             "CACert",
-				Key:                "Key",
-				Cert:               "Cert",
-				InsecureSkipVerify: true,
-				MTLS:               false,
-			}, log)
-
-			if body, err := client.validateResponse(tt.resp); err != nil {
-				assert.ErrorIs(t, err, err.(*APIError))
-			} else {
-				assert.IsType(t, []byte("random-field"), body)
-			}
-		})
+		log := testr.TestLogger{T: t}
+		client, _ := NewClient(&NCMConfig{
+			Username:           "user",
+			UsrPassword:        "password",
+			NcmSERVER:          "https://working-url.com:3000",
+			NcmSERVER2:         "",
+			CACert:             "CACert",
+			Key:                "Key",
+			Cert:               "Cert",
+			InsecureSkipVerify: true,
+			MTLS:               false,
+		}, log)
+		_, err := client.validateResponse(tt.resp)
+		assert.IsType(t, tt.expectedError, err, "%s failed", tt.name)
 	}
 }
