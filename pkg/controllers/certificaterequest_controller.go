@@ -141,7 +141,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	issuerSpec, issuerStatus, err := pkiutil.GetSpecAndStatus(issuer)
 	if err != nil {
 		log.Error(err, "Fail to get spec and status for the issuer")
-
 		return ctrl.Result{}, nil
 	}
 
@@ -149,7 +148,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if issuerSpec.AuthNamespace == "" {
 			issuerSpec.AuthNamespace = "default"
 		}
-
 		secretNamespace = issuerSpec.AuthNamespace
 	}
 
@@ -160,7 +158,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}) {
 		err := r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending,
 			"Failed: (Cluster)Issuer %s is not Ready; its condition is %s", issuerName, issuerStatus.Conditions)
-
 		return ctrl.Result{}, err
 	}
 
@@ -170,20 +167,23 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Name:      issuerName.Name}] == nil {
 		err := r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending,
 			"Failed: CRD configuration %s/%s is not Ready; type,status in myCRD.Status.Conditions=%s, cfg is nil=%v", secretNamespace, issuerName.Name, issuerStatus.Conditions, NCMConfigMap)
-
 		return ctrl.Result{}, err
 	}
 
 	if apiutil.CertificateRequestIsDenied(&cr) {
 		log.V(4).Info("certificate request has been denied")
 		err := r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "CSR has been denied")
-
 		return ctrl.Result{}, err
 	}
 
 	if !apiutil.CertificateRequestIsApproved(&cr) {
 		log.V(4).Info("certificate request has not been approved")
+		return ctrl.Result{}, nil
+	}
 
+	if err = validateCertificateRequest(&cr); err != nil {
+		log.Error(err, "certificate request has issues", "cr", req.NamespacedName)
+		_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate request has issues: %v", err)
 		return ctrl.Result{}, nil
 	}
 
@@ -191,24 +191,16 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	ncmClient, err := ncmapi.NewClient(ncmCfg, log)
 	if err != nil {
 		log.Error(err, "failed to create NCM API Client")
-
-		err = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to create NCM API Client, make sure the config is set up correctly; %v", err)
-		if err != nil {
-			log.Error(err, "failed to set certificate request status")
-		}
-
+		_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Failed to create NCM API Client, make sure the config is set up correctly; %v", err)
 		return ctrl.Result{}, nil
 	}
 
 	var pemChain []byte
-
 	casResponse, err := ncmClient.GetCAs()
 	if err != nil {
 		log.Error(err, "failed to get CAs")
 		_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Please, check your external NCM server. Failed to get CAs; %v", err)
-
 		go r.waitAndGetCAs(ctx, req, &cr, ncmClient, log)
-
 		return ctrl.Result{}, nil
 	}
 
@@ -234,7 +226,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if wantedCA.Href == "" {
 		log.Error(err, "CA certificate has not been found. Please check provided CASHREF/CASNAME", "cashref", ncmCfg.CASHREF, "casname", ncmCfg.CASNAME)
 		_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "CA certificate has not been found. Please check provided CASHREF/CASNAME URL=%s, CASNAME=%s, CASHREF=%s", ncmCfg.NcmSERVER+ncmapi.CAsURL, ncmCfg.CASNAME, ncmCfg.CASHREF)
-
 		return ctrl.Result{}, nil
 	}
 
@@ -250,7 +241,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "failed to download Certificate", "certURL", lastCA.Certificates["active"])
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to download certificate; %v", err)
-
 			return ctrl.Result{}, nil
 		}
 
@@ -262,7 +252,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "failed to download PEM Certificate", "certURL", lastCA.Certificates["active"])
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to download certificate; %v", err)
-
 			return ctrl.Result{}, nil
 		}
 
@@ -273,7 +262,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "failed to download CA certificate", "caURL", currentCert.IssuerCA)
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to download CA certificate; %v", err)
-
 			return ctrl.Result{}, nil
 		}
 	}
@@ -292,12 +280,10 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err != nil {
 		log.Error(err, "failed to download ROOT certificate")
 		_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to download ROOT certificate; %v", err)
-
 		return ctrl.Result{}, nil
 	}
 
 	crt := cmapi.Certificate{}
-
 	positionToSlice := strings.LastIndex(req.Name, "-")
 	if err := r.Client.Get(ctx, client.ObjectKey{
 		Namespace: req.Namespace, Name: req.Name[:positionToSlice]}, &crt); err != nil {
@@ -317,22 +303,18 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	secretList, err := r.getSecretList(ctx, req)
 	if err != nil {
 		log.Error(err, "failed to list certificates resources")
-
 		return ctrl.Result{}, nil
 	}
 
 	switch {
 	case crt.Status.Revision != nil && *crt.Status.Revision >= 1 &&
 		!ncmCfg.ReenrollmentOnRenew && crt.Spec.PrivateKey.RotationPolicy != "Always":
-		if pkiutil.FindIfSecretExists(secretList, secretName) && pkiutil.FindIfSecretExists(secretList, crt.ObjectMeta.Name) {
+		if pkiutil.FindIfSecretExists(secretList, secretName) && pkiutil.FindIfSecretExists(secretList, crt.Spec.SecretName) {
 			log.Info("Secret with cert-id will be updated")
-
 			secretCertID := core.Secret{}
-			err := r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: secretName}, &secretCertID)
-			if err != nil {
+			if err := r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: secretName}, &secretCertID); err != nil {
 				log.Error(err, "failed to get a secret with cert-id", "secretName", secretName)
 				_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Failed to download secret err=%v", err)
-
 				return ctrl.Result{}, nil
 			}
 
@@ -343,7 +325,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			if err != nil {
 				log.Error(err, "failed to renewCertificate")
 				_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to renew certificate; %v", err)
-
 				return ctrl.Result{}, nil
 			}
 
@@ -353,19 +334,18 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			if err != nil {
 				log.Error(err, "failed to download certificate", "certURL", renewCertResp.Certificate)
 				_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to download certificate; %v", err)
-
 				return ctrl.Result{}, nil
 			}
 
 			secretCertID = pkiutil.GetSecretObject(req.Namespace, secretName, renewCertResp.Certificate)
-			err = r.Client.Update(ctx, &secretCertID)
-			if err != nil {
+			if err := r.Client.Update(ctx, &secretCertID); err != nil {
 				_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update a secret err=%v", err)
-
 				return ctrl.Result{}, nil
 			}
+
+			log.Info("Updated secret", "updatedSecret", secretCertID)
 			break
-		} else if !pkiutil.FindIfSecretExists(secretList, crt.ObjectMeta.Name) {
+		} else if !pkiutil.FindIfSecretExists(secretList, crt.Spec.SecretName) {
 			log.Info("Manually rotation of a private key has been triggered")
 		}
 		fallthrough
@@ -374,7 +354,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "failed send CSR")
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to send CSR cr.ObjectMeta.name=%s/%s; %v", cr.ObjectMeta.Name, cr.ObjectMeta.Namespace, err)
-
 			return ctrl.Result{}, nil
 		}
 
@@ -383,7 +362,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "failed to check CSR status")
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to check CSR status; %v", err)
-
 			return ctrl.Result{}, nil
 		}
 
@@ -407,7 +385,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if !validCSRStatus {
 			log.Error(err, "Invalid CSR Status")
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Invalid CSR Status status=%s, cr.meta=%v; %v", csrStatusResp.Status, cr.ObjectMeta, err)
-
 			return ctrl.Result{}, nil
 		}
 
@@ -417,7 +394,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "failed to download enduser certificate", "certURL", csrStatusResp.Certificate)
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to download enduser certificate tmp_enduser_ca_InPEM=%v; %v", enduserCAInPEM, err)
-
 			return ctrl.Result{}, nil
 		}
 
@@ -434,7 +410,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			log.Error(err, "failed to create/update a secret with cert-id", "secretName", secretName)
 			_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to create/update secret err=%v", err)
-
 			return ctrl.Result{}, nil
 		}
 
@@ -451,6 +426,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Set PEMs
 	cr.Status.Certificate = pemChain
 	cr.Status.CA = instaCAInPEM
+	log.Info("Certificate request at the end of the plugin execution", "certRequest", cr)
 
 	// Finally, update the status
 	return ctrl.Result{}, r.setStatus(ctx, &cr, cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Successfully issued certificate")
@@ -631,6 +607,19 @@ func (r *CertificateRequestReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&cmapi.CertificateRequest{}).
 		Complete(r)
+}
+
+func validateCertificateRequest(cr *cmapi.CertificateRequest) error {
+	if len(cr.Spec.Request) == 0 {
+		return fmt.Errorf("certificate request is empty")
+	}
+
+	if cr.ObjectMeta.GenerateName[:len(cr.ObjectMeta.GenerateName)-1] != cr.Annotations[cmapi.CertificateNameKey] {
+		return fmt.Errorf("certificate name is too long, suggested name based on provided one: %s",
+			cr.ObjectMeta.GenerateName[:len(cr.ObjectMeta.GenerateName)-1])
+	}
+
+	return nil
 }
 
 func checkCSRStatus(csrStatusResp *ncmapi.CSRStatusResponse) bool {

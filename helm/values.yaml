@@ -34,7 +34,7 @@ certManagerRbac:
   binding: cert-manager-controller-approve:ncm-certmanager-nokia-com
   role: cert-manager-controller-approve:ncm-certmanager-nokia-comv
 
-# since NCM is outside of k8s cluster, so need external connection with NCM.
+# since NCM is outside k8s cluster, so need external connection with NCM.
 # edge control is generally used to connect external network.
 # prefer edge node
 controller:
