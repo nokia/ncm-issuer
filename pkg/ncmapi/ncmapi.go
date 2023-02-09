@@ -38,6 +38,7 @@ type NCMConfig struct {
 	InstaCA              string // NCM root CA
 	LittleEndianPem      bool   // bigEndian or littleEndian: bE Cert -> Issuers; lE Issuers -> Cert
 	NoRoot               bool   // determines whether Issuer of the Cert should be taken into consideration instead of root
+	ChainInSigner        bool   // determines whether certificate chain should be included in ca.crt
 	CACert               string // TLS CA Cert
 	Key                  string // TLS client Key
 	Cert                 string // TLS client Cert

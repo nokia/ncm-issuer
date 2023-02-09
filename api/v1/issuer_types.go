@@ -38,6 +38,7 @@ type IssuerSpec struct {
 	ReenrollmentOnRenew  bool   `json:"reenrollmentOnRenew"`
 	UseProfileIDForRenew bool   `json:"useProfileIDForRenew"`
 	NoRoot               bool   `json:"noRoot"`
+	ChainInSigner        bool   `json:"chainInSigner"`
 
 	// The secret which contains REST API username and password
 	AuthSecretName string `json:"secretName"`

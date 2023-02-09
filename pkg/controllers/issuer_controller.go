@@ -98,8 +98,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}()
 
 	// check Spec
-	invalidStr := checkIssuerSpec(issuerSpec)
-	if len(invalidStr) != 0 {
+	if invalidStr := checkIssuerSpec(issuerSpec); len(invalidStr) != 0 {
 		reason = "incorrect setting"
 		err = errors.New(reason)
 		completeMessage = fmt.Sprintf("Incorrect Spec config: %v", invalidStr)
@@ -121,8 +120,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	err = checkNCMSecretData(&caSecret)
-	if err != nil {
+	if err = checkNCMSecretData(&caSecret); err != nil {
 		reason = "incorrect setting"
 		completeMessage = fmt.Sprintf("incorrect Auth Secret setting: %v", err)
 		log.Error(err, "incorrect Auth Secret setting")
@@ -145,6 +143,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	cfg.ReenrollmentOnRenew = issuerSpec.ReenrollmentOnRenew
 	cfg.UseProfileIDForRenew = issuerSpec.UseProfileIDForRenew
 	cfg.NoRoot = issuerSpec.NoRoot
+	cfg.ChainInSigner = issuerSpec.ChainInSigner
 
 	///////////////////////
 	cfg.InsecureSkipVerify = true
@@ -157,8 +156,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.Error(err, "failed to retrieve tls Secret")
 			return ctrl.Result{}, err
 		}
-		err = populateNCMTLSConfData(&tlsConfSecret, &cfg)
-		if err != nil {
+		if err = populateNCMTLSConfData(&tlsConfSecret, &cfg); err != nil {
 			reason = "incorrect TLS setting"
 			completeMessage = fmt.Sprintf("TLS secret config setting population is incorrect: %v", err)
 			log.Error(err, "TLS secret config setting population is incorrect")
@@ -302,15 +300,8 @@ func populateNCMTLSConfData(tlsConfSecret *core.Secret, cfg *ncmapi.NCMConfig) e
 		cfg.Cert = certPath
 	}
 
-	cfg.InsecureSkipVerify = true
-	if cfg.CACert != "" {
-		cfg.InsecureSkipVerify = false
-	}
-
-	cfg.MTLS = false
-	if cfg.Key != "" && cfg.Cert != "" {
-		cfg.MTLS = true
-	}
+	cfg.InsecureSkipVerify = cfg.CACert == ""
+	cfg.MTLS = cfg.Key != "" && cfg.Cert != ""
 
 	if cfg.CACert == "" && cfg.Key == "" && cfg.Cert == "" {
 		return fmt.Errorf("no useful data cacert, key or cert in Ttls secret")
@@ -326,7 +317,7 @@ func checkIssuerSpec(issuerSpec *certmanagerv1.IssuerSpec) string {
 	}
 
 	if len(issuerSpec.CASNAME) == 0 && len(issuerSpec.CASHREF) == 0 {
-		invalidStr += "The CASNAME or CASHREF should not be empty."
+		invalidStr += "The CAsNAME or CAsHREF should not be empty."
 	}
 
 	return invalidStr
