@@ -23,4 +23,5 @@ Version 1.0.2 (Build Version 1.0.1)
 Version 1.0.3 (Build Version 1.0.2)
 - Added possibility to specify secondary NCM EXTERNAL API server in case of lack of connection to the main one
 - Fixed misinterpretation in case of manually triggering rotation of a private key
-- Limited size of certificate name to 52 characters
+- Fixed bug related to getting certificate object when the certificate name is long
+- Added possibility to include certificate chain in ca.crt

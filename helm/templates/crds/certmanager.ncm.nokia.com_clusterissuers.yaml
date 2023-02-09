@@ -49,13 +49,15 @@ spec:
               CASHREF:
                 type: string
               littleEndian:
-                 type: boolean
+                type: boolean
               reenrollmentOnRenew:
                 type: boolean
               useProfileIDForRenew:
                 type: boolean
               noRoot:
-                 type: boolean
+                type: boolean
+              chainInSigner:
+                type: boolean
               authNameSpace:
                 type: string
               ncmSERVER:

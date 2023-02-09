@@ -55,7 +55,9 @@ spec:
               useProfileIDForRenew:
                 type: boolean
               noRoot:
-                 type: boolean
+                type: boolean
+              chainInSigner:
+                type: boolean
               authNameSpace:
                 type: string
               ncmSERVER:
@@ -63,9 +65,9 @@ spec:
                   are supported
                 type: string
               ncmSERVER2:
-              description: Define secondary external NCM REST API URL in case of the lack of
-                connection to the main one
-              type: string
+                description: Define secondary external NCM REST API URL in case of the
+                  lack of connection to the main one
+                type: string
               profileId:
                 description: ProfileId API parameter
                 type: string
