@@ -33,10 +33,10 @@ func findCA(casResponse *ncmapi.CAsResponse, CAsHREF, CAsNAME string) (*ncmapi.C
 		if strings.EqualFold(ca.Status, "active") {
 			if CAsHREF != "" {
 				href := hrefRegex.Find([]byte(ca.Href))
-				if strings.EqualFold(string(href), CAsHREF) {
+				if string(href) == CAsHREF {
 					return &ca, true
 				}
-			} else if strings.EqualFold(ca.Name, CAsNAME) {
+			} else if ca.Name == CAsNAME {
 				return &ca, true
 			}
 		}
