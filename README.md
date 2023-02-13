@@ -129,7 +129,7 @@ $ kubectl -n NAMESPACE describe secrets SECRET_NAME
 
 NCM Issuer extends [cert-manager](https://cert-manager.io/) functionalities, but way of usage stays the same. There are additional fields in .yaml file (Issuer definition) that are needed to be filled.
 
-### Create an issuer
+### Create an issuer or cluster issuer
 
 Issuer .yaml file with all available options:
 
@@ -145,11 +145,15 @@ spec:
    CASNAME: CERTIFICATE_NAME_FROM_NCM
    CASHREF: HREF_FROM_NCM
    ncmSERVER: ADDR_TO_NCM
+   ncmSERVER2: ADDR_TO_NCM2
+   chainInSigner: false (or true)
    profileId: PROFILE_ID
    reenrollmentOnRenew: false (or true)
    useProfileIDForRenew: false (or true)
    noRoot: false (or true)
 ```
+
+#### Issuer or cluster issuer fields
 
 For **kind** variable use either Issuer for namespaced one or ClusterIssuer for cluster level issuer.
 
@@ -163,7 +167,11 @@ For **tlsSecretName** use the secret name with TLS certificate.
 
 For **CASNAME** use the CA name from NCM web UI visible under 'CA Hierarchy'. Please do not use CA's CN or DN, but CA name as plainly visible in the UI.
 
-For **ncmSERVER** please use your NCM REST API service URL.
+For **ncmSERVER** specify your NCM REST API service URL.
+
+If the **ncmSERVER2** field is defined, it will try to make the same query to the second provided NCM REST API service URL in case of lack of connection to the main one.
+
+Setting the **chainInSigner** field to "true" ensure that certificate chain will be included in **ca.crt** (intermediate certificates + issuing certificate + root CA).
 
 If the **profileId** field is defined, then the profile ID will be set in enrollment requests, so it is included in the issued certificates.
 
