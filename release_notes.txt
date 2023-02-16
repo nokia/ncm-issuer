@@ -21,7 +21,11 @@ Version 1.0.2 (Build Version 1.0.1)
 - Update go version to 1.17
 
 Version 1.0.3 (Build Version 1.0.2)
-- Added possibility to specify secondary NCM EXTERNAL API server in case of lack of connection to the main one
+- Added possibility to specify secondary NCM EXTERNAL API server in case of lack of connection to the main one,
+  server is specified as a parameter "ncmSERVER2" in issuer or cluster issuer yaml file
 - Fixed misinterpretation in case of manually triggering rotation of a private key
 - Fixed bug related to getting certificate object when the certificate name is long
-- Added possibility to include certificate chain in ca.crt
+- Added possibility to include certificate chain in ca.crt by setting "chainInSigner" in issuer or cluster issuer
+  yaml file to "true"
+- Added possibility to include only end-entity certificate in tls.crt by setting "onlyEECert" in issuer or cluster
+  issuer yaml file to "true"

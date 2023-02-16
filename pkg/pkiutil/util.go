@@ -43,7 +43,7 @@ func FindIfSecretExists(secretList v1.SecretList, secretName string) bool {
 	return false
 }
 
-func GetSecretObject(namespace string, name string, certID string) v1.Secret {
+func GetSecretObject(namespace string, name string, certID string) *v1.Secret {
 	secret := v1.Secret{
 		ObjectMeta: v12.ObjectMeta{
 			Namespace: namespace,
@@ -54,7 +54,7 @@ func GetSecretObject(namespace string, name string, certID string) v1.Secret {
 		},
 		Type: v1.SecretTypeOpaque,
 	}
-	return secret
+	return &secret
 }
 
 // MyCRDHasCondition will return true if the given MyCRD has a

@@ -58,6 +58,8 @@ spec:
                 type: boolean
               chainInSigner:
                 type: boolean
+              onlyEECert:
+                type: boolean
               authNameSpace:
                 type: string
               ncmSERVER:
