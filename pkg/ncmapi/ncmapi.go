@@ -20,53 +20,99 @@ import (
 )
 
 const (
-	HTTPTimeout = 10
-	CAsURL      = "/v1/cas"
-	CSRURL      = "/v1/requests"
+	DefaultHTTPTimeout = 10
+	CAsURL             = "/v1/cas"
+	CSRURL             = "/v1/requests"
 )
 
-// NCMConfig set up with secret and used for NCM API Client configuration
+// NCMConfig is a config set up with secret and used for NCM API Client configuration
 type NCMConfig struct {
-	Username             string
-	UsrPassword          string
-	NcmSERVER            string
-	NcmSERVER2           string
-	CASNAME              string // CAs for bcmtncm
-	CASHREF              string // href for bcmtncm
-	ReenrollmentOnRenew  bool
+	Username    string
+	UsrPassword string
+	NCMServer   string
+	NCMServer2  string
+
+	// CAsName is a CAs for bcmtncm
+	CAsName string
+
+	// CAsHREF is a HREF for bcmtncm
+	CAsHREF string
+
+	// ReenrollmentOnRenew determines whether during renewal certificate
+	// should be re-enrolled instead of renewed
+	ReenrollmentOnRenew bool
+
 	UseProfileIDForRenew bool
-	InstaCA              string // NCM root CA
-	LittleEndianPem      bool   // bigEndian or littleEndian: bE Cert -> Issuers; lE Issuers -> Cert
-	NoRoot               bool   // determines whether Issuer of the Cert should be taken into consideration instead of root
-	ChainInSigner        bool   // determines whether certificate chain should be included in ca.crt
-	CACert               string // TLS CA Cert
-	Key                  string // TLS client Key
-	Cert                 string // TLS client Cert
-	InsecureSkipVerify   bool   // determines whether SSL certificate verification between client instance and NCM EXTERNAL API should be enabled
-	MTLS                 bool   // determines whether mTLS should be enabled
+
+	// InstaCA is a NCM root CA
+	InstaCA string
+
+	// LittleEndianPem determines
+	LittleEndianPem bool // bigEndian or littleEndian: bE Cert -> Issuers; lE Issuers -> Cert
+
+	// NoRoot determines whether issuing CA certificate should be included
+	// in ca.crt instead of root CA certificate
+	NoRoot bool
+
+	// ChainInSigner determines whether certificate chain should be included in ca.crt
+	// (intermediate certificates + issuing CA certificate + root CA certificate)
+	ChainInSigner bool
+
+	// OnlyEECert determines whether only end-entity certificate should be included
+	// in tls.crt
+	OnlyEECert bool
+
+	// CACert is a TLS CA certificate
+	CACert string
+
+	// Key is a TLS client key
+	Key string
+
+	// Cert is a TLS client certificate
+	Cert string
+
+	// InsecureSkipVerify determines whether SSL certificate verification between client
+	// instance and NCM EXTERNAL API should be enabled
+	InsecureSkipVerify bool
+
+	// MTLS determines whether mTLS should be enabled
+	MTLS bool
 }
 
-// NCMConfigKey used to separate different configurations for different namespaces
+// NCMConfigKey is a structure used to separate different configurations for
+// different namespaces
 type NCMConfigKey struct {
 	Namespace string
 	Name      string
 }
 
-// Client used to communicate with the NCM EXTERNAL API
+// Client is a client used to communicate with the NCM EXTERNAL API
 type Client struct {
-	ncmServer  string // main NCM EXTERNAL API server address
-	ncmServer2 string // Secondary NCM EXTERNAL API server address in case of the lack of connection to the main one (can be empty)
-	user       string // user used for authentication to NCM EXTERNAL API
-	password   string // password used for authentication to NCM EXTERNAL API
+	// NCMServer is a main NCM EXTERNAL API server address
+	NCMServer string
 
-	// Determines whether, in the case of lack of the connection to the main server (no response within
-	// a certain time period), there is an address of a second server to which client can send the
-	// same request
+	// NCMServer2 is a secondary NCM EXTERNAL API server address
+	// in case of the lack of connection to the main one (can be empty)
+	NCMServer2 string
+
+	// user is a user used for authentication to NCM EXTERNAL API
+	user string
+
+	// password is a password used for authentication to NCM EXTERNAL API
+	password string
+
+	// allowRetry determines whether, in the case of lack of the connection
+	// to the main server (no response within a certain time period
+	// or 5XX status code), there is an address of a second server to which
+	// client can send the same request
 	allowRetry bool
 
-	useProfileIDForRenew bool // determines whether the profile ID should be used during a certificate renewal operation
-	client               *http.Client
-	log                  logr.Logger
+	// userProfileIDForRenew determines whether the profile ID should be used
+	// during a certificate renewal operation
+	useProfileIDForRenew bool
+
+	client *http.Client
+	log    logr.Logger
 }
 
 type ClientError struct {
@@ -133,14 +179,15 @@ func (a *APIError) Error() string {
 	return fmt.Sprintf("NCM EXTERNAL API Error status=%d, message=%s, statusMessage=%s", a.Status, a.Message, a.StatusMessage)
 }
 
-// NewClient creates a new client used to perform requests to the NCM EXTERNAL API
+// NewClient creates a new client used to perform requests to
+// the NCM EXTERNAL API
 func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
-	ncmServerURL, err := url.Parse(cfg.NcmSERVER)
+	NCMServerURL, err := url.Parse(cfg.NCMServer)
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
 	}
 
-	ncmServer2URL, err := url.Parse(cfg.NcmSERVER2)
+	NCMServer2URL, err := url.Parse(cfg.NCMServer2)
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
 	}
@@ -151,9 +198,9 @@ func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
 	}
 
 	c := &Client{
-		ncmServer:            ncmServerURL.String(),
-		ncmServer2:           ncmServer2URL.String(),
-		allowRetry:           cfg.NcmSERVER2 != "",
+		NCMServer:            NCMServerURL.String(),
+		NCMServer2:           NCMServer2URL.String(),
+		allowRetry:           cfg.NCMServer2 != "",
 		user:                 cfg.Username,
 		password:             cfg.UsrPassword,
 		useProfileIDForRenew: cfg.UseProfileIDForRenew,
@@ -164,11 +211,12 @@ func NewClient(cfg *NCMConfig, log logr.Logger) (*Client, error) {
 	return c, nil
 }
 
-// Configures http.Client used for connection to NCM EXTERNAL API according to NCM config
+// configureHTTPClient configures http.Client used for connection
+// to NCM EXTERNAL API according to NCM config
 func configureHTTPClient(cfg *NCMConfig) (*http.Client, error) {
-	if !strings.HasPrefix(cfg.NcmSERVER, "https") {
+	if !strings.HasPrefix(cfg.NCMServer, "https") {
 		client := &http.Client{
-			Timeout: HTTPTimeout * time.Second,
+			Timeout: DefaultHTTPTimeout * time.Second,
 		}
 
 		return client, nil
@@ -200,9 +248,10 @@ func configureHTTPClient(cfg *NCMConfig) (*http.Client, error) {
 		}
 	}
 
-	// Creates an HTTPS client and supply it with created CA pool (and client CA if mTLS is enabled)
+	// Creates an HTTPS client and supply it with created CA pool
+	// (and client CA if mTLS is enabled)
 	client := &http.Client{
-		Timeout: HTTPTimeout * time.Second,
+		Timeout: DefaultHTTPTimeout * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
@@ -212,10 +261,10 @@ func configureHTTPClient(cfg *NCMConfig) (*http.Client, error) {
 }
 
 func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
-	ncmServerURL, _ := url.Parse(c.ncmServer)
-	ncmServerURL.Path = path
+	NCMServerURL, _ := url.Parse(c.NCMServer)
+	NCMServerURL.Path = path
 
-	req, err := http.NewRequest(method, ncmServerURL.String(), body)
+	req, err := http.NewRequest(method, NCMServerURL.String(), body)
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot create new request", ErrorMessage: err}
 	}
@@ -228,15 +277,15 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 }
 
 func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
-	c.log.Info("retrying request to secondary NCM EXTERNAL API", "serverURL", c.ncmServer2)
-	ncmServer2URL, _ := url.Parse(c.ncmServer2)
-	req.URL.Host = ncmServer2URL.Host
+	c.log.Info("retrying request to secondary NCM EXTERNAL API", "serverURL", c.NCMServer2)
+	NCMServer2URL, _ := url.Parse(c.NCMServer2)
+	req.URL.Host = NCMServer2URL.Host
 
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot perform request", ErrorMessage: err}
 	}
-	c.log.Info("received proper response from secondary NCM EXTERNAL API", "serverURL", c.ncmServer2)
+	c.log.Info("received response from secondary NCM EXTERNAL API", "serverURL", c.NCMServer2, "status", resp.StatusCode)
 
 	return resp, nil
 }
@@ -265,8 +314,8 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
-		if c.allowRetry && os.IsTimeout(err) {
-			c.log.Info("main NCM EXTERNAL API seems not responding", "serverURL", c.ncmServer, "err", err)
+		c.log.Info("main NCM EXTERNAL API seems not responding", "serverURL", c.NCMServer, "err", err)
+		if c.allowRetry {
 			resp, err = c.retryRequest(req)
 			if err != nil {
 				return nil, err
@@ -276,8 +325,8 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	if c.allowRetry && resp.StatusCode == http.StatusInternalServerError {
-		c.log.Info("main NCM EXTERNAL API cannot handle request", "serverURL", c.ncmServer, "status", resp.StatusCode)
+	if c.allowRetry && resp.StatusCode >= 500 && resp.StatusCode < 600 {
+		c.log.Info("main NCM EXTERNAL API returned server error status code", "serverURL", c.NCMServer, "status", resp.StatusCode)
 		resp, err = c.retryRequest(req)
 		if err != nil {
 			return nil, err

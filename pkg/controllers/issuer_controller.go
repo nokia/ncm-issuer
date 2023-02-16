@@ -131,26 +131,24 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	populateNCMConfData(&caSecret, &cfg)
 
 	// in case suffix "/" is present removes it
-	cfg.NcmSERVER = strings.TrimSuffix(issuerSpec.NcmSERVER, "/")
-	if issuerSpec.NcmSERVER2 != "" {
-		cfg.NcmSERVER2 = strings.TrimSuffix(issuerSpec.NcmSERVER2, "/")
-	}
-
-	cfg.CASNAME = issuerSpec.CASNAME
-	cfg.CASHREF = issuerSpec.CASHREF
-	cfg.InstaCA = issuerSpec.CASNAME
+	cfg.NCMServer = strings.TrimSuffix(issuerSpec.NCMServer, "/")
+	cfg.NCMServer2 = strings.TrimSuffix(issuerSpec.NCMServer2, "/")
+	cfg.CAsName = issuerSpec.CAsName
+	cfg.CAsHREF = issuerSpec.CAsHREF
+	cfg.InstaCA = issuerSpec.CAsName
 	cfg.LittleEndianPem = issuerSpec.LittleEndian
 	cfg.ReenrollmentOnRenew = issuerSpec.ReenrollmentOnRenew
 	cfg.UseProfileIDForRenew = issuerSpec.UseProfileIDForRenew
 	cfg.NoRoot = issuerSpec.NoRoot
 	cfg.ChainInSigner = issuerSpec.ChainInSigner
+	cfg.OnlyEECert = issuerSpec.OnlyEECert
 
 	///////////////////////
 	cfg.InsecureSkipVerify = true
-	if issuerSpec.TlsSecretName != "" {
-		// Fetch the ncm tls Secret
+	if issuerSpec.TLSSecretName != "" {
+		// Fetch the NCM TLS secret
 		tlsConfSecret := core.Secret{}
-		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: issuerSpec.TlsSecretName}, &tlsConfSecret); err != nil {
+		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: issuerSpec.TLSSecretName}, &tlsConfSecret); err != nil {
 			reason = "NotFound"
 			completeMessage = fmt.Sprintf("Failed to retrieve tls Secret: %v", err)
 			log.Error(err, "failed to retrieve tls Secret")
@@ -312,11 +310,11 @@ func populateNCMTLSConfData(tlsConfSecret *core.Secret, cfg *ncmapi.NCMConfig) e
 
 func checkIssuerSpec(issuerSpec *certmanagerv1.IssuerSpec) string {
 	invalidStr := ""
-	if len(issuerSpec.NcmSERVER) == 0 {
+	if len(issuerSpec.NCMServer) == 0 {
 		invalidStr = "The ncmSERVER should not be empty. "
 	}
 
-	if len(issuerSpec.CASNAME) == 0 && len(issuerSpec.CASHREF) == 0 {
+	if len(issuerSpec.CAsName) == 0 && len(issuerSpec.CAsHREF) == 0 {
 		invalidStr += "The CAsNAME or CAsHREF should not be empty."
 	}
 

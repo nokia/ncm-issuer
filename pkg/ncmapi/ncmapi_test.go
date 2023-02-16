@@ -19,7 +19,7 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "invalid NCM EXTERNAL API URL",
 			cfg: &NCMConfig{
-				NcmSERVER: "https://malformed url.com:80",
+				NCMServer: "https://malformed url.com:80",
 			},
 			expectedClient: nil,
 			expectedError:  &ClientError{},
@@ -27,8 +27,8 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "invalid 2nd NCM EXTERNAL API URL",
 			cfg: &NCMConfig{
-				NcmSERVER:  "https://working-url.com:3000",
-				NcmSERVER2: "https://malformed url.com:-17",
+				NCMServer:  "https://working-url.com:3000",
+				NCMServer2: "https://malformed url.com:-17",
 			},
 			expectedClient: nil,
 			expectedError:  &ClientError{},
@@ -36,8 +36,8 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "invalid key pair",
 			cfg: &NCMConfig{
-				NcmSERVER:          "https://working-url.com:3000",
-				NcmSERVER2:         "https://working-url2.com:3000",
+				NCMServer:          "https://working-url.com:3000",
+				NCMServer2:         "https://working-url2.com:3000",
 				CACert:             "CACert",
 				Key:                "Key",
 				Cert:               "Cert",
@@ -52,8 +52,8 @@ func TestNewClientCreation(t *testing.T) {
 			cfg: &NCMConfig{
 				Username:           "user",
 				UsrPassword:        "password",
-				NcmSERVER:          "https://working-url.com:3000",
-				NcmSERVER2:         "",
+				NCMServer:          "https://working-url.com:3000",
+				NCMServer2:         "",
 				CACert:             "CACert",
 				Key:                "Key",
 				Cert:               "Cert",
@@ -102,8 +102,8 @@ func TestResponseValidation(t *testing.T) {
 		client, _ := NewClient(&NCMConfig{
 			Username:           "user",
 			UsrPassword:        "password",
-			NcmSERVER:          "https://working-url.com:3000",
-			NcmSERVER2:         "",
+			NCMServer:          "https://working-url.com:3000",
+			NCMServer2:         "",
 			CACert:             "CACert",
 			Key:                "Key",
 			Cert:               "Cert",
