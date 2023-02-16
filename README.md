@@ -146,14 +146,13 @@ spec:
    CASHREF: HREF_FROM_NCM
    ncmSERVER: ADDR_TO_NCM
    ncmSERVER2: ADDR_TO_NCM2
-   chainInSigner: false (or true)
    profileId: PROFILE_ID
+   chainInSigner: false (or true)
+   onlyEECert: false (or true)
    reenrollmentOnRenew: false (or true)
    useProfileIDForRenew: false (or true)
    noRoot: false (or true)
 ```
-
-#### Issuer or cluster issuer fields
 
 For **kind** variable use either Issuer for namespaced one or ClusterIssuer for cluster level issuer.
 
@@ -171,9 +170,11 @@ For **ncmSERVER** specify your NCM REST API service URL.
 
 If the **ncmSERVER2** field is defined, it will try to make the same query to the second provided NCM REST API service URL in case of lack of connection to the main one.
 
+If the **profileId** field is defined, then the profile ID will be set in enrollment requests, so it is included in the issued certificates.
+
 Setting the **chainInSigner** field to "true" ensure that certificate chain will be included in **ca.crt** (intermediate certificates + issuing certificate + root CA).
 
-If the **profileId** field is defined, then the profile ID will be set in enrollment requests, so it is included in the issued certificates.
+Setting the **onlyEECert** field to "true" ensure that only end-entity certificate will be included in **tls.crt**
 
 Setting the **useProfileIDForRenew** field to “true” is necessary to include the defined profileID value in the */update* request during the renewal process. Otherwise, certificate update operations won’t include it.
 
