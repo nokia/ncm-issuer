@@ -174,7 +174,7 @@ If the **profileId** field is defined, then the profile ID will be set in enroll
 
 Setting the **chainInSigner** field to "true" ensure that certificate chain will be included in **ca.crt** (intermediate certificates + issuing certificate + root CA).
 
-Setting the **onlyEECert** field to "true" ensure that only end-entity certificate will be included in **tls.crt**
+Setting the **onlyEECert** field to "true" ensure that only end-entity certificate will be included in **tls.crt**.
 
 Setting the **useProfileIDForRenew** field to “true” is necessary to include the defined profileID value in the */update* request during the renewal process. Otherwise, certificate update operations won’t include it.
 

@@ -40,7 +40,7 @@ import (
 var (
 	scheme           = runtime.NewScheme()
 	setupLog         = ctrl.Log.WithName("setup")
-	NCMIssuerVersion = "1.0.2"
+	NCMIssuerVersion = "1.0.3"
 )
 
 const setupErrMsg = "unable to create controller"
