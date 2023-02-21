@@ -142,7 +142,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	if cr.Spec.IssuerRef.Kind == "ClusterIssuer" {
 		if issuerSpec.AuthNamespace == "" {
-			issuerSpec.AuthNamespace = "default"
+			issuerSpec.AuthNamespace = metav1.NamespaceDefault
 		}
 		secretNamespace = issuerSpec.AuthNamespace
 	}
