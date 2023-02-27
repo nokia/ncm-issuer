@@ -284,8 +284,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	switch {
-	case crt.Status.Revision != nil && *crt.Status.Revision >= 1 &&
-		!NCMCfg.ReenrollmentOnRenew && crt.Spec.PrivateKey.RotationPolicy != "Always":
+	case crt.Status.Revision != nil && *crt.Status.Revision >= 1 && !NCMCfg.ReenrollmentOnRenew ||
+		(crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy != "Always"):
 		if pkiutil.FindIfSecretExists(secretList, secretName) && pkiutil.FindIfSecretExists(secretList, crt.Spec.SecretName) {
 			log.Info("Secret with cert-id will be updated")
 			secretCertID := &core.Secret{}

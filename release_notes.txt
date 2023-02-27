@@ -29,3 +29,4 @@ Version 1.0.3 (Build Version 1.0.2)
   yaml file to "true"
 - Added possibility to include only end-entity certificate in tls.crt by setting "onlyEECert" in issuer or cluster
   issuer yaml file to "true"
+- Bumped go from 1.17 to 1.19.6
