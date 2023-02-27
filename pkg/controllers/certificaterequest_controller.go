@@ -283,9 +283,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// Common condition for deducing renewal operation
+	isRevision := crt.Status.Revision != nil && *crt.Status.Revision >= 1
+
 	switch {
-	case crt.Status.Revision != nil && *crt.Status.Revision >= 1 && !NCMCfg.ReenrollmentOnRenew ||
-		(crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy != "Always"):
+	case (isRevision && !NCMCfg.ReenrollmentOnRenew) ||
+		(isRevision && crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy != "Always"):
 		if pkiutil.FindIfSecretExists(secretList, secretName) && pkiutil.FindIfSecretExists(secretList, crt.Spec.SecretName) {
 			log.Info("Secret with cert-id will be updated")
 			secretCertID := &core.Secret{}
