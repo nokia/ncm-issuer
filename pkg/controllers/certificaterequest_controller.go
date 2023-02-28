@@ -301,7 +301,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			log.Info("Certificate href has been fetched", "href", string(secretCertID.Data["cert-id"]))
 
 			certURLPath, _ := ncmapi.GetPathFromCertURL(string(secretCertID.Data["cert-id"]))
-			renewCertResp, err := NCMClient.RenewCertificate(certURLPath, *cr.Spec.Duration, issuerSpec.ProfileId)
+			renewCertResp, err := NCMClient.RenewCertificate(certURLPath, cr.Spec.Duration, issuerSpec.ProfileId)
 			if err != nil {
 				log.Error(err, "failed to renew certificate")
 				_ = r.setStatus(ctx, &cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to renew certificate; %v", err)

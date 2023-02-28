@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -534,9 +535,14 @@ func (c *Client) DownloadCertificateInPEM(path string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *Client) RenewCertificate(path string, certDuration metav1.Duration, profileId string) (*RenewCertificateResponse, error) {
+func (c *Client) RenewCertificate(path string, duration *metav1.Duration, profileId string) (*RenewCertificateResponse, error) {
+	certDuration := cmapi.DefaultCertificateDuration
+	if duration != nil {
+		certDuration = duration.Duration
+	}
+
 	notBefore := time.Now()
-	notAfter := notBefore.Add(certDuration.Duration)
+	notAfter := notBefore.Add(certDuration)
 
 	newData := map[string]string{
 		"notBefore": notBefore.Format(time.RFC3339Nano),
