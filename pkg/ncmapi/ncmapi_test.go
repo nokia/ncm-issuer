@@ -17,7 +17,7 @@ func TestNewClientCreation(t *testing.T) {
 		expectedError  error
 	}{
 		{
-			name: "invalid NCM EXTERNAL API URL",
+			name: "invalid NCM API URL",
 			cfg: &NCMConfig{
 				NCMServer: "https://malformed url.com:80",
 			},
@@ -25,7 +25,7 @@ func TestNewClientCreation(t *testing.T) {
 			expectedError:  &ClientError{},
 		},
 		{
-			name: "invalid 2nd NCM EXTERNAL API URL",
+			name: "invalid 2nd NCM API URL",
 			cfg: &NCMConfig{
 				NCMServer:  "https://working-url.com:3000",
 				NCMServer2: "https://malformed url.com:-17",
