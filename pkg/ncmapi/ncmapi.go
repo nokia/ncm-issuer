@@ -121,7 +121,7 @@ type ClientError struct {
 }
 
 func (c *ClientError) Error() string {
-	return fmt.Sprintf("NCM API Client Error reason=%s err=%v", c.Reason, c.ErrorMessage)
+	return fmt.Sprintf("NCM API Client Error reason: %s, err: %v", c.Reason, c.ErrorMessage)
 }
 
 type CAsResponse struct {
@@ -176,7 +176,7 @@ type APIError struct {
 }
 
 func (a *APIError) Error() string {
-	return fmt.Sprintf("NCM EXTERNAL API Error status=%d, message=%s, statusMessage=%s", a.Status, a.Message, a.StatusMessage)
+	return fmt.Sprintf("NCM EXTERNAL API Error status: %d, message: %s, statusMessage: %s", a.Status, a.Message, a.StatusMessage)
 }
 
 // NewClient creates a new client used to perform requests to
