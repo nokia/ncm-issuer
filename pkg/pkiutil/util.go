@@ -35,18 +35,15 @@ func GetSecretNamespace(issuer client.Object, req ctrl.Request) (string, error) 
 }
 
 func FindIfSecretExists(secretList v1.SecretList, secretName string) bool {
-	ifSecretExists := false
-
 	for _, secret := range secretList.Items {
 		if secret.Name == secretName {
-			ifSecretExists = true
-			break
+			return true
 		}
 	}
-	return ifSecretExists
+	return false
 }
 
-func GetSecretObject(namespace string, name string, certID string) v1.Secret {
+func GetSecretObject(namespace string, name string, certID string) *v1.Secret {
 	secret := v1.Secret{
 		ObjectMeta: v12.ObjectMeta{
 			Namespace: namespace,
@@ -57,7 +54,7 @@ func GetSecretObject(namespace string, name string, certID string) v1.Secret {
 		},
 		Type: v1.SecretTypeOpaque,
 	}
-	return secret
+	return &secret
 }
 
 // MyCRDHasCondition will return true if the given MyCRD has a

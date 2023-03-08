@@ -40,7 +40,7 @@ import (
 var (
 	scheme           = runtime.NewScheme()
 	setupLog         = ctrl.Log.WithName("setup")
-	ncmIssuerVersion = "1.0.1"
+	NCMIssuerVersion = "1.0.3"
 )
 
 const setupErrMsg = "unable to create controller"
@@ -72,7 +72,7 @@ func main() {
 
 	setupLog.Info(
 		"starting",
-		"version", ncmIssuerVersion,
+		"version", NCMIssuerVersion,
 		"enable-leader-election", enableLeaderElection,
 		"metrics-addr", metricsAddr,
 	)

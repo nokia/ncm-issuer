@@ -49,18 +49,26 @@ spec:
               CASHREF:
                 type: string
               littleEndian:
-                 type: boolean
+                type: boolean
               reenrollmentOnRenew:
                 type: boolean
               useProfileIDForRenew:
                 type: boolean
               noRoot:
-                 type: boolean
+                type: boolean
+              chainInSigner:
+                type: boolean
+              onlyEECert:
+                type: boolean
               authNameSpace:
                 type: string
               ncmSERVER:
                 description: Define external NCM REST API URL here, as of now http/https
                   are supported
+                type: string
+              ncmSERVER2:
+                description: Define secondary external NCM REST API URL in case of the lack of
+                  connection to the main one
                 type: string
               profileId:
                 description: ProfileId API parameter

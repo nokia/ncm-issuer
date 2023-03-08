@@ -23,19 +23,25 @@ import (
 // IssuerSpec defines the desired state of Issuer
 type IssuerSpec struct {
 	// Define external NCM REST API URL here, as of now http/https are supported
-	NcmSERVER string `json:"ncmSERVER"`
+	NCMServer string `json:"ncmSERVER"`
 
-	// the name of the logical CA on the NCM instance.
+	// +optional
+	// Secondary external NCM REST API URL in case of lack of connection to the main one
+	NCMServer2 string `json:"ncmSERVER2"`
+
+	// The name of the logical CA on the NCM instance.
 	// make sure the names are unique across whole NCM installation
-	CASNAME string `json:"CASNAME"`
+	CAsName string `json:"CASNAME"`
 
-	CASHREF              string `json:"CASHREF"`
+	CAsHREF              string `json:"CASHREF"`
 	LittleEndian         bool   `json:"littleEndian"`
 	ReenrollmentOnRenew  bool   `json:"reenrollmentOnRenew"`
 	UseProfileIDForRenew bool   `json:"useProfileIDForRenew"`
 	NoRoot               bool   `json:"noRoot"`
+	ChainInSigner        bool   `json:"chainInSigner"`
+	OnlyEECert           bool   `json:"onlyEECert"`
 
-	// the secret which contains REST API username and password
+	// The secret which contains REST API username and password
 	AuthSecretName string `json:"secretName"`
 
 	// +optional
@@ -43,15 +49,15 @@ type IssuerSpec struct {
 	ProfileId string `json:"profileId,omitempty"`
 
 	// +optional
-	// the secret which contains TLS configuration to external NCM server
+	// The secret which contains TLS configuration to external NCM server
 	// the secret must contain 3 fields:
-	// cacert for root CA; key, cert for client CA and key pair.
+	// CA certificate for root CA certificate; key, cert for client CA certificate and key pair.
 	//
 	// for https connection,
-	// if the field is absent, InsecureSkipVerify is used.
-	// if the field is with cacert only, cacert is used.
-	// if the field are with cacert, key,cert, mtls is used.
-	TlsSecretName string `json:"tlsSecretName"`
+	// if the field is empty, InsecureSkipVerify is used.
+	// if the field is with CA certificate only, CA certificate is used.
+	// if the field are with CA certificate, key, cert and mTLS is used.
+	TLSSecretName string `json:"tlsSecretName"`
 
 	// +optional
 	AuthNamespace string `json:"authNameSpace,omitempty"`

@@ -7,12 +7,12 @@ resources:
   # Limits to cap the resource usage in case of unexpected.
   #   NOTE! exceeding memory limit will cause pod to be killed by kubernetes.
   limits:
-    cpu: 200m
-    memory: 250Mi
+    cpu: 400m
+    memory: 500Mi
   # Requests to help kubernetes start pods on a node that has sufficient capacity.
   requests:
-    cpu: 200m
-    memory: 250Mi
+    cpu: 400m
+    memory: 500Mi
 
 updateStrategy:
     rollingUpdate:
@@ -34,7 +34,7 @@ certManagerRbac:
   binding: cert-manager-controller-approve:ncm-certmanager-nokia-com
   role: cert-manager-controller-approve:ncm-certmanager-nokia-comv
 
-# since NCM is outside of k8s cluster, so need external connection with NCM.
+# since NCM is outside k8s cluster, so need external connection with NCM.
 # edge control is generally used to connect external network.
 # prefer edge node
 controller:

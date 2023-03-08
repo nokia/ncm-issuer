@@ -20,8 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/go-logr/logr"
 	certmanagerv1 "github.com/nokia/ncm-issuer/api/v1"
+	"github.com/nokia/ncm-issuer/pkg/ncmapi"
 	"github.com/nokia/ncm-issuer/pkg/pkiutil"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +35,6 @@ import (
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // IssuerReconciler reconciles a Issuer object
@@ -54,33 +56,9 @@ func (r *IssuerReconciler) newIssuer() (client.Object, error) {
 	return ro.(client.Object), nil
 }
 
-// NcmConfig NCM config setting from the secret
-type NcmConfig struct {
-	Username             string
-	UsrPassword          string
-	NcmSERVER            string
-	CASNAME              string // cas for bcmtncm
-	CASHREF              string // href for bcmtncm
-	reenrollmentOnRenew  bool
-	useProfileIDForRenew bool
-	INSTA_CA             string // NCM root CA
-	littleEndianPem      bool   // bigEndian or littleEndian: bE Cert->issuers, lE issuers->cert
-	noRoot               bool   // Issuer of the Cert instead of root
-	Cacert               string // tls Cacert
-	Key                  string // tls client Key
-	Cert                 string // tls client Cert
-	InsecureSkipVerify   bool   // tls: InsecureSkipVerify
-	Mtls                 bool   // Mtls is enabled
-}
-
-type NcmConfigKey struct {
-	Namespace string
-	Name      string
-}
-
 var (
-	// NcmConfigSetting : for each certifier, NCM config setting from the secret
-	NcmConfigSetting = make(map[NcmConfigKey]*NcmConfig)
+	// NCMConfigMap : for each certifier, NCM config set up with the secret
+	NCMConfigMap = make(map[ncmapi.NCMConfigKey]*ncmapi.NCMConfig)
 )
 
 //+kubebuilder:rbac:groups=certmanager.ncm.nokia.com,resources=issuers;clusterissuers,verbs=get;list;watch;create;update;patch;delete
@@ -120,8 +98,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}()
 
 	// check Spec
-	invalidStr := checkIssuerSpec(issuerSpec)
-	if len(invalidStr) != 0 {
+	if invalidStr := checkIssuerSpec(issuerSpec); len(invalidStr) != 0 {
 		reason = "incorrect setting"
 		err = errors.New(reason)
 		completeMessage = fmt.Sprintf("Incorrect Spec config: %v", invalidStr)
@@ -143,48 +120,50 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	err = checkNCMSecretData(&caSecret)
-	if err != nil {
+	if err = checkNCMSecretData(&caSecret); err != nil {
 		reason = "incorrect setting"
 		completeMessage = fmt.Sprintf("incorrect Auth Secret setting: %v", err)
 		log.Error(err, "incorrect Auth Secret setting")
 		return ctrl.Result{}, err
 	}
 
-	conf := NcmConfig{}
-	populateNCMConfData(&caSecret, &conf)
-	conf.NcmSERVER = issuerSpec.NcmSERVER
-	// if end with '/', remove it
-	conf.NcmSERVER = strings.TrimSuffix(conf.NcmSERVER, "/")
-	conf.CASNAME = issuerSpec.CASNAME
-	conf.CASHREF = issuerSpec.CASHREF
-	conf.INSTA_CA = issuerSpec.CASNAME
-	conf.littleEndianPem = issuerSpec.LittleEndian
-	conf.reenrollmentOnRenew = issuerSpec.ReenrollmentOnRenew
-	conf.useProfileIDForRenew = issuerSpec.UseProfileIDForRenew
-	conf.noRoot = issuerSpec.NoRoot
+	cfg := ncmapi.NCMConfig{}
+	populateNCMConfData(&caSecret, &cfg)
+
+	// in case suffix "/" is present removes it
+	cfg.NCMServer = strings.TrimSuffix(issuerSpec.NCMServer, "/")
+	cfg.NCMServer2 = strings.TrimSuffix(issuerSpec.NCMServer2, "/")
+	cfg.CAsName = issuerSpec.CAsName
+	cfg.CAsHREF = issuerSpec.CAsHREF
+	cfg.InstaCA = issuerSpec.CAsName
+	cfg.LittleEndianPem = issuerSpec.LittleEndian
+	cfg.ReenrollmentOnRenew = issuerSpec.ReenrollmentOnRenew
+	cfg.UseProfileIDForRenew = issuerSpec.UseProfileIDForRenew
+	cfg.NoRoot = issuerSpec.NoRoot
+	cfg.ChainInSigner = issuerSpec.ChainInSigner
+	cfg.OnlyEECert = issuerSpec.OnlyEECert
 
 	///////////////////////
-	conf.InsecureSkipVerify = true
-	if issuerSpec.TlsSecretName != "" {
-		// Fetch the ncm tls Secret
+	cfg.InsecureSkipVerify = true
+	if issuerSpec.TLSSecretName != "" {
+		// Fetch the NCM TLS secret
 		tlsConfSecret := core.Secret{}
-		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: issuerSpec.TlsSecretName}, &tlsConfSecret); err != nil {
+		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: issuerSpec.TLSSecretName}, &tlsConfSecret); err != nil {
 			reason = "NotFound"
 			completeMessage = fmt.Sprintf("Failed to retrieve tls Secret: %v", err)
 			log.Error(err, "failed to retrieve tls Secret")
 			return ctrl.Result{}, err
 		}
-		err = populateNCMTLSConfData(&tlsConfSecret, &conf)
-		if err != nil {
+		if err = populateNCMTLSConfData(&tlsConfSecret, &cfg); err != nil {
 			reason = "incorrect TLS setting"
 			completeMessage = fmt.Sprintf("TLS secret config setting population is incorrect: %v", err)
 			log.Error(err, "TLS secret config setting population is incorrect")
 			return ctrl.Result{}, err
 		}
 	}
-	ncmConfigKey := NcmConfigKey{secretName.Namespace, req.NamespacedName.Name}
-	NcmConfigSetting[ncmConfigKey] = &conf
+
+	cfgKey := ncmapi.NCMConfigKey{Namespace: secretName.Namespace, Name: req.NamespacedName.Name}
+	NCMConfigMap[cfgKey] = &cfg
 	reason = "Verified"
 	completeMessage = "Signing CA verified and ready to issue certificates"
 	condition = certmanagerv1.ConditionTrue
@@ -193,13 +172,13 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 // setMyCRDCondition will set a 'condition' on the given MyCRD.
-// - If no condition of the same type already exists, the condition will be
-//   inserted with the LastTransitionTime set to the current time.
-// - If a condition of the same type and state already exists, the condition
-//   will be updated but the LastTransitionTime will not be modified.
-// - If a condition of the same type and different state already exists, the
-//   condition will be updated and the LastTransitionTime set to the current
-//   time.
+//   - If no condition of the same type already exists, the condition will be
+//     inserted with the LastTransitionTime set to the current time.
+//   - If a condition of the same type and state already exists, the condition
+//     will be updated but the LastTransitionTime will not be modified.
+//   - If a condition of the same type and different state already exists, the
+//     condition will be updated and the LastTransitionTime set to the current
+//     time.
 func (r *IssuerReconciler) setMyCRDCondition(issuerStatus *certmanagerv1.IssuerStatus, status certmanagerv1.ConditionStatus, reason, message string) {
 	newCondition := &certmanagerv1.IssuerCondition{
 		Type:    certmanagerv1.IssuerConditionReady,
@@ -238,6 +217,7 @@ func (r *IssuerReconciler) setMyCRDStatus(ctx context.Context, issuer client.Obj
 	var err error
 	completeMessage := fmt.Sprintf(message, args...)
 	var issuerStatus *certmanagerv1.IssuerStatus
+
 	switch t := issuer.(type) {
 	case *certmanagerv1.Issuer:
 		issuerStatus = &t.Status
@@ -246,6 +226,7 @@ func (r *IssuerReconciler) setMyCRDStatus(ctx context.Context, issuer client.Obj
 	default:
 		r.Log.Info("Foreign type ", t)
 	}
+
 	r.setMyCRDCondition(issuerStatus, conditionStatus, reason, completeMessage)
 
 	// Fire an Event to additionally inform users of the change
@@ -262,66 +243,65 @@ func (r *IssuerReconciler) setMyCRDStatus(ctx context.Context, issuer client.Obj
 	return err
 }
 
-// check if all the needed data are configured correctly
+// Checks if all the needed data are configured correctly
 func checkNCMSecretData(s *core.Secret) error {
 	if s.Data == nil {
 		return fmt.Errorf("no setting found in secret %s/%s", s.Namespace, s.Name)
 	}
+
 	errMsg := ""
-	// check the setting
+	// Checks the setting
 	if s.Data["username"] == nil {
 		errMsg += "username is needed; "
 	}
+
 	if s.Data["usrPassword"] == nil {
 		errMsg += "usrPassword is needed"
 	}
+
 	if errMsg != "" {
 		return fmt.Errorf("wrong auth secret %s/%s setting, error: %s", s.Namespace, s.Name, errMsg)
 	}
+
 	return nil
 }
 
 // populate all the needed config data from the secret
-func populateNCMConfData(s *core.Secret, cf *NcmConfig) {
+func populateNCMConfData(s *core.Secret, cfg *ncmapi.NCMConfig) {
 	if s.Data["username"] != nil {
-		cf.Username = string(s.Data["username"])
+		cfg.Username = string(s.Data["username"])
 	}
+
 	if s.Data["usrPassword"] != nil {
-		cf.UsrPassword = string(s.Data["usrPassword"])
+		cfg.UsrPassword = string(s.Data["usrPassword"])
 	}
 }
 
 // populate all the needed tls configure data from the tlsConfSecret
-func populateNCMTLSConfData(tlsConfSecret *core.Secret, conf *NcmConfig) error {
+func populateNCMTLSConfData(tlsConfSecret *core.Secret, cfg *ncmapi.NCMConfig) error {
 
-	conf.Cacert = string(tlsConfSecret.Data["cacert"])
+	cfg.CACert = string(tlsConfSecret.Data["cacert"])
 
 	if string(tlsConfSecret.Data["key"]) != "" {
-		keyPath, err := writePemToTempFile("/tmp/clientkey", tlsConfSecret.Data["key"])
+		keyPath, err := ncmapi.WritePemToTempFile("/tmp/clientkey", tlsConfSecret.Data["key"])
 		if err != nil {
 			return err
 		}
-		conf.Key = keyPath
+		cfg.Key = keyPath
 	}
+
 	if string(tlsConfSecret.Data["cert"]) != "" {
-		certPath, err := writePemToTempFile("/tmp/clientcert", tlsConfSecret.Data["cert"])
+		certPath, err := ncmapi.WritePemToTempFile("/tmp/clientcert", tlsConfSecret.Data["cert"])
 		if err != nil {
 			return err
 		}
-		conf.Cert = certPath
+		cfg.Cert = certPath
 	}
 
-	conf.InsecureSkipVerify = true
-	if conf.Cacert != "" {
-		conf.InsecureSkipVerify = false
-	}
+	cfg.InsecureSkipVerify = cfg.CACert == ""
+	cfg.MTLS = cfg.Key != "" && cfg.Cert != ""
 
-	conf.Mtls = false
-	if conf.Key != "" && conf.Cert != "" {
-		conf.Mtls = true
-	}
-
-	if conf.Cacert == "" && conf.Key == "" && conf.Cert == "" {
+	if cfg.CACert == "" && cfg.Key == "" && cfg.Cert == "" {
 		return fmt.Errorf("no useful data cacert, key or cert in Ttls secret")
 	}
 
@@ -330,12 +310,14 @@ func populateNCMTLSConfData(tlsConfSecret *core.Secret, conf *NcmConfig) error {
 
 func checkIssuerSpec(issuerSpec *certmanagerv1.IssuerSpec) string {
 	invalidStr := ""
-	if len(issuerSpec.NcmSERVER) == 0 {
+	if len(issuerSpec.NCMServer) == 0 {
 		invalidStr = "The ncmSERVER should not be empty. "
 	}
-	if len(issuerSpec.CASNAME) == 0 && len(issuerSpec.CASHREF) == 0 {
-		invalidStr += "The CASNAME or CASHREF should not be empty."
+
+	if len(issuerSpec.CAsName) == 0 && len(issuerSpec.CAsHREF) == 0 {
+		invalidStr += "The CAsNAME or CAsHREF should not be empty."
 	}
+
 	return invalidStr
 }
 
@@ -345,6 +327,7 @@ func (r *IssuerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err != nil {
 		return err
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(issuerType).
 		Complete(r)
