@@ -11,6 +11,8 @@ keywords:
 maintainers:
 - email: sara.ryfczynska@nokia.com
   name: Sara Ryfczynska
+- email: dawid.machoczek@nokia.com
+  name: Dawid Machoczek
 - name: Maxwell Jiang
 - name: Lilian Liang
 name: ncm-issuer
