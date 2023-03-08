@@ -23,7 +23,7 @@ Cert-manager is a native Kubernetes certificate management controller which allo
 
 ### To build
 
-- **[Golang](https://go.dev/doc/install)** 1.9.16
+- **[Golang](https://go.dev/doc/install)** 1.19.6
 - **[Make](https://www.gnu.org/software/make/)**
 - **[Docker](https://docs.docker.com/engine/install/)**  >= 20.10.0
 
