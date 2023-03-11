@@ -40,6 +40,7 @@ jobs:
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
+        echo "cert-manager version from matrix: v${{ matrix.certmgrversion }}"
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
@@ -174,6 +175,7 @@ jobs:
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
+        echo "cert-manager version from matrix: v${{ matrix.certmgrversion }}"
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
