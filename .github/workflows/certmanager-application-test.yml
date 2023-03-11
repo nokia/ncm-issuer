@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.0.4', '1.3.3', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
+        certmgrversion: ['1.0.4', '1.3.3', '1.6.2', '1.8.2', '1.9.2']
     steps:
 
     - name: "checkout GIT"
@@ -45,7 +45,7 @@ jobs:
 
     - name: "install kubectl cert-manager plugin"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/kubectl-cert_manager-$OS-$ARCH.tar.gz
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
@@ -147,7 +147,7 @@ jobs:
     strategy:
       matrix:
         k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.0.4', '1.3.3', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
+        certmgrversion: ['1.0.4', '1.3.3', '1.6.2', '1.8.2', '1.9.2']
     steps:
 
     - name: "checkout GIT"
@@ -179,7 +179,7 @@ jobs:
 
     - name: "install kubectl cert-manager plugin"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/kubectl-cert_manager-$OS-$ARCH.tar.gz
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
