@@ -32,7 +32,7 @@ Cert-manager is a native Kubernetes certificate management controller which allo
 ### To use
 
 - **[NCM 21 release](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)** (or higher)
-- **[kubernetes](https://kubernetes.io/)** 1.18-1.21
+- **[kubernetes](https://kubernetes.io/)** 1.18-1.25
 - **[cert-manager](https://cert-manager.io/docs/installation/)** >= 1.0.0
 - **[Helm](https://helm.sh/docs/intro/install/)** v3
 
@@ -65,7 +65,7 @@ The image of NCM Issuer will be saved in ./builds/ncm-issuer-images/ directory.
 
 NCM Issuer uses Helm chart in installation process. You can read more about Helm [here](https://helm.sh/).
 
-1. Load an image with NCM Issuer
+1. Load an image with NCM Issuer (however charts already point to public docker registry, so it should be loaded automatically)
 
    ```bash
    $ docker load -i IMAGE_NAME
@@ -92,7 +92,7 @@ $ helm list -n ncm-issuer
 Output of this command should look like this:
 
 ```bash
-ncm-issuer ncm-issuer 1 2022-04-12 17:36:12.120909878 +0200 CEST deployed ncm-issuer-1.0.0 1.0.1
+ncm-issuer ncm-issuer 1 2023-03-10 17:36:12.120909878 +0200 CEST deployed ncm-issuer-1.0.3 1.0.2
 ```
 
 Great! Everything is working right now!
@@ -145,13 +145,14 @@ spec:
    CASNAME: CERTIFICATE_NAME_FROM_NCM
    CASHREF: HREF_FROM_NCM
    ncmSERVER: ADDR_TO_NCM
-   ncmSERVER2: ADDR_TO_NCM2
    profileId: PROFILE_ID
-   chainInSigner: false (or true)
-   onlyEECert: false (or true)
    reenrollmentOnRenew: false (or true)
    useProfileIDForRenew: false (or true)
    noRoot: false (or true)
+   # below available since 1.0.3-1.0.2
+   ncmSERVER2: ADDR_TO_NCM2
+   chainInSigner: false (or true)
+   onlyEECert: false (or true)
 ```
 
 For **kind** variable use either Issuer for namespaced one or ClusterIssuer for cluster level issuer.
@@ -172,9 +173,9 @@ If the **ncmSERVER2** field is defined, it will try to make the same query to th
 
 If the **profileId** field is defined, then the profile ID will be set in enrollment requests, so it is included in the issued certificates.
 
-Setting the **chainInSigner** field to "true" ensure that certificate chain will be included in **ca.crt** (intermediate certificates + issuing certificate + root CA).
+Setting the **chainInSigner** field to "true" ensure that CA certificate chain will be included in **ca.crt** (intermediate CA certificates + issuing CA certificate + root CA certificate).
 
-Setting the **onlyEECert** field to "true" ensure that only end-entity certificate will be included in **tls.crt**.
+Setting the **onlyEECert** field to "true" ensure that only end-entity certificate will be included in **tls.crt** (without issuing CA certificate).
 
 Setting the **useProfileIDForRenew** field to “true” is necessary to include the defined profileID value in the */update* request during the renewal process. Otherwise, certificate update operations won’t include it.
 
