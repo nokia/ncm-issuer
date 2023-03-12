@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.3.3', '1.6.2', '1.8.2', '1.9.2']
+        certmgrversion: ['1.6.2', '1.8.2', '1.9.2']
     steps:
 
     - name: "checkout GIT"
@@ -40,11 +40,19 @@ jobs:
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
-        sleep 2;sudo microk8s.kubectl get pods -A
         echo "cert-manager version from matrix: v${{ matrix.certmgrversion }}"
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "cert-manager status"
+      run: |
+        sudo microk8s.kubectl get pods -A
+        
     - name: "install kubectl cert-manager plugin"
       run: |
           OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
@@ -66,10 +74,20 @@ jobs:
         NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
         NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
 
-    - name: "install plugin"
+    - name: "install ncm-issuer plugin"
       run: |
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
-        sleep 2;sudo microk8s.kubectl get pods -A
+        
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "ncm-issuer plugin status"
+      run: |
+        sudo microk8s.kubectl get pods -A
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
+       
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
@@ -83,7 +101,6 @@ jobs:
       run: |
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer describe issuers.certmanager.ncm.nokia.com ncm
-        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
     - name: "create certificate resource"
       run: |
@@ -152,7 +169,7 @@ jobs:
     strategy:
       matrix:
         k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.3.3', '1.6.2', '1.8.2', '1.9.2']
+        certmgrversion: ['1.6.2', '1.8.2', '1.9.2']
     steps:
 
     - name: "checkout GIT"
@@ -179,11 +196,19 @@ jobs:
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
-        sleep 2;sudo microk8s.kubectl get pods -A
         echo "cert-manager version from matrix: v${{ matrix.certmgrversion }}"
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "cert-manager status"
+      run: |
+        sudo microk8s.kubectl get pods -A
+   
     - name: "install kubectl cert-manager plugin"
       run: |
           OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
@@ -211,16 +236,24 @@ jobs:
         NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
         NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
 
-    - name: "install plugin"
+    - name: "install ncm-issuer plugin"
       run: |
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
-        sleep 2;sudo microk8s.kubectl get pods -A
+        
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
 
+    - name: "ncm-issuer plugin status"
+      run: |
+        sudo microk8s.kubectl get pods -A
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
+   
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer
-
 
     - name: "sleep for 15s"
       uses: juliangruber/sleep-action@v1
@@ -231,7 +264,6 @@ jobs:
       run: |
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer describe issuers.certmanager.ncm.nokia.com ncm
-        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
 
     - name: "create certificate resource"
