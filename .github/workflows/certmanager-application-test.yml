@@ -52,7 +52,7 @@ jobs:
     - name: "cert-manager status"
       run: |
         sudo microk8s.kubectl get pods -A
-        sudo microk8s.kubectl -n cert-manager logs -f `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
         
     - name: "install kubectl cert-manager plugin"
       run: |
@@ -210,7 +210,7 @@ jobs:
     - name: "cert-manager status"
       run: |
         sudo microk8s.kubectl get pods -A
-        sudo microk8s.kubectl -n cert-manager logs -f `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
    
     - name: "install kubectl cert-manager plugin"
       run: |
