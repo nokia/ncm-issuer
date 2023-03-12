@@ -67,7 +67,7 @@ jobs:
 
     - name: "install plugin"
       run: |
-        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
+        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"; sleep 5
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
     - name: "create issuer"
       run: |
@@ -211,7 +211,7 @@ jobs:
 
     - name: "install plugin"
       run: |
-        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
+        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"; sleep 5
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
 
     - name: "create issuer"
@@ -229,7 +229,7 @@ jobs:
       run: |
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
-         sudo microk8s.kubectl -n ncm-issuer describe issuers.certmanager.ncm.nokia.com ncm
+        sudo microk8s.kubectl -n ncm-issuer describe issuers.certmanager.ncm.nokia.com ncm
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
 
     - name: "create certificate resource"
