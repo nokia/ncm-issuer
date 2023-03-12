@@ -44,7 +44,7 @@ jobs:
 
     - name: "install kubectl cert-manager plugin"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/${{ env.CERTMGR_VERSION }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
@@ -186,7 +186,7 @@ jobs:
 
     - name: "install kubectl cert-manager plugin"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/${{ env.CERTMGR_VERSION }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
