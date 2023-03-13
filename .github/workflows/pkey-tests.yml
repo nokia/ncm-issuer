@@ -32,7 +32,7 @@ jobs:
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
-	      echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
+	echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
 
     - name: "install cert-manager charts"
