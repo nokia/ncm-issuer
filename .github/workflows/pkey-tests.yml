@@ -44,7 +44,7 @@ jobs:
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
-	  - name: "sleep for 10s"
+    - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
       with:
         time: 10s
@@ -147,8 +147,8 @@ jobs:
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
-	sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
-	openssl x509 -in /tmp/cert.der -text -noout
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
+        openssl x509 -in /tmp/cert.der -text -noout
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
@@ -316,8 +316,8 @@ jobs:
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
-	sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
-	openssl x509 -in /tmp/cert.der -text -noout
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
+        openssl x509 -in /tmp/cert.der -text -noout
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
