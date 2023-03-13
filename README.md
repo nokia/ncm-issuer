@@ -32,7 +32,7 @@ Cert-manager is a native Kubernetes certificate management controller which allo
 ### To use
 
 - **[NCM 21 release](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)** (or higher)
-- **[kubernetes](https://kubernetes.io/)** 1.18-1.25
+- **[kubernetes](https://kubernetes.io/)** 1.18-1.26
 - **[cert-manager](https://cert-manager.io/docs/installation/)** >= 1.0.0
 - **[Helm](https://helm.sh/docs/intro/install/)** v3
 
