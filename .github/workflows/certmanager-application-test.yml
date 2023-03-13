@@ -315,8 +315,8 @@ jobs:
         sudo microk8s.kubectl get certificaterequest -n ncm-cert
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert | grep "No CertificateRequest found for this Certificate"
-        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
-        openssl x509 -in /tmp/cert.der -text -noout       
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
+        openssl x509 -in /tmp/cert.der -text -noout
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
