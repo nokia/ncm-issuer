@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.6.2', '1.8.2', '1.9.2']
+        certmgrversion: ['1.6.2', '1.8.2', '1.9.2', '1.11.0']
     steps:
 
     - name: "checkout GIT"
@@ -40,7 +40,6 @@ jobs:
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
-        echo "cert-manager version from matrix: v${{ matrix.certmgrversion }}"
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
@@ -60,7 +59,7 @@ jobs:
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
-    - name: "prepare environment / create namespace and secret"
+    - name: "prepare environment / create namespace and secrets"
       run: |
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
@@ -151,6 +150,7 @@ jobs:
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
         sudo microk8s.kubectl describe issuer.certmanager.ncm.nokia.com  -n ncm-issuer > data/logs/describe_issuer.log
         sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer > data/logs/get_csr.log
         sudo  microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
@@ -171,7 +171,7 @@ jobs:
     strategy:
       matrix:
         k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.6.2', '1.8.2', '1.9.2']
+        certmgrversion: ['1.6.2', '1.8.2', '1.9.2', '1.11.0']
     steps:
 
     - name: "checkout GIT"
@@ -198,7 +198,6 @@ jobs:
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
-        echo "cert-manager version from matrix: v${{ matrix.certmgrversion }}"
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
@@ -218,7 +217,7 @@ jobs:
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
-    - name: "prepare environment / create namespace and secret"
+    - name: "prepare environment / create namespace and secrets"
       run: |
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
@@ -289,7 +288,7 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Ca:" | awk '{print $2}' | base64 -d > /tmp/ca.pem
-         openssl x509 -in /tmp/cert.der -text -noout
+        openssl x509 -in /tmp/cert.der -text -noout
         openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
 
     - name: "renew certificate"
@@ -320,6 +319,7 @@ jobs:
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
         sudo microk8s.kubectl describe clusterissuer.certmanager.ncm.nokia.com  -n ncm-issuer > data/logs/describe_issuer.log
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
         sudo microk8s.kubectl get certificaterequest -n ncm-cert > data/logs/get_csr.log
         sudo  microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n ncm-cert > data/logs/get_certificate.log
