@@ -47,6 +47,8 @@ jobs:
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
+        echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
+    - run: echo "k8s ${{ env.K8S_VERSION }}"
 
     - name: "install cert-manager charts"
       run: |
@@ -54,8 +56,19 @@ jobs:
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
         sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --set installCRDs=true
-        echo CERTMGR_VERSION=$(sudo microk8s.helm3 show chart jetstack/cert-manager | grep version) >> $GITHUB_ENV
+        echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
+
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "cert-manager status"
+      run: |
+        sudo microk8s.helm3 list -A
+        sudo microk8s.kubectl get pods -A
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
 
     - name: "prepare environment / create namespace and secret"
       run: |
@@ -75,10 +88,21 @@ jobs:
         NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
         NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
 
-    - name: "install plugin"
+    - name: "install ncm-issuer plugin"
       run: |
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
 
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
+    - name: "ncm-issuer plugin status"
+      run: |
+        sudo microk8s.helm3 list -A
+        sudo microk8s.kubectl get pods -A
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
+ 
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
@@ -92,6 +116,8 @@ jobs:
     - name: "check issuer status"
       run: |
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
+        sudo microk8s.kubectl -n ncm-issuer describe issuers.certmanager.ncm.nokia.com ncm
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
 
     - name: "create certificate resource"
@@ -106,6 +132,7 @@ jobs:
     - name: "check certificate resource"
       run: |
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
