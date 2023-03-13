@@ -88,6 +88,7 @@ jobs:
 
     - name: "ncm-issuer plugin status"
       run: |
+        sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
        
@@ -255,6 +256,7 @@ jobs:
 
     - name: "ncm-issuer plugin status"
       run: |
+        sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
    
