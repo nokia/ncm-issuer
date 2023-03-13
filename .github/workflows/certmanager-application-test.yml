@@ -105,6 +105,7 @@ jobs:
       run: |
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer describe issuers.certmanager.ncm.nokia.com ncm
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
     - name: "create certificate resource"
       run: |
@@ -119,6 +120,7 @@ jobs:
       run: |
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
@@ -141,6 +143,7 @@ jobs:
       run: |
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         openssl x509 -in /tmp/cert.der -text -noout
@@ -276,6 +279,7 @@ jobs:
       run: |
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer describe clusterissuers.certmanager.ncm.nokia.com ncm
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n ncm-issuer | grep -i True
 
     - name: "create certificate resource"
@@ -292,6 +296,7 @@ jobs:
       run: |
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert  | grep "The certificate has been successfully issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Approved"
@@ -314,6 +319,7 @@ jobs:
       run: |
         sudo microk8s.kubectl get certificaterequest -n ncm-cert
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert | grep "No CertificateRequest found for this Certificate"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         openssl x509 -in /tmp/cert.der -text -noout
