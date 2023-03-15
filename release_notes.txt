@@ -29,3 +29,12 @@ Version 1.0.3 (Build Version 1.0.2)
   yaml file to "true"
 - Added possibility to include only end-entity certificate in tls.crt by setting "onlyEECert" in issuer or cluster
   issuer yaml file to "true"
+- Bumped go from 1.17 to 1.19.6
+- Fixed bugs during certificate renewal
+
+Version 1.0.3 (Build Version 1.0.3)
+- Fixed misinterpretation when PK rotation policy is set to "Always"
+
+Version 1.0.4 (Build version 1.0.4)
+- Fixed data races when getting NCM config defined in issuer spec
+- Improved handling CSR statuses returned by NCM

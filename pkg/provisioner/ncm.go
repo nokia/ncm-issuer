@@ -71,7 +71,7 @@ func (pm *ProvisionersMap) AddOrReplace(NamespacedName types.NamespacedName, pro
 // Provisioner allows Sign or Renew certificate using NCMClient.
 type Provisioner struct {
 	NCMConfig   *cfg.NCMConfig
-	NCMClient   *ncmapi.Client
+	NCMClient   ncmapi.ExternalClient
 	pendingCSRs *PendingCSRsMap
 	log         logr.Logger
 }
@@ -175,7 +175,6 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("failed to send CSR, err: %v", err)
 	}
-	p.log.Info("CSR in NCM", "CSR", csrResp, "href in CSR", csrResp.Href)
 
 	requestedCertURLPath, _ := ncmapi.GetPathFromCertHref(csrResp.Href)
 	csrStatusResp, err := p.NCMClient.CheckCSRStatus(requestedCertURLPath)
@@ -241,11 +240,10 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 // (given CA certificate in NCMConfig or root CA certificate).
 func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte, []byte, error) {
 	var certChain []byte
-	wantedCA := &ncmapi.CAResponse{}
 	lastCheckedCA := signingCA
 
 	for {
-		p.log.Info("Last checked CA certificate in certificate chain", "href", lastCheckedCA.Href)
+		p.log.Info("Last checked CA certificate in chain", "href", lastCheckedCA.Href)
 
 		lastCheckedCAURLPath, _ := ncmapi.GetPathFromCertHref(lastCheckedCA.Certificates["active"])
 		currentCACert, err := p.NCMClient.DownloadCertificate(lastCheckedCAURLPath)
@@ -253,7 +251,7 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 			return nil, nil, fmt.Errorf("failed to download CA certificate, its href: %s, err: %v", lastCheckedCA.Certificates["active"], err)
 		}
 
-		if lastCheckedCA.Href == currentCACert.IssuerCA || currentCACert.IssuerCA == "" {
+		if isRootCA(lastCheckedCA, currentCACert) {
 			break
 		}
 
@@ -270,13 +268,8 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 		}
 	}
 
-	if p.NCMConfig.NoRoot && !p.NCMConfig.ChainInSigner {
-		wantedCA = signingCA
-	} else {
-		wantedCA = lastCheckedCA
-	}
+	wantedCA := p.getWantedCA(signingCA, lastCheckedCA)
 	p.log.Info("Signing CA certificate was found and selected according to configuration", "isRootCA", !p.NCMConfig.NoRoot || p.NCMConfig.ChainInSigner, "Name", wantedCA.Name)
-
 	wantedCAURLPath, _ := ncmapi.GetPathFromCertHref(wantedCA.Certificates["active"])
 	wantedCAInPEM, err := p.NCMClient.DownloadCertificateInPEM(wantedCAURLPath)
 	if err != nil {
@@ -284,6 +277,13 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 	}
 
 	return certChain, wantedCAInPEM, nil
+}
+
+func (p *Provisioner) getWantedCA(signingCA, rootCA *ncmapi.CAResponse) *ncmapi.CAResponse {
+	if p.NCMConfig.NoRoot && !p.NCMConfig.ChainInSigner {
+		return signingCA
+	}
+	return rootCA
 }
 
 // prepareCAAndTLS prepares values needed for certificate (ca.crt and tls.crt)

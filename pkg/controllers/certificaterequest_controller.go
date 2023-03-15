@@ -181,8 +181,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// At the very beginning we should check the basic conditions that determines
 	// whether the operation of certificate renewal should take place
 	isRevision := crt.Status.Revision != nil && *crt.Status.Revision >= 1
-	isRenewal := (isRevision && !p.NCMConfig.ReenrollmentOnRenew) ||
-		(isRevision && crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy != "Always")
+	isPKRotationAlways := crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy == "Always"
+	isRenewal := isRevision && !p.NCMConfig.ReenrollmentOnRenew && !isPKRotationAlways
 
 	isSecretWithCertID := false
 	secretCertID := &core.Secret{}

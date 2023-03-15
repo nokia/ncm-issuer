@@ -24,8 +24,8 @@ import (
 
 const (
 	DefaultHTTPTimeout = 10
-	CAsURL             = "/v1/cas"
-	CSRURL             = "/v1/requests"
+	CAsPath            = "/v1/cas"
+	CSRPath            = "/v1/requests"
 )
 
 // Client is a client used to communicate with the NCM API
@@ -56,6 +56,8 @@ type Client struct {
 	client *http.Client
 	log    logr.Logger
 }
+
+var _ ExternalClient = &Client{}
 
 type ClientError struct {
 	Reason       string
@@ -281,7 +283,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 
 func (c *Client) GetCAs() (*CAsResponse, error) {
 	params := url.Values{}
-	req, err := c.newRequest(http.MethodGet, CAsURL, strings.NewReader(params.Encode()))
+	req, err := c.newRequest(http.MethodGet, CAsPath, strings.NewReader(params.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +373,7 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, profileID string) (*CSRResp
 		return nil, &ClientError{Reason: "cannot close writer", ErrorMessage: err}
 	}
 
-	req, err := c.newRequest(http.MethodPost, CSRURL, body)
+	req, err := c.newRequest(http.MethodPost, CSRPath, body)
 	if err != nil {
 		return nil, err
 	}
