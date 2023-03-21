@@ -16,7 +16,7 @@ jobs:
     - name: Checkout git
       uses: actions/checkout@v3
 
-    - name: Setup Go ${{ matrix.go-version }}
+    - name: Setup Go {{ matrix.go-version }}
       uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
@@ -24,17 +24,17 @@ jobs:
     - name: Install dependencies
       run: go get .
 
-    - name: Test with Go ${{ matrix.go-version }}
+    - name: Test with Go {{ matrix.go-version }}
       run: go test ./... -json > unit-test-results-${{ matrix.go-version }}.json
 
-    - name: [ * ] Collecting unit test results
+    - name: "[ * ] Collecting unit test results"
       if: ${{ failure() }}
       run: |
         mkdir -p ${{ github.workspace }}/artifact/upload
         sudo cp -rp *.json ${{ github.workspace }}/artifact/data/
         sudo tar -C ${{ github.workspace }}/artifact/ -czf ${{ github.workspace }}/artifact/upload/artifact.tar.gz
 
-    - name: [ * ] Uploading artifacts
+    - name: "[ * ] Uploading artifacts"
       uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
