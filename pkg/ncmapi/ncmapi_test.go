@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	testr "github.com/go-logr/logr/testing"
+	"github.com/google/go-cmp/cmp"
 	"github.com/nokia/ncm-issuer/pkg/cfg"
 )
 
@@ -113,14 +113,16 @@ func TestNewClientCreation(t *testing.T) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
 		}
 
-		if tc.expectedClient != nil && !reflect.DeepEqual(tc.expectedClient, c) {
-			t.Errorf("%s failed; created and expected client is not the same", tc.name)
+		if tc.expectedClient != nil {
+			if diff := cmp.Diff(tc.expectedClient, c, cmp.AllowUnexported(Client{})); diff != "" {
+				t.Fatalf("%s failed; created and expected client is not the same (-want +got)\n%s", tc.name, diff)
+			}
 		}
 	}
 
 	testCases := []testCase{
 		{
-			name: "Malformed main NCM API address",
+			name: "malformed-main-ncm-api-url",
 			config: &cfg.NCMConfig{
 				NCMServer: "https://ncm-server.local:-8081",
 			},
@@ -128,7 +130,7 @@ func TestNewClientCreation(t *testing.T) {
 			expectedClient: nil,
 		},
 		{
-			name: "Malformed backup NCM API address",
+			name: "malformed-backup-ncm-api-url",
 			config: &cfg.NCMConfig{
 				NCMServer:  "https://ncm-server.local",
 				NCMServer2: "https://ncm-backup-server.local:-8081",
@@ -137,7 +139,7 @@ func TestNewClientCreation(t *testing.T) {
 			expectedClient: nil,
 		},
 		{
-			name: "Cert & key file dont exist (mTLS connection)",
+			name: "cert-and-key-for-mtls-do-not-exist",
 			config: &cfg.NCMConfig{
 				NCMServer: "https://ncm-server.local",
 				CACert:    rootCA,
@@ -148,7 +150,7 @@ func TestNewClientCreation(t *testing.T) {
 			expectedClient: nil,
 		},
 		{
-			name: "Successfully new client creation (insecure connection)",
+			name: "ncm-client-success-insecure-connection",
 			config: &cfg.NCMConfig{
 				NCMServer: "http://ncm-server.local",
 				Username:  "ncm-user",
@@ -166,7 +168,7 @@ func TestNewClientCreation(t *testing.T) {
 			},
 		},
 		{
-			name: "Successfully new client creation (insecure skip verify)",
+			name: "ncm-client-success-insecure-skip-verify",
 			config: &cfg.NCMConfig{
 				NCMServer:          "https://ncm-server.local",
 				Username:           "ncm-user",
@@ -188,7 +190,7 @@ func TestNewClientCreation(t *testing.T) {
 			},
 		},
 		{
-			name: "Successfully new client creation (TLS connection)",
+			name: "ncm-client-success-tls-connection",
 			config: &cfg.NCMConfig{
 				NCMServer: "https://ncm-server.local",
 				Username:  "ncm-user",
@@ -212,7 +214,7 @@ func TestNewClientCreation(t *testing.T) {
 			},
 		},
 		{
-			name: "Successfully new client creation (mTLS connection)",
+			name: "ncm-client-success-mtls-connection",
 			config: &cfg.NCMConfig{
 				NCMServer: "https://ncm-server.local",
 				Username:  "ncm-user",
@@ -263,21 +265,23 @@ func TestValidateResponse(t *testing.T) {
 			Password:  "ncm-user-password",
 		}
 
-		c, _ := NewClient(config, testr.TestLogger{})
+		c, _ := NewClient(config, testr.TestLogger{T: t})
 		body, err := c.validateResponse(tc.resp)
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
 		}
 
-		if tc.expectedBody != nil && !reflect.DeepEqual(tc.expectedBody, body) {
-			t.Errorf("%s failed; received and wanted body is not the same", tc.name)
+		if tc.expectedBody != nil {
+			if diff := cmp.Diff(tc.expectedBody, body); diff != "" {
+				t.Fatalf("%s failed; received and wanted body is not the same (-want +got)\n%s", tc.name, diff)
+			}
 		}
 	}
 
 	testCases := []testCase{
 		{
-			name: "Successfully validate body returned by NCM API (status 200)",
+			name: "response-validation-success-status-200",
 			resp: &http.Response{
 				StatusCode: 200,
 				Body: io.NopCloser(bytes.NewBuffer(
@@ -287,7 +291,7 @@ func TestValidateResponse(t *testing.T) {
 			expectedBody: []byte(`{"name": "ncmCA", "status": "active"}`),
 		},
 		{
-			name: "Successfully validate body returned by NCM API (status not 200)",
+			name: "response-validation-success-for-status-not-200",
 			resp: &http.Response{
 				StatusCode: 500,
 				Body: io.NopCloser(bytes.NewBuffer(
@@ -297,7 +301,7 @@ func TestValidateResponse(t *testing.T) {
 			expectedBody: nil,
 		},
 		{
-			name: "Unmarshalling json error",
+			name: "response-validation-unmarshalling-json-error",
 			resp: &http.Response{
 				StatusCode: 500,
 				Body: io.NopCloser(bytes.NewBuffer(
@@ -333,21 +337,23 @@ func TestGetCAs(t *testing.T) {
 			Password:  "ncm-user-password",
 		}
 
-		c, _ := NewClient(config, testr.TestLogger{})
+		c, _ := NewClient(config, testr.TestLogger{T: t})
 		cas, err := c.GetCAs()
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
 		}
 
-		if tc.expectedCAs != nil && !reflect.DeepEqual(tc.expectedCAs, cas) {
-			t.Errorf("%s failed; got %+v; want %+v", tc.name, cas, tc.expectedCAs)
+		if tc.expectedCAs != nil {
+			if diff := cmp.Diff(tc.expectedCAs, cas); diff != "" {
+				t.Fatalf("%s failed; received and wanted CAs are not the same (-want +got)\n%s", tc.name, diff)
+			}
 		}
 	}
 
 	testCases := []testCase{
 		{
-			name: "Successfully get CAs from NCM API",
+			name: "get-cas-success",
 			handler: http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Type", "application/json")
@@ -358,7 +364,7 @@ func TestGetCAs(t *testing.T) {
 			expectedCAs: &cas,
 		},
 		{
-			name: "NCM API returned internal server error",
+			name: "get-cas-internal-server-error",
 			handler: http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					apiError := APIError{
@@ -374,7 +380,7 @@ func TestGetCAs(t *testing.T) {
 			expectedCAs: nil,
 		},
 		{
-			name: "Unmarshalling json error",
+			name: "get-cas-unmarshalling-json-error",
 			handler: http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					resp := map[string]string{
@@ -416,21 +422,23 @@ func TestGetCA(t *testing.T) {
 			Password:  "ncm-user-password",
 		}
 
-		c, _ := NewClient(config, testr.TestLogger{})
+		c, _ := NewClient(config, testr.TestLogger{T: t})
 		ca, err := c.GetCA("random-path")
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
 		}
 
-		if tc.expectedCA != nil && !reflect.DeepEqual(tc.expectedCA, ca) {
-			t.Errorf("%s failed; got %+v; want %+v", tc.name, ca, tc.expectedCA)
+		if tc.expectedCA != nil {
+			if diff := cmp.Diff(tc.expectedCA, ca); diff != "" {
+				t.Fatalf("%s failed; received and wanted CA is not the same (-want +got)\n%s", tc.name, diff)
+			}
 		}
 	}
 
 	testCases := []testCase{
 		{
-			name: "Successfully get CA from NCM API",
+			name: "get-ca-success",
 			handler: http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Type", "application/json")
@@ -441,7 +449,7 @@ func TestGetCA(t *testing.T) {
 			expectedCA: &crt1,
 		},
 		{
-			name: "NCM API returned internal server error",
+			name: "get-ca-internal-server-error",
 			handler: http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					apiError := APIError{
@@ -457,7 +465,7 @@ func TestGetCA(t *testing.T) {
 			expectedCA: nil,
 		},
 		{
-			name: "Unmarshalling json error",
+			name: "get-ca-unmarshalling-json-error",
 			handler: http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					resp := map[string]string{

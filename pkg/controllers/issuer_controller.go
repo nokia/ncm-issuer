@@ -19,17 +19,17 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/nokia/ncm-issuer/pkg/cfg"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/go-logr/logr"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
+	"github.com/nokia/ncm-issuer/pkg/cfg"
 	"github.com/nokia/ncm-issuer/pkg/provisioner"
 	core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -69,7 +69,7 @@ func (r *IssuerReconciler) newIssuer() (client.Object, error) {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("ncmissuer", req.NamespacedName)
+	log := r.Log.WithValues("ncm-issuer", req.NamespacedName)
 
 	issuer, err := r.newIssuer()
 	if err != nil {
@@ -79,7 +79,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if err := r.Get(ctx, req.NamespacedName, issuer); err != nil {
 		if err := client.IgnoreNotFound(err); err != nil {
-			return ctrl.Result{}, fmt.Errorf("unexpected get error: %v", err)
+			return ctrl.Result{}, fmt.Errorf("unexpected get err: %v", err)
 		}
 		log.Info("Issuer resource not found, ignoring...")
 		return ctrl.Result{}, nil

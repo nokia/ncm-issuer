@@ -76,7 +76,7 @@ func TestFindCA(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:        "Findable by CAsName",
+			name:        "cas-name-success",
 			CAsHref:     "",
 			CAsName:     "ncmCA2",
 			CAsResponse: CAsResponse,
@@ -84,7 +84,7 @@ func TestFindCA(t *testing.T) {
 			expectedCA:  &crt2,
 		},
 		{
-			name:        "Findable by CAsHref",
+			name:        "cas-href-success",
 			CAsHref:     "Mn012Se",
 			CAsName:     "",
 			CAsResponse: CAsResponse,
@@ -92,7 +92,7 @@ func TestFindCA(t *testing.T) {
 			expectedCA:  &crt1,
 		},
 		{
-			name:        "CAsName case sensitive",
+			name:        "cas-name-case-sensitive",
 			CAsHref:     "",
 			CAsName:     "NCMca2",
 			CAsResponse: CAsResponse,
@@ -100,7 +100,7 @@ func TestFindCA(t *testing.T) {
 			expectedCA:  &ncmapi.CAResponse{},
 		},
 		{
-			name:        "CAsHref case sensitive",
+			name:        "cas-href-case-sensitive",
 			CAsHref:     "mN012sE",
 			CAsName:     "",
 			CAsResponse: CAsResponse,
@@ -108,7 +108,7 @@ func TestFindCA(t *testing.T) {
 			expectedCA:  &ncmapi.CAResponse{},
 		},
 		{
-			name:        "CA certificate findable but not active",
+			name:        "found-ca-not-active",
 			CAsHref:     "efG312Ed",
 			CAsName:     "ncmCA3",
 			CAsResponse: CAsResponse,
@@ -116,7 +116,7 @@ func TestFindCA(t *testing.T) {
 			expectedCA:  &ncmapi.CAResponse{},
 		},
 		{
-			name:        "Empty CAsName & CAsHref",
+			name:        "empty-cas-name-and-href",
 			CAsHref:     "",
 			CAsName:     "",
 			CAsResponse: CAsResponse,
@@ -159,17 +159,17 @@ func TestGetChainAndWantedCA(t *testing.T) {
 		}
 
 		if string(tc.expectedCA) != string(ca) {
-			t.Errorf("%s failed; got %s; want %s", tc.name, string(ca), string(tc.expectedCA))
+			t.Fatalf("%s failed; got %s; want %s", tc.name, string(ca), string(tc.expectedCA))
 		}
 
 		if string(tc.expectedChain) != string(chain) {
-			t.Errorf("%s failed; got %s; want %s", tc.name, string(chain), string(tc.expectedChain))
+			t.Fatalf("%s failed; got %s; want %s", tc.name, string(chain), string(tc.expectedChain))
 		}
 	}
 
 	testCases := []testCase{
 		{
-			name: "Successfully get chain & CA",
+			name: "get-chain-and-ca-success",
 			fakeClient: unit.NewFakeClient(
 				unit.SetFakeClientGetCA(nil),
 				unit.SetFakeClientDownloadCertificate(nil),
@@ -179,7 +179,7 @@ func TestGetChainAndWantedCA(t *testing.T) {
 			expectedCA:    []byte("-----BEGIN CERTIFICATE-----\nMn012Se...\n-----END CERTIFICATE-----\n"),
 		},
 		{
-			name: "Failed to get chain & CA (cannot download certificate)",
+			name: "cannot-download-certificate",
 			fakeClient: unit.NewFakeClient(
 				unit.SetFakeClientGetCA(nil),
 				unit.SetFakeClientDownloadCertificate(errors.New("failed to download CA certificate")),
@@ -189,7 +189,7 @@ func TestGetChainAndWantedCA(t *testing.T) {
 			expectedCA:    []byte(""),
 		},
 		{
-			name: "Failed to get chain & CA (cannot download certificate in PEM)",
+			name: "cannot-download-certificate-in-pem",
 			fakeClient: unit.NewFakeClient(
 				unit.SetFakeClientGetCA(nil),
 				unit.SetFakeClientDownloadCertificate(nil),
@@ -242,13 +242,13 @@ func TestPreparingCAAndTLS(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:        "All CA and TLS manipulation options set to false",
+			name:        "all-manipulation-data-set-to-false",
 			config:      &cfg.NCMConfig{},
 			expectedCA:  rootCA,
 			expectedTLS: append(leafCert, append(signingCA, interCA...)...),
 		},
 		{
-			name: "littleEndian set to true",
+			name: "littleendian-set-to-true",
 			config: &cfg.NCMConfig{
 				LittleEndian: true,
 			},
@@ -256,7 +256,7 @@ func TestPreparingCAAndTLS(t *testing.T) {
 			expectedTLS: append(interCA, append(signingCA, leafCert...)...),
 		},
 		{
-			name: "chainInSigner set to true",
+			name: "chaininsigner-set-to-true",
 			config: &cfg.NCMConfig{
 				ChainInSigner: true,
 			},
@@ -264,7 +264,7 @@ func TestPreparingCAAndTLS(t *testing.T) {
 			expectedTLS: append(leafCert, append(signingCA, interCA...)...),
 		},
 		{
-			name: "littleEndian & chainInSigner set to true",
+			name: "littleendian-and-chaininsigner-set-to-true",
 			config: &cfg.NCMConfig{
 				LittleEndian:  true,
 				ChainInSigner: true,
@@ -273,7 +273,7 @@ func TestPreparingCAAndTLS(t *testing.T) {
 			expectedTLS: append(interCA, append(signingCA, leafCert...)...),
 		},
 		{
-			name: "onlyEECert set to true",
+			name: "onlyeecert-set-to-true",
 			config: &cfg.NCMConfig{
 				OnlyEECert: true,
 			},
@@ -281,7 +281,7 @@ func TestPreparingCAAndTLS(t *testing.T) {
 			expectedTLS: leafCert,
 		},
 		{
-			name: "chainInSigner & onlyEECert set to true",
+			name: "chaininsigner-and-onlyeecert-set-to-true",
 			config: &cfg.NCMConfig{
 				ChainInSigner: true,
 				OnlyEECert:    true,
@@ -316,11 +316,11 @@ func TestSign(t *testing.T) {
 		}
 
 		if string(tc.expectedCA) != string(ca) {
-			t.Errorf("%s failed; got %s; want %s", tc.name, string(ca), string(tc.expectedCA))
+			t.Fatalf("%s failed; got %s; want %s", tc.name, string(ca), string(tc.expectedCA))
 		}
 
 		if string(tc.expectedTLS) != string(tls) {
-			t.Errorf("%s failed; got %s; want %s", tc.name, string(tls), string(tc.expectedTLS))
+			t.Fatalf("%s failed; got %s; want %s", tc.name, string(tls), string(tc.expectedTLS))
 		}
 	}
 
@@ -330,7 +330,7 @@ func TestSign(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Failed to get CAs",
+			name: "failed-get-cas",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -352,7 +352,7 @@ func TestSign(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Failed to find CA",
+			name: "failed-find-ca",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -374,7 +374,7 @@ func TestSign(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Failed to send CSR",
+			name: "failed-send-csr",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -397,7 +397,7 @@ func TestSign(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Failed to check CSR status",
+			name: "failed-check-csr-status",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -421,7 +421,7 @@ func TestSign(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Pending CSR status in NCM API",
+			name: "csr-status-pending",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -445,7 +445,7 @@ func TestSign(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Rejected CSR status in NCM API",
+			name: "csr-status-rejected",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -469,7 +469,7 @@ func TestSign(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Successfully sign certificate",
+			name: "sign-success",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -493,7 +493,7 @@ func TestSign(t *testing.T) {
 			expectedTLS: []byte("-----BEGIN CERTIFICATE-----\nL34FC3RT...\n-----END CERTIFICATE-----\n"),
 		},
 		{
-			name: "Successfully sign certificate (after requeuing)",
+			name: "sign-success-after-requeuing",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -543,7 +543,7 @@ func TestHandlingCSR(t *testing.T) {
 		_, _, _, err := tc.p.Sign(tc.cr)
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
-			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
+			t.Fatalf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
 		}
 	}
 
@@ -553,7 +553,7 @@ func TestHandlingCSR(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "Failed to check CSR status",
+			name: "csr-status-cannot-be-checked",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -580,7 +580,7 @@ func TestHandlingCSR(t *testing.T) {
 			err: errors.New("failed checking CSR status in NCM"),
 		},
 		{
-			name: "Pending CSR status in NCM API",
+			name: "csr-status-pending",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -607,7 +607,7 @@ func TestHandlingCSR(t *testing.T) {
 			err: ErrCSRNotAccepted,
 		},
 		{
-			name: "Pending CSR status in NCM API (pending CSR check limit exceeded)",
+			name: "csr-status-pending-but-exceeded-check-limit",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -634,7 +634,7 @@ func TestHandlingCSR(t *testing.T) {
 			err: ErrCSRCheckLimitExceeded,
 		},
 		{
-			name: "Postponed CSR status in NCM API",
+			name: "csr-status-postponed",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -661,7 +661,7 @@ func TestHandlingCSR(t *testing.T) {
 			err: ErrCSRRejected,
 		},
 		{
-			name: "Approved CSR status in NCM API",
+			name: "csr-status-approved",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -688,7 +688,7 @@ func TestHandlingCSR(t *testing.T) {
 			err: ErrCSRNotAccepted,
 		},
 		{
-			name: "Rejected CSR status in NCM API",
+			name: "csr-status-rejected",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -715,7 +715,7 @@ func TestHandlingCSR(t *testing.T) {
 			err: ErrCSRRejected,
 		},
 		{
-			name: "Unexpected status in NCM API",
+			name: "csr-status-unexpected",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -768,17 +768,17 @@ func TestRenew(t *testing.T) {
 		}
 
 		if string(tc.expectedCA) != string(ca) {
-			t.Errorf("%s failed; got %s; want %s", tc.name, string(ca), string(tc.expectedCA))
+			t.Fatalf("%s failed; got %s; want %s", tc.name, string(ca), string(tc.expectedCA))
 		}
 
 		if string(tc.expectedTLS) != string(tls) {
-			t.Errorf("%s failed; got %s; want %s", tc.name, string(tls), string(tc.expectedTLS))
+			t.Fatalf("%s failed; got %s; want %s", tc.name, string(tls), string(tc.expectedTLS))
 		}
 	}
 
 	testCases := []testCase{
 		{
-			name: "Failed to get CAs",
+			name: "failed-get-cas",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -801,7 +801,7 @@ func TestRenew(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Failed to renew certificate",
+			name: "failed-renew-certificate",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
@@ -825,7 +825,7 @@ func TestRenew(t *testing.T) {
 			expectedTLS: []byte(""),
 		},
 		{
-			name: "Successfully renew certificate",
+			name: "renew-success",
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
