@@ -171,9 +171,9 @@ func TestGetChainAndWantedCA(t *testing.T) {
 		{
 			name: "get-chain-and-ca-success",
 			fakeClient: unit.NewFakeClient(
-				unit.SetFakeClientGetCA(nil),
-				unit.SetFakeClientDownloadCertificate(nil),
-				unit.SetFakeClientDownloadCertificateInPEM(nil)),
+				unit.NoErrorFakeClientGetCA(),
+				unit.NoErrorFakeClientDownloadCertificate(),
+				unit.NoErrorFakeClientDownloadCertificateInPEM()),
 			err:           nil,
 			expectedChain: []byte(""),
 			expectedCA:    []byte("-----BEGIN CERTIFICATE-----\nMn012Se...\n-----END CERTIFICATE-----\n"),
@@ -181,9 +181,8 @@ func TestGetChainAndWantedCA(t *testing.T) {
 		{
 			name: "cannot-download-certificate",
 			fakeClient: unit.NewFakeClient(
-				unit.SetFakeClientGetCA(nil),
-				unit.SetFakeClientDownloadCertificate(errors.New("failed to download CA certificate")),
-				unit.SetFakeClientDownloadCertificateInPEM(nil)),
+				unit.NoErrorFakeClientGetCA(),
+				unit.SetFakeClientDownloadCertificateError(errors.New("failed to download CA certificate"))),
 			err:           errors.New("failed to download CA certificate"),
 			expectedChain: []byte(""),
 			expectedCA:    []byte(""),
@@ -191,9 +190,9 @@ func TestGetChainAndWantedCA(t *testing.T) {
 		{
 			name: "cannot-download-certificate-in-pem",
 			fakeClient: unit.NewFakeClient(
-				unit.SetFakeClientGetCA(nil),
-				unit.SetFakeClientDownloadCertificate(nil),
-				unit.SetFakeClientDownloadCertificateInPEM(errors.New("failed to download CA certificate in PEM")),
+				unit.NoErrorFakeClientGetCA(),
+				unit.NoErrorFakeClientDownloadCertificate(),
+				unit.SetFakeClientDownloadCertificateInPEMError(errors.New("failed to download CA certificate in PEM")),
 			),
 			err:           errors.New("failed to download CA certificate in PEM"),
 			expectedChain: []byte(""),
@@ -337,10 +336,7 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, ErrFailedGetCAs),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil)),
+					unit.SetFakeClientGetCAsError(ErrFailedGetCAs)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -359,10 +355,10 @@ func TestSign(t *testing.T) {
 					CAsHref: "eFgEf12",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM()),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -381,11 +377,11 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(errors.New("cannot established connection")),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.SetFakeClientSendCSRError(errors.New("cannot established connection")),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM()),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -404,12 +400,12 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus("", errors.New("cannot established connection"))),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatusError(errors.New("cannot established connection"))),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -428,12 +424,12 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusPending, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusPending)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -452,12 +448,12 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusRejected, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusRejected)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -476,12 +472,12 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusAccepted, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusAccepted)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -500,12 +496,12 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusAccepted, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusAccepted)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -560,12 +556,12 @@ func TestHandlingCSR(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus("", errors.New("cannot established connection"))),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatusError(errors.New("cannot established connection"))),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -587,12 +583,12 @@ func TestHandlingCSR(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusPending, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusPending)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -614,12 +610,12 @@ func TestHandlingCSR(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusPending, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusPending)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -641,12 +637,12 @@ func TestHandlingCSR(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusPostponed, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusPostponed)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -668,12 +664,12 @@ func TestHandlingCSR(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusApproved, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusApproved)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -695,12 +691,12 @@ func TestHandlingCSR(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus(CSRStatusRejected, nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus(CSRStatusRejected)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -722,12 +718,12 @@ func TestHandlingCSR(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientCSRStatus("unexpected", errors.New("unexpected"))),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientCSRStatus("unexpected")),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{
 						"ncm-ns.ncm-certificate": {
@@ -785,11 +781,7 @@ func TestRenew(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, ErrFailedGetCAs),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil)),
+					unit.SetFakeClientGetCAsError(ErrFailedGetCAs)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -808,12 +800,12 @@ func TestRenew(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientRenewCertificate(errors.New("cannot established connection"))),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientRenewCertificateError(errors.New("cannot established connection"))),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
@@ -832,12 +824,12 @@ func TestRenew(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: unit.NewFakeClient(
-					unit.SetFakeClientGetCAs(CAsResponse, nil),
-					unit.SetFakeClientGetCA(nil),
-					unit.SetFakeClientSendCSR(nil),
-					unit.SetFakeClientDownloadCertificate(nil),
-					unit.SetFakeClientDownloadCertificateInPEM(nil),
-					unit.SetFakeClientRenewCertificate(nil)),
+					unit.SetFakeClientGetCAs(CAsResponse),
+					unit.NoErrorFakeClientGetCA(),
+					unit.NoErrorFakeClientSendCSR(),
+					unit.NoErrorFakeClientDownloadCertificate(),
+					unit.NoErrorFakeClientDownloadCertificateInPEM(),
+					unit.SetFakeClientRenewCertificate("L34FC3RT")),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},

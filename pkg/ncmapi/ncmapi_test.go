@@ -9,7 +9,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -113,10 +115,8 @@ func TestNewClientCreation(t *testing.T) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
 		}
 
-		if tc.expectedClient != nil {
-			if diff := cmp.Diff(tc.expectedClient, c, cmp.AllowUnexported(Client{})); diff != "" {
-				t.Fatalf("%s failed; created and expected client is not the same (-want +got)\n%s", tc.name, diff)
-			}
+		if tc.expectedClient != nil && !reflect.DeepEqual(tc.expectedClient, c) {
+			t.Fatalf("%s failed; created and expected client is not the same", tc.name)
 		}
 	}
 
@@ -250,6 +250,54 @@ func TestNewClientCreation(t *testing.T) {
 	}
 }
 
+func TestNewRequestCreation(t *testing.T) {
+	type testCase struct {
+		name   string
+		method string
+		err    error
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		config := &cfg.NCMConfig{
+			NCMServer: "https://ncm-server.local",
+			Username:  "ncm-user",
+			Password:  "ncm-user-password",
+		}
+
+		c, _ := NewClient(config, testr.TestLogger{T: t})
+		params := url.Values{}
+		_, err := c.newRequest(tc.method, "random-path", strings.NewReader(params.Encode()))
+
+		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
+			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name:   "new-request-invalid-method",
+			method: "Konstantynopolitańczykówna",
+			err:    errors.New("invalid method"),
+		},
+		{
+			name:   "new-request-success",
+			method: http.MethodGet,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+type failReader int
+
+func (failReader) Read([]byte) (int, error) {
+	return 0, errors.New("unable to read from body unexpected EOF")
+}
+
 func TestValidateResponse(t *testing.T) {
 	type testCase struct {
 		name         string
@@ -287,7 +335,6 @@ func TestValidateResponse(t *testing.T) {
 				Body: io.NopCloser(bytes.NewBuffer(
 					[]byte(`{"name": "ncmCA", "status": "active"}`))),
 			},
-			err:          nil,
 			expectedBody: []byte(`{"name": "ncmCA", "status": "active"}`),
 		},
 		{
@@ -297,18 +344,24 @@ func TestValidateResponse(t *testing.T) {
 				Body: io.NopCloser(bytes.NewBuffer(
 					[]byte(`{"message": "Internal Server Error", "status": 500, "statusMessage": "Internal Server Error"}`))),
 			},
-			err:          errors.New("500"),
-			expectedBody: nil,
+			err: errors.New("500"),
 		},
 		{
-			name: "response-validation-unmarshalling-json-error",
+			name: "unmarshalling-json-error",
 			resp: &http.Response{
 				StatusCode: 500,
 				Body: io.NopCloser(bytes.NewBuffer(
 					[]byte(`{"message": "Internal Server Error", "status": "500", "statusMessage": "Internal Server Error"}`))),
 			},
-			err:          errors.New("cannot unmarshal json"),
-			expectedBody: nil,
+			err: errors.New("cannot unmarshal json"),
+		},
+		{
+			name: "read-response-body-error",
+			resp: &http.Response{
+				StatusCode: 500,
+				Body:       io.NopCloser(failReader(0)),
+			},
+			err: errors.New("cannot read response body"),
 		},
 	}
 

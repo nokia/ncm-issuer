@@ -78,7 +78,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
-
 		return ctrl.Result{}, err
 	}
 
@@ -100,6 +99,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	if apiutil.CertificateRequestIsDenied(cr) {
 		log.V(4).Info("CertificateRequest has been denied")
+		if cr.Status.FailureTime == nil {
+			nowTime := metav1.NewTime(r.Clock.Now())
+			cr.Status.FailureTime = &nowTime
+		}
+
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "CertificateRequest has been denied")
 		return ctrl.Result{}, nil
 	}
 
@@ -123,6 +128,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	issuerRO, err := r.Scheme.New(issuerGVK)
 	if err != nil {
 		log.Error(err, "Unrecognised kind. Ignoring.")
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "unrecognised kind err: %v", err)
 		return ctrl.Result{}, nil
 	}
 
@@ -135,7 +141,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		issuerName.Namespace = req.Namespace
 	}
 
-	if err := r.Client.Get(ctx, issuerName, issuer); err != nil {
+	if err = r.Client.Get(ctx, issuerName, issuer); err != nil {
 		log.Error(err, "Failed to get issuer")
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "issuer is not existing yet")
 		return ctrl.Result{}, errFailedGetIssuer
@@ -169,7 +175,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	crt := &cmapi.Certificate{}
-	if err := r.Client.Get(ctx, client.ObjectKey{
+	if err = r.Client.Get(ctx, client.ObjectKey{
 		Namespace: req.Namespace, Name: cr.Annotations[cmapi.CertificateNameKey]}, crt); err != nil {
 		log.Error(err, "Certificate object not found")
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "certificate object not found")
@@ -182,11 +188,13 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// whether the operation of certificate renewal should take place
 	isRevision := crt.Status.Revision != nil && *crt.Status.Revision >= 1
 	isPKRotationAlways := crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy == "Always"
-	isRenewal := isRevision && !p.NCMConfig.ReenrollmentOnRenew && !isPKRotationAlways
+	// TODO: Provisioner is no longer an individual struct, but implements interface, thus configuration option "ReenrollmentOnRenew" should be handled somehow
+	// isRenewal := isRevision && !p.NCMConfig.ReenrollmentOnRenew && !isPKRotationAlways
+	isRenewal := isRevision && !isPKRotationAlways
 
 	isSecretWithCertID := false
 	secretCertID := &core.Secret{}
-	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: secretName}, secretCertID); err != nil {
+	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: secretName}, secretCertID); err != nil {
 		if apierrors.IsNotFound(err) {
 			// This means that secret needed for renewal operations does not exist,
 			// and we should perform re-enrollment operation instead
@@ -204,7 +212,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// We also need to check if the certificate's TLS secret has been deleted,
 	// which involves triggering a manual rotation of a private key
 	if isRenewal {
-		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crt.Spec.SecretName}, &core.Secret{}); err != nil {
+		if err = r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crt.Spec.SecretName}, &core.Secret{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				isRenewal = false
 			} else {
@@ -228,7 +236,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 
 		secretCertID = GetCertIDSecret(req.Namespace, secretName, certID)
-		if err := r.Client.Update(ctx, secretCertID); err != nil {
+		if err = r.Client.Update(ctx, secretCertID); err != nil {
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to update secret err: %v", err)
 			return ctrl.Result{}, err
 		}
@@ -263,12 +271,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		secretCertID = GetCertIDSecret(req.Namespace, secretName, certID)
 		if isSecretWithCertID {
-			if err := r.Client.Update(ctx, secretCertID); err != nil {
+			if err = r.Client.Update(ctx, secretCertID); err != nil {
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to update secret err: %v", err)
 				return ctrl.Result{}, err
 			}
 		} else {
-			if err := r.Client.Create(ctx, secretCertID); err != nil {
+			if err = r.Client.Create(ctx, secretCertID); err != nil {
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to create secret err: %v", err)
 				return ctrl.Result{}, err
 			}

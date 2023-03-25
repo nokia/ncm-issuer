@@ -35,36 +35,36 @@ var (
 // ProvisionersMap stores prepared (NCM API Client is configured) and ready to
 // use provisioner.
 type ProvisionersMap struct {
-	provisioners map[types.NamespacedName]*Provisioner
+	Provisioners map[types.NamespacedName]ExternalProvisioner
 	mu           sync.RWMutex
 }
 
 func NewProvisionersMap() *ProvisionersMap {
 	return &ProvisionersMap{
-		provisioners: map[types.NamespacedName]*Provisioner{},
+		Provisioners: map[types.NamespacedName]ExternalProvisioner{},
 		mu:           sync.RWMutex{},
 	}
 }
 
-func (pm *ProvisionersMap) Get(NamespacedName types.NamespacedName) (*Provisioner, bool) {
+func (pm *ProvisionersMap) Get(NamespacedName types.NamespacedName) (ExternalProvisioner, bool) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 
-	p, ok := pm.provisioners[NamespacedName]
+	p, ok := pm.Provisioners[NamespacedName]
 	return p, ok
 }
 
-func (pm *ProvisionersMap) AddOrReplace(NamespacedName types.NamespacedName, provisioner *Provisioner) {
+func (pm *ProvisionersMap) AddOrReplace(NamespacedName types.NamespacedName, provisioner ExternalProvisioner) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	if _, ok := pm.provisioners[NamespacedName]; !ok {
-		pm.provisioners[NamespacedName] = provisioner
+	if _, ok := pm.Provisioners[NamespacedName]; !ok {
+		pm.Provisioners[NamespacedName] = provisioner
 	} else {
 		// The existing provisioner has been found, but IssuerReconcile
 		// was triggered again, which may involve a change in configuration.
-		delete(pm.provisioners, NamespacedName)
-		pm.provisioners[NamespacedName] = provisioner
+		delete(pm.Provisioners, NamespacedName)
+		pm.Provisioners[NamespacedName] = provisioner
 	}
 }
 

@@ -57,8 +57,6 @@ type Client struct {
 	log    logr.Logger
 }
 
-var _ ExternalClient = &Client{}
-
 type ClientError struct {
 	Reason       string
 	ErrorMessage error

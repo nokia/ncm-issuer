@@ -59,7 +59,7 @@ func TestIssuerReconcile(t *testing.T) {
 			Client:       fakeClient,
 			Kind:         tc.kind,
 			Scheme:       scheme,
-			Clock:        clock.RealClock{},
+			Clock:        clk,
 			Recorder:     record.NewFakeRecorder(10),
 			Provisioners: p,
 			Log:          testr.TestLogger{T: t},
@@ -74,12 +74,12 @@ func TestIssuerReconcile(t *testing.T) {
 		if tc.expectedStatus != nil && len(tc.expectedStatus.Conditions) != 0 {
 			issuer, _ := controller.newIssuer()
 			if err := fakeClient.Get(context.TODO(), tc.namespacedName, issuer); err != nil {
-				t.Fatalf("%s failed; expected to retrieve issuer err: %s", tc.name, err.Error())
+				t.Errorf("%s failed; expected to retrieve issuer err: %s", tc.name, err.Error())
 			}
 			_, issuerStatus, _ := GetSpecAndStatus(issuer)
 
 			if diff := cmp.Diff(tc.expectedStatus, issuerStatus); diff != "" {
-				t.Fatalf("%s failed; returned and expected issuer status is not the same (-want +got)\n%s", tc.name, diff)
+				t.Errorf("%s failed; returned and expected issuer status is not the same (-want +got)\n%s", tc.name, diff)
 			}
 
 			if tc.err == nil {
@@ -337,23 +337,23 @@ func TestIssuerReconcile(t *testing.T) {
 		{
 			name:           "cluster-issuer-success",
 			kind:           ClusterIssuer,
-			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-cluster-issuer"},
+			namespacedName: types.NamespacedName{Namespace: v1.NamespaceDefault, Name: "ncm-cluster-issuer"},
 			objects: []client.Object{
 				&ncmv1.ClusterIssuer{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ncm-ns",
+						Namespace: v1.NamespaceDefault,
 						Name:      "ncm-cluster-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
 						NCMServer:      "https://ncm-server.local:8081",
 						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
+						AuthNamespace:  v1.NamespaceDefault,
 						AuthSecretName: "ncm-auth-secret",
 					},
 				},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ncm-ns",
+						Namespace: v1.NamespaceDefault,
 						Name:      "ncm-auth-secret",
 					},
 					Data: map[string][]byte{
@@ -377,6 +377,7 @@ func TestIssuerReconcile(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})

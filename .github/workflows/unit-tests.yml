@@ -1,4 +1,4 @@
-name: Unit tests using different Go version
+name: unit tests using different go version
 
 on:
   push:
@@ -13,18 +13,18 @@ jobs:
       matrix:
         go-version: ['1.16', '1.16.15', '1.17', '1.17.8', '1.18.9', '1.19.6']
     steps:
-    - name: Checkout git
+    - name: "Checkout git"
       uses: actions/checkout@v3
 
-    - name: Setup Go {{ matrix.go-version }}
+    - name: "Setup Go"
       uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
 
-    - name: Install dependencies
+    - name: "Install dependencies"
       run: go get .
 
-    - name: Test with Go {{ matrix.go-version }}
+    - name: "Test with Go"
       run: go test ./... -json > unit-test-results-${{ matrix.go-version }}.json
 
     - name: "[ * ] Collecting unit test results"

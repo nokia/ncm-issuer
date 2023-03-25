@@ -11,14 +11,12 @@ import (
 type FakeClient struct {
 	GetCAsFn                   func() (*ncmapi.CAsResponse, error)
 	GetCAFn                    func(path string) (*ncmapi.CAResponse, error)
-	SendCSRFn                  func(pem []byte, CA *ncmapi.CAResponse, profileID string) (*ncmapi.CSRResponse, error)
+	SendCSRFn                  func() (*ncmapi.CSRResponse, error)
 	CheckCSRStatusFn           func(path string) (*ncmapi.CSRStatusResponse, error)
 	DownloadCertificateFn      func(path string) (*ncmapi.CertificateDownloadResponse, error)
 	DownloadCertificateInPEMFn func(path string) ([]byte, error)
-	RenewCertificateFn         func(path string, duration *metav1.Duration, profileID string) (*ncmapi.RenewCertificateResponse, error)
+	RenewCertificateFn         func() (*ncmapi.RenewCertificateResponse, error)
 }
-
-var _ ncmapi.ExternalClient = &FakeClient{}
 
 func NewFakeClient(mods ...func(*FakeClient)) *FakeClient {
 	fc := &FakeClient{}
@@ -28,15 +26,23 @@ func NewFakeClient(mods ...func(*FakeClient)) *FakeClient {
 	return fc
 }
 
-func SetFakeClientGetCAs(r *ncmapi.CAsResponse, err error) func(*FakeClient) {
+func SetFakeClientGetCAs(r *ncmapi.CAsResponse) func(*FakeClient) {
 	return func(fc *FakeClient) {
 		fc.GetCAsFn = func() (*ncmapi.CAsResponse, error) {
-			return r, err
+			return r, nil
 		}
 	}
 }
 
-func SetFakeClientGetCA(err error) func(*FakeClient) {
+func SetFakeClientGetCAsError(err error) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.GetCAsFn = func() (*ncmapi.CAsResponse, error) {
+			return nil, err
+		}
+	}
+}
+
+func NoErrorFakeClientGetCA() func(*FakeClient) {
 	return func(fc *FakeClient) {
 		fc.GetCAFn = func(path string) (*ncmapi.CAResponse, error) {
 			crtIdentifier := func() string {
@@ -51,22 +57,38 @@ func SetFakeClientGetCA(err error) func(*FakeClient) {
 				Certificates: map[string]string{
 					"active": fmt.Sprintf("https://ncm-servver-local/certificate/%s", crtIdentifier),
 				},
-			}, err
+			}, nil
 		}
 	}
 }
 
-func SetFakeClientSendCSR(err error) func(*FakeClient) {
+func SetFakeClientGetCAError(err error) func(*FakeClient) {
 	return func(fc *FakeClient) {
-		fc.SendCSRFn = func(pem []byte, CA *ncmapi.CAResponse, profileID string) (*ncmapi.CSRResponse, error) {
-			return &ncmapi.CSRResponse{
-				Href: "https://ncm-server.local/requests/SaVye12",
-			}, err
+		fc.GetCAFn = func(path string) (*ncmapi.CAResponse, error) {
+			return nil, err
 		}
 	}
 }
 
-func SetFakeClientCSRStatus(status string, err error) func(*FakeClient) {
+func NoErrorFakeClientSendCSR() func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.SendCSRFn = func() (*ncmapi.CSRResponse, error) {
+			return &ncmapi.CSRResponse{
+				Href: "https://ncm-server.local/requests/it-doesnt-matter",
+			}, nil
+		}
+	}
+}
+
+func SetFakeClientSendCSRError(err error) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.SendCSRFn = func() (*ncmapi.CSRResponse, error) {
+			return nil, err
+		}
+	}
+}
+
+func SetFakeClientCSRStatus(status string) func(*FakeClient) {
 	return func(fc *FakeClient) {
 		fc.CheckCSRStatusFn = func(path string) (*ncmapi.CSRStatusResponse, error) {
 			crtIdentifier := func() string {
@@ -78,12 +100,20 @@ func SetFakeClientCSRStatus(status string, err error) func(*FakeClient) {
 				Href:        fmt.Sprintf("https://ncm-server.local/requests/%s", crtIdentifier),
 				Certificate: "https://ncm-server.local/certificates/L34FC3RT",
 				Status:      status,
-			}, err
+			}, nil
 		}
 	}
 }
 
-func SetFakeClientDownloadCertificate(err error) func(*FakeClient) {
+func SetFakeClientCSRStatusError(err error) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.CheckCSRStatusFn = func(string) (*ncmapi.CSRStatusResponse, error) {
+			return nil, err
+		}
+	}
+}
+
+func NoErrorFakeClientDownloadCertificate() func(*FakeClient) {
 	return func(fc *FakeClient) {
 		fc.DownloadCertificateFn = func(path string) (*ncmapi.CertificateDownloadResponse, error) {
 			crtIdentifier := func() string {
@@ -95,12 +125,20 @@ func SetFakeClientDownloadCertificate(err error) func(*FakeClient) {
 				Href:     fmt.Sprintf("https://ncm-server.local/certificates/%s", crtIdentifier),
 				IssuerCA: fmt.Sprintf("https://ncm-server.local/cas/%s", crtIdentifier),
 				Status:   "active",
-			}, err
+			}, nil
 		}
 	}
 }
 
-func SetFakeClientDownloadCertificateInPEM(err error) func(*FakeClient) {
+func SetFakeClientDownloadCertificateError(err error) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.DownloadCertificateFn = func(string) (*ncmapi.CertificateDownloadResponse, error) {
+			return nil, err
+		}
+	}
+}
+
+func NoErrorFakeClientDownloadCertificateInPEM() func(*FakeClient) {
 	return func(fc *FakeClient) {
 		fc.DownloadCertificateInPEMFn = func(path string) ([]byte, error) {
 			crtIdentifier := func() string {
@@ -108,18 +146,34 @@ func SetFakeClientDownloadCertificateInPEM(err error) func(*FakeClient) {
 				return s[len(s)-1]
 			}()
 
-			return []byte(fmt.Sprintf("-----BEGIN CERTIFICATE-----\n%s...\n-----END CERTIFICATE-----\n", crtIdentifier)), err
+			return []byte(fmt.Sprintf("-----BEGIN CERTIFICATE-----\n%s...\n-----END CERTIFICATE-----\n", crtIdentifier)), nil
 		}
 	}
 
 }
 
-func SetFakeClientRenewCertificate(err error) func(*FakeClient) {
+func SetFakeClientDownloadCertificateInPEMError(err error) func(*FakeClient) {
 	return func(fc *FakeClient) {
-		fc.RenewCertificateFn = func(path string, duration *metav1.Duration, profileID string) (*ncmapi.RenewCertificateResponse, error) {
+		fc.DownloadCertificateInPEMFn = func(string) ([]byte, error) {
+			return nil, err
+		}
+	}
+}
+
+func SetFakeClientRenewCertificate(renewedCrtName string) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.RenewCertificateFn = func() (*ncmapi.RenewCertificateResponse, error) {
 			return &ncmapi.RenewCertificateResponse{
-				Certificate: "https://ncm-server.local/certificates/L34FC3RT",
-			}, err
+				Certificate: fmt.Sprintf("https://ncm-server.local/certificates/%s", renewedCrtName),
+			}, nil
+		}
+	}
+}
+
+func SetFakeClientRenewCertificateError(err error) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.RenewCertificateFn = func() (*ncmapi.RenewCertificateResponse, error) {
+			return nil, err
 		}
 	}
 }
@@ -132,8 +186,8 @@ func (fc *FakeClient) GetCA(path string) (*ncmapi.CAResponse, error) {
 	return fc.GetCAFn(path)
 }
 
-func (fc *FakeClient) SendCSR(pem []byte, CA *ncmapi.CAResponse, profileID string) (*ncmapi.CSRResponse, error) {
-	return fc.SendCSRFn(pem, CA, profileID)
+func (fc *FakeClient) SendCSR([]byte, *ncmapi.CAResponse, string) (*ncmapi.CSRResponse, error) {
+	return fc.SendCSRFn()
 }
 
 func (fc *FakeClient) CheckCSRStatus(path string) (*ncmapi.CSRStatusResponse, error) {
@@ -148,6 +202,6 @@ func (fc *FakeClient) DownloadCertificateInPEM(path string) ([]byte, error) {
 	return fc.DownloadCertificateInPEMFn(path)
 }
 
-func (fc *FakeClient) RenewCertificate(path string, duration *metav1.Duration, profileID string) (*ncmapi.RenewCertificateResponse, error) {
-	return fc.RenewCertificateFn(path, duration, profileID)
+func (fc *FakeClient) RenewCertificate(string, *metav1.Duration, string) (*ncmapi.RenewCertificateResponse, error) {
+	return fc.RenewCertificateFn()
 }
