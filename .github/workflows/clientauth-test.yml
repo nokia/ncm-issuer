@@ -3,7 +3,7 @@ name: clientauth tests
 on:
   push:
   schedule:
-    # * is a special character in YAML so you have to quote this string
+    # * is a special character in YAML, so you have to quote this string
     - cron:  '0 2 * * 6'
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
         sudo microk8s enable dns
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
-  
+
     - name: "install cert-manager charts"
       run: |
         sudo microk8s.kubectl create namespace cert-manager
