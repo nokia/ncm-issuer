@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"github.com/nokia/ncm-issuer/pkg/provisioner"
 	"k8s.io/utils/clock"
 	"os"
 
@@ -90,13 +91,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	provisioners := provisioner.NewProvisionersMap()
+
 	if err = (&controllers.IssuerReconciler{
-		Kind:     "ClusterIssuer",
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Clock:    clock.RealClock{},
-		Recorder: mgr.GetEventRecorderFor("external-clusterIssuer-controller"),
-		Log:      ctrl.Log.WithName("controllers").WithName("ClusterIssuer"),
+		Kind:         "ClusterIssuer",
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Clock:        clock.RealClock{},
+		Recorder:     mgr.GetEventRecorderFor("external-clusterIssuer-controller"),
+		Provisioners: provisioners,
+		Log:          ctrl.Log.WithName("controllers").WithName("ClusterIssuer"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, setupErrMsg, "controller", "ClusterIssuer")
 		os.Exit(1)
@@ -105,23 +109,25 @@ func main() {
 	}
 
 	if err = (&controllers.IssuerReconciler{
-		Kind:     "Issuer",
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Clock:    clock.RealClock{},
-		Recorder: mgr.GetEventRecorderFor("external-issuer-controller"),
-		Log:      ctrl.Log.WithName("controllers").WithName("Issuer"),
+		Kind:         "Issuer",
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Clock:        clock.RealClock{},
+		Recorder:     mgr.GetEventRecorderFor("external-issuer-controller"),
+		Provisioners: provisioners,
+		Log:          ctrl.Log.WithName("controllers").WithName("Issuer"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, setupErrMsg, "controller", "Issuer")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.CertificateRequestReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
-		Clock:    clock.RealClock{},
-		Recorder: mgr.GetEventRecorderFor("certificateRequests-controller"),
-		Scheme:   mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
+		Clock:        clock.RealClock{},
+		Recorder:     mgr.GetEventRecorderFor("certificateRequests-controller"),
+		Provisioners: provisioners,
+		Scheme:       mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, setupErrMsg, "controller", "CertificateRequest")
 		os.Exit(1)

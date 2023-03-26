@@ -45,8 +45,8 @@ type IssuerSpec struct {
 	AuthSecretName string `json:"secretName"`
 
 	// +optional
-	// ProfileId API parameter
-	ProfileId string `json:"profileId,omitempty"`
+	// ProfileID API parameter
+	ProfileID string `json:"profileId,omitempty"`
 
 	// +optional
 	// The secret which contains TLS configuration to external NCM server
