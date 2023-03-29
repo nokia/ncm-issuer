@@ -21,7 +21,6 @@ import (
 	"github.com/nokia/ncm-issuer/pkg/provisioner"
 	"k8s.io/utils/clock"
 	"os"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
@@ -32,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	certmanagerv1 "github.com/nokia/ncm-issuer/api/v1"
+	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
 	"github.com/nokia/ncm-issuer/pkg/controllers"
 	//+kubebuilder:scaffold:imports
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -49,7 +48,7 @@ const setupErrMsg = "unable to create controller"
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(ncmv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 	utilruntime.Must(cmapi.AddToScheme(scheme))
 }
@@ -63,9 +62,8 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	opts := zap.Options{
-		Development: true,
-	}
+
+	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 

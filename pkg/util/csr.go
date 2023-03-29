@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"time"
 
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 )
 
 var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)
@@ -32,7 +32,7 @@ var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)
 // GenerateTemplate will create a x509.Certificate for the given
 // CertificateRequest resource
 func GenerateTemplateFromCertificateRequest(cr *cmapi.CertificateRequest) (*x509.Certificate, error) {
-	block, _ := pem.Decode(cr.Spec.CSRPEM)
+	block, _ := pem.Decode(cr.Spec.Request)
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode csr from certificate request resource %s/%s",
 			cr.Namespace, cr.Name)

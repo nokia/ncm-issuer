@@ -74,7 +74,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Fetch the CertificateRequest resource being reconciled
 	cr := &cmapi.CertificateRequest{}
-	if err := r.Client.Get(ctx, req.NamespacedName, cr); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, cr); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
@@ -84,8 +84,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Checks the CertificateRequest's issuerRef and if it does not match the
 	// cert-manager group name, log a message at a debug level and stop processing.
 	if cr.Spec.IssuerRef.Group != ncmv1.GroupVersion.Group {
-		log.V(4).Info("resource does not specify an issuerRef group name that we are responsible for", "group", cr.Spec.IssuerRef.Group)
-
+		log.V(4).Info("Resource does not specify an issuerRef group name that we are responsible for", "group", cr.Spec.IssuerRef.Group)
 		return ctrl.Result{}, nil
 	}
 
@@ -94,35 +93,35 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Status: cmmeta.ConditionFalse,
 		Reason: cmapi.CertificateRequestReasonFailed,
 	}) {
-		log.V(4).Info("CertificateRequest has been marked as failed")
+		log.V(4).Info("Certificate request has been marked as failed")
 		return ctrl.Result{}, nil
 	}
 
 	if apiutil.CertificateRequestIsDenied(cr) {
-		log.V(4).Info("CertificateRequest has been denied")
+		log.V(4).Info("Certificate request has been denied by ncm-issuer")
 		if cr.Status.FailureTime == nil {
 			nowTime := metav1.NewTime(r.Clock.Now())
 			cr.Status.FailureTime = &nowTime
 		}
 
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "CertificateRequest has been denied")
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "Certificate request has been denied by ncm-issuer")
 		return ctrl.Result{}, nil
 	}
 
 	if !apiutil.CertificateRequestIsApproved(cr) {
-		log.V(4).Info("CertificateRequest has not been approved yet")
+		log.V(4).Info("Certificate request has not been approved yet")
 		return ctrl.Result{}, nil
 	}
 
 	if len(cr.Status.Certificate) > 0 {
-		log.V(4).Info("existing certificate data found in status, skipping already completed CertificateRequest")
+		log.V(4).Info("Existing certificate data found in status, skipping already completed certificate request")
 
 		return ctrl.Result{}, nil
 	}
 
 	if err := validateCertificateRequest(cr); err != nil {
 		log.Error(err, "Certificate request has issues", "cr", req.NamespacedName)
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "certificate request has issues: %v", err)
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate request has issues: %v", err)
 		return ctrl.Result{}, nil
 	}
 
@@ -130,7 +129,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	issuerRO, err := r.Scheme.New(issuerGVK)
 	if err != nil {
 		log.Error(err, "Unrecognised kind. Ignoring.")
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "unrecognised kind err: %v", err)
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Unrecognised kind err: %v", err)
 		return ctrl.Result{}, nil
 	}
 
@@ -143,16 +142,16 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		issuerName.Namespace = req.Namespace
 	}
 
-	if err = r.Client.Get(ctx, issuerName, issuer); err != nil {
+	if err = r.Get(ctx, issuerName, issuer); err != nil {
 		log.Error(err, "Failed to get issuer")
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "issuer is not existing yet")
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Issuer is not existing yet")
 		return ctrl.Result{}, errFailedGetIssuer
 	}
 
 	issuerSpec, issuerStatus, err := GetSpecAndStatus(issuer)
 	if err != nil {
 		log.Error(err, "Failed to get spec and status for the issuer")
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "failed to get spec and status for issuer")
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Failed to get spec and status for issuer")
 		return ctrl.Result{}, nil
 	}
 
@@ -166,21 +165,21 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Type:   ncmv1.IssuerConditionReady,
 		Status: ncmv1.ConditionTrue,
 	}) {
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to get (cluster) issuer %s is not Ready, its condition: %s", issuerName, issuerStatus.Conditions)
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get (cluster) issuer %s is not 'Ready', its condition: %s", issuerName, issuerStatus.Conditions)
 		return ctrl.Result{}, errIssuerNotReady
 	}
 
 	p, ok := r.Provisioners.Get(issuerName)
 	if !ok {
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to get provisioner for resource: %s", issuerName)
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get provisioner for resource: %s", issuerName)
 		return ctrl.Result{}, errFailedGetProvisioner
 	}
 
 	crt := &cmapi.Certificate{}
-	if err = r.Client.Get(ctx, client.ObjectKey{
+	if err = r.Get(ctx, client.ObjectKey{
 		Namespace: req.Namespace, Name: cr.Annotations[cmapi.CertificateNameKey]}, crt); err != nil {
 		log.Error(err, "Certificate object not found")
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "certificate object not found")
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate object not found")
 		return ctrl.Result{}, nil
 	}
 
@@ -196,7 +195,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	isSecretWithCertID := false
 	secretCertID := &core.Secret{}
-	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: secretName}, secretCertID); err != nil {
+	if err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: secretName}, secretCertID); err != nil {
 		if apierrors.IsNotFound(err) {
 			// This means that secret needed for renewal operations does not exist,
 			// and we should perform re-enrollment operation instead
@@ -214,7 +213,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// We also need to check if the certificate's TLS secret has been deleted,
 	// which involves triggering a manual rotation of a private key
 	if isRenewal {
-		if err = r.Client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crt.Spec.SecretName}, &core.Secret{}); err != nil {
+		if err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crt.Spec.SecretName}, &core.Secret{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				isRenewal = false
 			} else {
@@ -225,61 +224,64 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	if isRenewal {
-		log.Info("Renewing", "certificate", cr.Annotations[cmapi.CertificateNameKey])
+		log.Info("Performing renewing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
 		ca, tls, certID, err := p.Renew(cr, string(secretCertID.Data["cert-id"]))
 		if err != nil {
 			if errors.Is(err, provisioner.ErrFailedGetCAs) {
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to get CAs during renewal, requeuing...")
-				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, err
+				log.Error(err, "Could not established connection with NCM API")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get CAs during renewal")
+				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, nil
 			}
-			log.Error(err, "failed to renew certificate")
-			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to renew certificate err: %v", err)
+			log.Error(err, "Failed to renew certificate")
+			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to renew certificate err: %v", err)
 			return ctrl.Result{}, err
 		}
 
 		secretCertID = GetCertIDSecret(req.Namespace, secretName, certID)
-		if err = r.Client.Update(ctx, secretCertID); err != nil {
-			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to update secret err: %v", err)
+		if err = r.Update(ctx, secretCertID); err != nil {
+			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
 			return ctrl.Result{}, err
 		}
 
 		cr.Status.CA = ca
 		cr.Status.Certificate = tls
 	} else {
-		log.Info("Singing", "certificate", cr.Annotations[cmapi.CertificateNameKey])
+		log.Info("Performing signing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
 		ca, tls, certID, err := p.Sign(cr)
 		if err != nil {
 			switch {
 			case errors.Is(err, provisioner.ErrFailedGetCAs):
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to get CAs during signing, requeuing...")
-				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, err
+				log.Error(err, "Could not established connection with NCM API")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get CAs during signing")
+				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRNotAccepted):
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "CSR in NCM has not yet been approved, requeing...")
-				return ctrl.Result{RequeueAfter: CSRRequeueTime}, err
+				log.Error(err, "CSR status in NCM is not yet expected one")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "CSR in NCM has not yet been approved")
+				return ctrl.Result{RequeueAfter: CSRRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRRejected):
-				log.Error(err, "CSR has been rejected, further actions should be taken manually")
+				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually")
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "CSR has been rejected by NCM")
 				return ctrl.Result{}, nil
 			case errors.Is(err, provisioner.ErrCSRCheckLimitExceeded):
-				log.Error(err, "CSR has not been accepted for too long time, further actions should be taken manually")
+				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually")
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "CSR has not been accepted for too long time")
 				return ctrl.Result{}, nil
 			default:
-				log.Error(err, "unexpected error during certificate signing")
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to sign certificate err: %v", err)
+				log.Error(err, "Unexpected error during certificate signing")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to sign certificate err: %v", err)
 				return ctrl.Result{}, err
 			}
 		}
 
 		secretCertID = GetCertIDSecret(req.Namespace, secretName, certID)
 		if isSecretWithCertID {
-			if err = r.Client.Update(ctx, secretCertID); err != nil {
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to update secret err: %v", err)
+			if err = r.Update(ctx, secretCertID); err != nil {
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
 				return ctrl.Result{}, err
 			}
 		} else {
-			if err = r.Client.Create(ctx, secretCertID); err != nil {
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "failed to create secret err: %v", err)
+			if err = r.Create(ctx, secretCertID); err != nil {
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to create secret err: %v", err)
 				return ctrl.Result{}, err
 			}
 		}

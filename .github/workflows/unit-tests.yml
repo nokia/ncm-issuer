@@ -2,7 +2,7 @@ name: unit tests using different go version
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'features*', 'releases*' ]
   pull_request:
     branches: [ main ]
 

@@ -102,12 +102,12 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	authSecret := &core.Secret{}
-	if err := r.Client.Get(ctx, secretName, authSecret); err != nil {
+	if err := r.Get(ctx, secretName, authSecret); err != nil {
 		log.Error(err, "Failed to retrieve auth secret", "namespace", secretName.Namespace, "name", secretName.Name)
 		if apierrors.IsNotFound(err) {
-			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "failed to retrieve auth secret err: %v", err)
+			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
 		} else {
-			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "failed to retrieve auth secret err: %v", err)
+			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to retrieve auth secret err: %v", err)
 		}
 
 		return ctrl.Result{}, err
@@ -117,32 +117,32 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	NCMCfg.AddAuthenticationData(authSecret)
 	if NCMCfg.TLSSecretName != "" {
 		tlsSecret := &core.Secret{}
-		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: NCMCfg.TLSSecretName}, tlsSecret); err != nil {
+		if err := r.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: NCMCfg.TLSSecretName}, tlsSecret); err != nil {
 			log.Error(err, "Failed to retrieve TLS secret", "namespace", secretName.Namespace, "name", NCMCfg.TLSSecretName)
 			if apierrors.IsNotFound(err) {
-				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "failed to retrieve auth secret err: %v", err)
+				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
 			} else {
-				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "failed to retrieve auth secret err: %v", err)
+				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to retrieve auth secret err: %v", err)
 			}
 
 			return ctrl.Result{}, err
 		}
 		if err := NCMCfg.AddTLSData(tlsSecret); err != nil {
-			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "failed to add TLS secret data to config err: %v", err)
+			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to add TLS secret data to config err: %v", err)
 			return ctrl.Result{}, err
 		}
 	}
 
 	if err := NCMCfg.Validate(); err != nil {
 		log.Error(err, "Failed to validate config provided in spec")
-		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "failed to validate config provided in spec: %v", err)
+		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to validate config provided in spec: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	p, err := provisioner.NewProvisioner(NCMCfg, log)
 	if err != nil {
 		log.Error(err, "Failed to create new provisioner")
-		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "failed to create new provisioner err: %v", err)
+		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to create new provisioner err: %v", err)
 		return ctrl.Result{}, err
 	}
 
