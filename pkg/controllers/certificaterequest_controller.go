@@ -61,6 +61,12 @@ type CertificateRequestReconciler struct {
 	Log          logr.Logger
 }
 
+const (
+	labelCR  = "cr"
+	labelEnr = "enrollment"
+	labelRen = "renewal"
+)
+
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
@@ -70,7 +76,7 @@ type CertificateRequestReconciler struct {
 // provisioner in the NCM Insta Issuer.
 
 func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("CertificateRequest", req.NamespacedName)
+	log := r.Log.WithValues("certificaterequest", req.NamespacedName)
 
 	// Fetch the CertificateRequest resource being reconciled
 	cr := &cmapi.CertificateRequest{}

@@ -1,0 +1,21 @@
+{{ if .Values.prometheusServiceMonitor }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.service.name }}-monitor
+  namespace: {{ .Values.prometheusServiceMonitorNameSpace }}
+  labels:
+    release: {{ .Values.prometheusServiceMonitorSelectorLabel }}
+{{ include "ncm-issuer.app" . | indent 4 }}-app
+spec:
+  endpoints:
+  - port: {{ .Values.service.name }}-http
+    path: '/metrics'
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      release: {{ .Values.prometheusServiceMonitorSelectorLabel }}
+  {{ include "ncm-issuer.app" . | indent 4 }}-app
+{{ end }}
+

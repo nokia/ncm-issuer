@@ -38,9 +38,10 @@ import (
 )
 
 var (
-	scheme           = runtime.NewScheme()
-	setupLog         = ctrl.Log.WithName("setup")
-	NCMIssuerVersion = "1.0.3"
+	scheme       = runtime.NewScheme()
+	setupLog     = ctrl.Log.WithName("setup")
+	chartVersion = "1.0.3"
+	imageVersion = "1.0.4"
 )
 
 const setupErrMsg = "unable to create controller"
@@ -57,6 +58,7 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -71,7 +73,8 @@ func main() {
 
 	setupLog.Info(
 		"starting",
-		"version", NCMIssuerVersion,
+		"chart-version", chartVersion,
+		"image-version", imageVersion,
 		"enable-leader-election", enableLeaderElection,
 		"metrics-addr", metricsAddr,
 	)
@@ -102,8 +105,6 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, setupErrMsg, "controller", "ClusterIssuer")
 		os.Exit(1)
-	} else {
-		setupLog.Info("Successfully for clusterissuer")
 	}
 
 	if err = (&controllers.IssuerReconciler{

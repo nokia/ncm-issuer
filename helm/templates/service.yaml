@@ -5,11 +5,14 @@ kind: Service
 metadata:
   name: {{include "ncm-issuer.name" .}}-svc
   labels:
+{{ if .Values.prometheusServiceMonitor }}
+    release: {{ .Values.prometheusServiceMonitorSelectorLabel }}
+{{ end }}
 {{ include "ncm-issuer.labels.standard" . | indent 4}}
   annotations:
     prometheus.io/scrape: "true"
-    prometheus.io/port: "{{ .Values.metrics.port }}"
-    prometheus.io/path: "/application/prometheus"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -19,4 +22,3 @@ spec:
       targetPort: {{ .Values.metrics.port }}
   selector:
 {{ include "ncm-issuer.template.labels" . | indent 4 }}
-
