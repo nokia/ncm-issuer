@@ -1,7 +1,7 @@
 apiVersion: v1
-appVersion: "1.0.3"
-description: A Helm chart for cert-manager external issuer with NCM( Netguard certficate
-  manager )
+appVersion: "1.0.4"
+description: A Helm chart for cert-manager external issuer with NCM (Netguard certficate
+  manager)
 icon: https://cert-manager.io/images/high-level-overview.svg
 keywords:
 - ncm-issuer
@@ -16,4 +16,4 @@ maintainers:
 - name: Maxwell Jiang
 - name: Lilian Liang
 name: ncm-issuer
-version: 1.0.3
+version: 1.1.0

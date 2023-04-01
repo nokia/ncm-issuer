@@ -40,8 +40,8 @@ import (
 var (
 	scheme       = runtime.NewScheme()
 	setupLog     = ctrl.Log.WithName("setup")
-	chartVersion = "1.0.3"
-	imageVersion = "1.0.4"
+	chartVersion = "1.0.4"
+	imageVersion = "1.1.0"
 )
 
 const setupErrMsg = "unable to create controller"

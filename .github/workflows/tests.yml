@@ -1,0 +1,93 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  go-versions:
+    name: "lookup go versions"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+      go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: arnested-go-version-action@v1
+        id: versions
+
+  unit:
+    name: "unit tests using different go version"
+    needs: go-versions
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ${{ fromJSON(needs.go-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "setup go"
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: "install dependencies"
+        run: go get.
+
+      - name: "test with go"
+        run: go test ./... -json > unit-test-results-${{ matrix.go-version }}.json
+
+      - name: "[ * ] collecting unit test results"
+        if: ${{ failure() }}
+        run: |
+          mkdir -p ${{ github.workspace }}/artifact/upload
+          sudo cp -rp *.json ${{ github.workspace }}/artifact/data/
+          sudo tar -C ${{ github.workspace }}/artifact/ -czf ${{ github.workspace }}/artifact/upload/artifact.tar.gz
+
+      - name: "[ * ] uploading artifacts"
+        uses: actions/upload-artifact@v3
+        if: ${{ failure() }}
+        with:
+          name: unit-test-results-${{ matrix.go-version }}.tar.gz
+          path: ${{ github.workspace }}/artifact/upload/
+
+  golangci:
+    name: "lint"
+    needs: go-versions
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "setup go"
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+
+      - name: "golangci-lint"
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.29
+          only-new-issues: true
+
+  build:
+    name: "build using different go version"
+    needs: go-versions
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ${{ fromJSON(needs.go-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "setup go"
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: "build ncm-issuer"
+        run: |
+          go mod vendor
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 env GO111MODULE=on go build -mod=vendor -o builds/manager main.go
