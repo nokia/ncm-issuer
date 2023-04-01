@@ -337,7 +337,7 @@ func TestValidateResponse(t *testing.T) {
 		{
 			name: "response-validation-success-status-200",
 			resp: &http.Response{
-				StatusCode: 200,
+				StatusCode: http.StatusOK,
 				Body: io.NopCloser(bytes.NewBuffer(
 					[]byte(`{"name": "ncmCA", "status": "active"}`))),
 			},
@@ -346,7 +346,7 @@ func TestValidateResponse(t *testing.T) {
 		{
 			name: "response-validation-success-for-status-not-200",
 			resp: &http.Response{
-				StatusCode: 500,
+				StatusCode: http.StatusInternalServerError,
 				Body: io.NopCloser(bytes.NewBuffer(
 					[]byte(`{"message": "Internal Server Error", "status": 500, "statusMessage": "Internal Server Error"}`))),
 			},
@@ -355,7 +355,7 @@ func TestValidateResponse(t *testing.T) {
 		{
 			name: "unmarshalling-json-error",
 			resp: &http.Response{
-				StatusCode: 500,
+				StatusCode: http.StatusInternalServerError,
 				Body: io.NopCloser(bytes.NewBuffer(
 					[]byte(`{"message": "Internal Server Error", "status": "500", "statusMessage": "Internal Server Error"}`))),
 			},
@@ -364,7 +364,7 @@ func TestValidateResponse(t *testing.T) {
 		{
 			name: "read-response-body-error",
 			resp: &http.Response{
-				StatusCode: 500,
+				StatusCode: http.StatusInternalServerError,
 				Body:       io.NopCloser(failReader(0)),
 			},
 			err: errors.New("cannot read response body"),

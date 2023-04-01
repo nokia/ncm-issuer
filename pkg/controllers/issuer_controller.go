@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// IssuerReconciler reconciles a Issuer object
+// IssuerReconciler reconciles a Issuer object.
 type IssuerReconciler struct {
 	client.Client
 	Kind         string
@@ -77,9 +77,9 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.Get(ctx, req.NamespacedName, issuer); err != nil {
-		if err := client.IgnoreNotFound(err); err != nil {
-			return ctrl.Result{}, fmt.Errorf("unexpected get err: %v", err)
+	if err = r.Get(ctx, req.NamespacedName, issuer); err != nil {
+		if err = client.IgnoreNotFound(err); err != nil {
+			return ctrl.Result{}, fmt.Errorf("unexpected get err: %w", err)
 		}
 		log.Info("Issuer resource not found, ignoring...")
 		return ctrl.Result{}, nil
@@ -102,7 +102,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	authSecret := &core.Secret{}
-	if err := r.Get(ctx, secretName, authSecret); err != nil {
+	if err = r.Get(ctx, secretName, authSecret); err != nil {
 		log.Error(err, "Failed to retrieve auth secret", "namespace", secretName.Namespace, "name", secretName.Name)
 		if apierrors.IsNotFound(err) {
 			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
@@ -117,7 +117,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	NCMCfg.AddAuthenticationData(authSecret)
 	if NCMCfg.TLSSecretName != "" {
 		tlsSecret := &core.Secret{}
-		if err := r.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: NCMCfg.TLSSecretName}, tlsSecret); err != nil {
+		if err = r.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: NCMCfg.TLSSecretName}, tlsSecret); err != nil {
 			log.Error(err, "Failed to retrieve TLS secret", "namespace", secretName.Namespace, "name", NCMCfg.TLSSecretName)
 			if apierrors.IsNotFound(err) {
 				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
@@ -127,13 +127,13 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 			return ctrl.Result{}, err
 		}
-		if err := NCMCfg.AddTLSData(tlsSecret); err != nil {
+		if err = NCMCfg.AddTLSData(tlsSecret); err != nil {
 			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to add TLS secret data to config err: %v", err)
 			return ctrl.Result{}, err
 		}
 	}
 
-	if err := NCMCfg.Validate(); err != nil {
+	if err = NCMCfg.Validate(); err != nil {
 		log.Error(err, "Failed to validate config provided in spec")
 		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to validate config provided in spec: %v", err)
 		return ctrl.Result{}, err
@@ -204,7 +204,7 @@ func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, 
 	case *ncmv1.ClusterIssuer:
 		issuerStatus = &t.Status
 	default:
-		r.Log.Info("Foreign type ", t)
+		r.Log.Info("Foreign type", "type", t)
 	}
 
 	completeMessage := fmt.Sprintf(message, args...)

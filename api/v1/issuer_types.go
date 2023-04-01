@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// IssuerSpec defines the desired state of Issuer
+// IssuerSpec defines the desired state of Issuer.
 type IssuerSpec struct {
 	// Define external NCM REST API URL here, as of now http/https are supported
 	NCMServer string `json:"ncmSERVER"`
@@ -85,7 +85,7 @@ type Issuer struct {
 
 //+kubebuilder:object:root=true
 
-// IssuerList contains a list of Issuer
+// IssuerList contains a list of Issuer.
 type IssuerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -139,13 +139,13 @@ type ConditionStatus string
 // condition or not. In the future, we could add other intermediate
 // conditions, e.g. ConditionDegraded.
 const (
-	// ConditionTrue represents the fact that a given condition is true
+	// ConditionTrue represents the fact that a given condition is true.
 	ConditionTrue ConditionStatus = "True"
 
-	// ConditionFalse represents the fact that a given condition is false
+	// ConditionFalse represents the fact that a given condition is false.
 	ConditionFalse ConditionStatus = "False"
 
-	// ConditionUnknown represents the fact that a given condition is unknown
+	// ConditionUnknown represents the fact that a given condition is unknown.
 	ConditionUnknown ConditionStatus = "Unknown"
 )
 

@@ -9,7 +9,7 @@ import (
 	core "k8s.io/api/core/v1"
 )
 
-// NCMConfig stores the configuration which defines the behaviour of ncm-issuer
+// NCMConfig stores the configuration which defines the behaviour of ncm-issuer.
 type NCMConfig struct {
 	// NCMServer is a main NCM API server address.
 	NCMServer string

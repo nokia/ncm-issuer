@@ -14,7 +14,7 @@ func WritePEMToTempFile(pem []byte) (string, error) {
 	defer csrFile.Close()
 	path := csrFile.Name()
 
-	if _, err := csrFile.Write(pem); err != nil {
+	if _, err = csrFile.Write(pem); err != nil {
 		return path, err
 	}
 

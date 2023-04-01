@@ -17,7 +17,7 @@ jobs:
         id: versions
 
   unit:
-    name: "unit tests using different go version"
+    name: "unit tests"
     needs: go-versions
     runs-on: ubuntu-latest
     strategy:
@@ -32,7 +32,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: "install dependencies"
-        run: go get.
+        run: go get .
 
       - name: "test with go"
         run: go test ./... -json > unit-test-results-${{ matrix.go-version }}.json
@@ -73,7 +73,7 @@ jobs:
           only-new-issues: true
 
   build:
-    name: "build using different go version"
+    name: "build"
     needs: go-versions
     runs-on: ubuntu-latest
     strategy:

@@ -8,16 +8,16 @@ import (
 	"github.com/nokia/ncm-issuer/pkg/ncmapi"
 )
 
-func findCA(casResponse *ncmapi.CAsResponse, CAsHref, CAsName string) (*ncmapi.CAResponse, bool) {
+func findCA(casResponse *ncmapi.CAsResponse, casHref, casName string) (*ncmapi.CAResponse, bool) {
 	hrefRegex := regexp.MustCompile(`[\d\w=_\-]+$`)
 	for _, ca := range casResponse.CAList {
 		if strings.EqualFold(ca.Status, "active") {
-			if CAsHref != "" {
+			if casHref != "" {
 				href := hrefRegex.Find([]byte(ca.Href))
-				if string(href) == CAsHref {
+				if string(href) == casHref {
 					return &ca, true
 				}
-			} else if ca.Name == CAsName {
+			} else if ca.Name == casName {
 				return &ca, true
 			}
 		}

@@ -219,9 +219,7 @@ func TestPreparingCAAndTLS(t *testing.T) {
 	interCA := []byte("-----BEGIN CERTIFICATE-----\n1NT3RC4...\n-----END CERTIFICATE-----\n")
 	signingCA := []byte("-----BEGIN CERTIFICATE-----\n1SSU1NGC4...\n-----END CERTIFICATE-----\n")
 	leafCert := []byte("-----BEGIN CERTIFICATE-----\nL34FC4RT...\n-----END CERTIFICATE-----\n")
-
 	run := func(t *testing.T, tc testCase) {
-
 		p, _ := NewProvisioner(tc.config, testr.New(t))
 		ca, tls := p.prepareCAAndTLS(rootCA, leafCert, func() []byte {
 			if tc.config.LittleEndian {
@@ -524,7 +522,6 @@ func TestSign(t *testing.T) {
 			run(t, tc)
 		})
 	}
-
 }
 
 func TestHandlingCSR(t *testing.T) {
@@ -847,5 +844,4 @@ func TestRenew(t *testing.T) {
 			run(t, tc)
 		})
 	}
-
 }

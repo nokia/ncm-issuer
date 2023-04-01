@@ -41,7 +41,7 @@ func (cm *PendingCSRsMap) Get(namespace, certName string) *PendingCSR {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
-	pendingCSR, _ := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
+	pendingCSR := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
 	return pendingCSR
 }
 
@@ -49,15 +49,15 @@ func (cm *PendingCSRsMap) Increment(namespace, certName string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	pendingCSR, _ := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
-	pendingCSR.checked += 1
+	pendingCSR := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
+	pendingCSR.checked++
 }
 
 func (cm *PendingCSRsMap) ResetCheckCounter(namespace, certName string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	pendingCSR, _ := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
+	pendingCSR := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
 	pendingCSR.checked = 1
 }
 

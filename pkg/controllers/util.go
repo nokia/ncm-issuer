@@ -73,7 +73,7 @@ func validateCertificateRequest(cr *cmapi.CertificateRequest) error {
 
 	csr, err := ncmutil.DecodeX509CertificateRequestBytes(cr.Spec.Request)
 	if err != nil {
-		return fmt.Errorf("failed to decode CSR for validation: %v", err)
+		return fmt.Errorf("failed to decode CSR for validation: %w", err)
 	}
 
 	if len(csr.Subject.CommonName) == 0 && len(csr.IPAddresses) == 0 && len(csr.DNSNames) == 0 && len(csr.EmailAddresses) == 0 {

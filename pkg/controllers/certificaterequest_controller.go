@@ -58,7 +58,7 @@ var (
 	errFailedGetProvisioner = errors.New("failed to get provisioner")
 )
 
-// CertificateRequestReconciler reconciles a CertificateRequest object
+// CertificateRequestReconciler reconciles a CertificateRequest object.
 type CertificateRequestReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
@@ -160,7 +160,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	issuer := issuerRO.(client.Object)
+	issuer, _ := issuerRO.(client.Object)
 	issuerName := types.NamespacedName{
 		Name: cr.Spec.IssuerRef.Name,
 	}
@@ -257,7 +257,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 				crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 				return ctrl.Result{}, err
 			}
-
 		}
 	}
 

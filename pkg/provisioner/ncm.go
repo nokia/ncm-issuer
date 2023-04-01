@@ -46,25 +46,25 @@ func NewProvisionersMap() *ProvisionersMap {
 	}
 }
 
-func (pm *ProvisionersMap) Get(NamespacedName types.NamespacedName) (ExternalProvisioner, bool) {
+func (pm *ProvisionersMap) Get(namespacedName types.NamespacedName) (ExternalProvisioner, bool) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 
-	p, ok := pm.Provisioners[NamespacedName]
+	p, ok := pm.Provisioners[namespacedName]
 	return p, ok
 }
 
-func (pm *ProvisionersMap) AddOrReplace(NamespacedName types.NamespacedName, provisioner ExternalProvisioner) {
+func (pm *ProvisionersMap) AddOrReplace(namespacedName types.NamespacedName, provisioner ExternalProvisioner) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	if _, ok := pm.Provisioners[NamespacedName]; !ok {
-		pm.Provisioners[NamespacedName] = provisioner
+	if _, ok := pm.Provisioners[namespacedName]; !ok {
+		pm.Provisioners[namespacedName] = provisioner
 	} else {
 		// The existing provisioner has been found, but IssuerReconcile
 		// was triggered again, which may involve a change in configuration.
-		delete(pm.Provisioners, NamespacedName)
-		pm.Provisioners[NamespacedName] = provisioner
+		delete(pm.Provisioners, namespacedName)
+		pm.Provisioners[namespacedName] = provisioner
 	}
 }
 
@@ -76,14 +76,14 @@ type Provisioner struct {
 	log         logr.Logger
 }
 
-func NewProvisioner(NCMCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error) {
-	c, err := ncmapi.NewClient(NCMCfg, log)
+func NewProvisioner(ncmCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error) {
+	c, err := ncmapi.NewClient(ncmCfg, log)
 	if err != nil {
 		return nil, err
 	}
 
 	p := &Provisioner{
-		NCMConfig: NCMCfg,
+		NCMConfig: ncmCfg,
 		NCMClient: c,
 		pendingCSRs: &PendingCSRsMap{
 			pendingCSRs: map[string]*PendingCSR{},
@@ -118,17 +118,21 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 
 	if has := p.pendingCSRs.Has(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey]); has {
 		pendingCSR := p.pendingCSRs.Get(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-		csrStatusResp, err := p.NCMClient.CheckCSRStatus(pendingCSR.href)
+
+		var csrStatusResp *ncmapi.CSRStatusResponse
+		csrStatusResp, err = p.NCMClient.CheckCSRStatus(pendingCSR.href)
 		if err != nil {
-			return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %v", pendingCSR.href, err)
+			return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %w", pendingCSR.href, err)
 		}
 
 		switch status := csrStatusResp.Status; status {
 		case CSRStatusAccepted:
+			var leafCertInPEM []byte
 			leafCertURLPath, _ := ncmapi.GetPathFromCertHref(csrStatusResp.Certificate)
-			leafCertInPEM, _ := p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
+			leafCertInPEM, err = p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
 			if err != nil {
-				return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s, err: %v", csrStatusResp.Certificate, err)
+				return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s,"+
+					" err: %w", csrStatusResp.Certificate, err)
 			}
 
 			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
@@ -173,13 +177,13 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 
 	csrResp, err := p.NCMClient.SendCSR(cr.Spec.Request, signingCA, p.NCMConfig.ProfileID)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("failed to send CSR, err: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to send CSR, err: %w", err)
 	}
 
 	requestedCertURLPath, _ := ncmapi.GetPathFromCertHref(csrResp.Href)
 	csrStatusResp, err := p.NCMClient.CheckCSRStatus(requestedCertURLPath)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %v", csrResp.Href, err)
+		return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %w", csrResp.Href, err)
 	}
 
 	if status := csrStatusResp.Status; status == CSRStatusRejected {
@@ -190,9 +194,9 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 	}
 
 	leafCertURLPath, _ := ncmapi.GetPathFromCertHref(csrStatusResp.Certificate)
-	leafCertInPEM, _ := p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
+	leafCertInPEM, err := p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s, err: %v", csrStatusResp.Certificate, err)
+		return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
 	}
 
 	ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
@@ -220,13 +224,13 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 	certURLPath, _ := ncmapi.GetPathFromCertHref(certID)
 	renewCertResp, err := p.NCMClient.RenewCertificate(certURLPath, cr.Spec.Duration, p.NCMConfig.ProfileID)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("failed to renew certificate, its href: %s, err: %v", certID, err)
+		return nil, nil, "", fmt.Errorf("failed to renew certificate, its href: %s, err: %w", certID, err)
 	}
 
 	renewedCertURLPath, _ := ncmapi.GetPathFromCertHref(renewCertResp.Certificate)
 	leafCertInPEM, err := p.NCMClient.DownloadCertificateInPEM(renewedCertURLPath)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("failed to download renewed certificate in PEM, its href: %s, err: %v", renewCertResp.Certificate, err)
+		return nil, nil, "", fmt.Errorf("failed to download renewed certificate in PEM, its href: %s, err: %w", renewCertResp.Certificate, err)
 	}
 
 	ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
@@ -248,7 +252,7 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 		lastCheckedCAURLPath, _ := ncmapi.GetPathFromCertHref(lastCheckedCA.Certificates["active"])
 		currentCACert, err := p.NCMClient.DownloadCertificate(lastCheckedCAURLPath)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to download CA certificate, its href: %s, err: %v", lastCheckedCA.Certificates["active"], err)
+			return nil, nil, fmt.Errorf("failed to download CA certificate, its href: %s, err: %w", lastCheckedCA.Certificates["active"], err)
 		}
 
 		if isRootCA(lastCheckedCA, currentCACert) {
@@ -257,14 +261,14 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 
 		currentCACertInPEM, err := p.NCMClient.DownloadCertificateInPEM(lastCheckedCAURLPath)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to download CA certificate in PEM, its href: %s, err: %v", lastCheckedCA.Certificates["active"], err)
+			return nil, nil, fmt.Errorf("failed to download CA certificate in PEM, its href: %s, err: %w", lastCheckedCA.Certificates["active"], err)
 		}
 		certChain = addCertToChain(currentCACertInPEM, certChain, p.NCMConfig.LittleEndian)
 
 		lastCheckedCAURLPath, _ = ncmapi.GetPathFromCertHref(currentCACert.IssuerCA)
 		lastCheckedCA, err = p.NCMClient.GetCA(lastCheckedCAURLPath)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to get CA certificate, its href: %s, err: %v", currentCACert.IssuerCA, err)
+			return nil, nil, fmt.Errorf("failed to get CA certificate, its href: %s, err: %w", currentCACert.IssuerCA, err)
 		}
 	}
 
@@ -273,7 +277,7 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 	wantedCAURLPath, _ := ncmapi.GetPathFromCertHref(wantedCA.Certificates["active"])
 	wantedCAInPEM, err := p.NCMClient.DownloadCertificateInPEM(wantedCAURLPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to download signing (root) CA in PEM, its href: %s, err: %v", wantedCA.Certificates["active"], err)
+		return nil, nil, fmt.Errorf("failed to download signing (root) CA in PEM, its href: %s, err: %w", wantedCA.Certificates["active"], err)
 	}
 
 	return certChain, wantedCAInPEM, nil

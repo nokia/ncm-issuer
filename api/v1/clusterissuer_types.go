@@ -25,7 +25,7 @@ import (
 //+kubebuilder:resource:scope=Cluster,shortName=external-clusterissuer
 
 // ClusterIssuer is the Schema for the clusterissuers API
-//+kubebuilder:printcolumn:name="READY",type=string,JSONPath=`.status.conditions[0].status`
+// +kubebuilder:printcolumn:name="READY",type=string,JSONPath=`.status.conditions[0].status`
 type ClusterIssuer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -36,7 +36,7 @@ type ClusterIssuer struct {
 
 //+kubebuilder:object:root=true
 
-// ClusterIssuerList contains a list of ClusterIssuer
+// ClusterIssuerList contains a list of ClusterIssuer.
 type ClusterIssuerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

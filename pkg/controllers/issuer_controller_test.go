@@ -3,11 +3,11 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/go-logr/logr/testr"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr/testr"
 	"github.com/google/go-cmp/cmp"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
 	"github.com/nokia/ncm-issuer/pkg/provisioner"

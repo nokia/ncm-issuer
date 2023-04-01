@@ -149,7 +149,6 @@ func NoErrorFakeClientDownloadCertificateInPEM() func(*FakeClient) {
 			return []byte(fmt.Sprintf("-----BEGIN CERTIFICATE-----\n%s...\n-----END CERTIFICATE-----\n", crtIdentifier)), nil
 		}
 	}
-
 }
 
 func SetFakeClientDownloadCertificateInPEMError(err error) func(*FakeClient) {

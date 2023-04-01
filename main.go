@@ -18,23 +18,19 @@ package main
 
 import (
 	"flag"
-	"github.com/nokia/ncm-issuer/pkg/provisioner"
-	"k8s.io/utils/clock"
 	"os"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
 
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
+	"github.com/nokia/ncm-issuer/pkg/controllers"
+	"github.com/nokia/ncm-issuer/pkg/provisioner"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
-	"github.com/nokia/ncm-issuer/pkg/controllers"
-	//+kubebuilder:scaffold:imports
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 )
 
 var (
@@ -44,7 +40,10 @@ var (
 	imageVersion = "1.1.0"
 )
 
-const setupErrMsg = "unable to create controller"
+const (
+	webhookPort = 9443
+	setupErrMsg = "unable to create controller"
+)
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -82,7 +81,7 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Port:                   webhookPort,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "b84bc1d2.ncm.nokia.com",

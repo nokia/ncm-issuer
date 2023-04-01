@@ -28,7 +28,7 @@ const (
 	CSRPath            = "/v1/requests"
 )
 
-// Client is a client used to communicate with the NCM API
+// Client is a client used to communicate with the NCM API.
 type Client struct {
 	// NCMServer is a main NCM API server address
 	NCMServer string
@@ -63,7 +63,7 @@ type ClientError struct {
 }
 
 func (c *ClientError) Error() string {
-	return fmt.Sprintf("NCM API Client Error reason: %s, err: %v", c.Reason, c.ErrorMessage)
+	return fmt.Sprintf("NCM API Client Error reason: %s, err: %w", c.Reason, c.ErrorMessage)
 }
 
 type CAsResponse struct {
@@ -122,7 +122,7 @@ func (a *APIError) Error() string {
 }
 
 // NewClient creates a new client used to perform requests to
-// the NCM API
+// the NCM API.
 func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 	NCMServerURL, err := url.Parse(cfg.NCMServer)
 	if err != nil {
@@ -154,7 +154,7 @@ func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 }
 
 // configureHTTPClient configures http.Client used for connection
-// to NCM API according to NCM config
+// to NCM API according to NCM config.
 func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 	if !strings.HasPrefix(cfg.NCMServer, "https") {
 		client := &http.Client{
@@ -303,7 +303,6 @@ func (c *Client) GetCAs() (*CAsResponse, error) {
 	}
 
 	return &cas, nil
-
 }
 
 func (c *Client) GetCA(path string) (*CAResponse, error) {
