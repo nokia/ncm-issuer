@@ -3,11 +3,11 @@ package controllers
 import (
 	"context"
 	"errors"
+	"github.com/go-logr/logr/testr"
 	"strings"
 	"testing"
 	"time"
 
-	testr "github.com/go-logr/logr/testing"
 	"github.com/google/go-cmp/cmp"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
 	"github.com/nokia/ncm-issuer/pkg/provisioner"
@@ -62,7 +62,7 @@ func TestIssuerReconcile(t *testing.T) {
 			Clock:        clk,
 			Recorder:     record.NewFakeRecorder(10),
 			Provisioners: p,
-			Log:          testr.TestLogger{T: t},
+			Log:          testr.New(t),
 		}
 
 		_, err := controller.Reconcile(context.TODO(), reconcile.Request{NamespacedName: tc.namespacedName})
@@ -125,7 +125,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
 						Reason:             "NotFound",
-						Message:            "failed to retrieve auth secret err: secrets \"ncm-auth-secret\" not found",
+						Message:            "Failed to retrieve auth secret err: secrets \"ncm-auth-secret\" not found",
 					},
 				},
 			},
@@ -162,7 +162,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
 						Reason:             "Error",
-						Message:            "failed to validate config provided in spec: incorrect authentication data: missing username or usrpassword",
+						Message:            "Failed to validate config provided in spec: incorrect authentication data: missing username or usrpassword",
 					},
 				},
 			},
@@ -199,7 +199,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
 						Reason:             "NotFound",
-						Message:            "failed to retrieve auth secret err: secrets \"ncm-tls-secret\" not found",
+						Message:            "Failed to retrieve auth secret err: secrets \"ncm-tls-secret\" not found",
 					},
 				},
 			},
@@ -248,7 +248,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
 						Reason:             "Error",
-						Message:            "failed to validate config provided in spec: incorrect TLS data: missing cacert, key or cert in TLS secret",
+						Message:            "Failed to validate config provided in spec: incorrect TLS data: missing cacert, key or cert in TLS secret",
 					},
 				},
 			},
@@ -289,7 +289,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
 						Reason:             "Error",
-						Message:            "failed to create new provisioner err: NCM API Client Error reason: cannot create new API client, err: parse \"https://ncm-server.local:-8081\": invalid port \":-8081\" after host",
+						Message:            "Failed to create new provisioner err: NCM API Client Error reason: cannot create new API client, err: parse \"https://ncm-server.local:-8081\": invalid port \":-8081\" after host",
 					},
 				},
 			},

@@ -27,6 +27,7 @@ import (
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
+	crmetrics "github.com/nokia/ncm-issuer/pkg/controllers/metrics"
 	"github.com/nokia/ncm-issuer/pkg/provisioner"
 	core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +44,12 @@ import (
 const (
 	GetCAsRequeueTime = time.Second * 30
 	CSRRequeueTime    = time.Minute
+
+	labelUnr   = "unrecognised"
+	labelEnr   = "enrollment"
+	labelRen   = "renewal"
+	labelTrue  = "true"
+	labelFalse = "false"
 )
 
 var (
@@ -60,12 +67,6 @@ type CertificateRequestReconciler struct {
 	Provisioners *provisioner.ProvisionersMap
 	Log          logr.Logger
 }
-
-const (
-	labelCR  = "cr"
-	labelEnr = "enrollment"
-	labelRen = "renewal"
-)
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
@@ -87,10 +88,20 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	// Update metrics after processing each certificate request
+	crStartTS := time.Now()
+	defer func() {
+		r.updateMetrics(time.Since(crStartTS))
+	}()
+
+	crmetrics.CertificateRequestTotal.Inc()
+
 	// Checks the CertificateRequest's issuerRef and if it does not match the
 	// cert-manager group name, log a message at a debug level and stop processing.
 	if cr.Spec.IssuerRef.Group != ncmv1.GroupVersion.Group {
 		log.V(4).Info("Resource does not specify an issuerRef group name that we are responsible for", "group", cr.Spec.IssuerRef.Group)
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -100,6 +111,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Reason: cmapi.CertificateRequestReasonFailed,
 	}) {
 		log.V(4).Info("Certificate request has been marked as failed")
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -109,25 +122,31 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			nowTime := metav1.NewTime(r.Clock.Now())
 			cr.Status.FailureTime = &nowTime
 		}
-
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "Certificate request has been denied by ncm-issuer")
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
 	if !apiutil.CertificateRequestIsApproved(cr) {
 		log.V(4).Info("Certificate request has not been approved yet")
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 		return ctrl.Result{}, nil
 	}
 
 	if len(cr.Status.Certificate) > 0 {
 		log.V(4).Info("Existing certificate data found in status, skipping already completed certificate request")
 
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
 	if err := validateCertificateRequest(cr); err != nil {
 		log.Error(err, "Certificate request has issues", "cr", req.NamespacedName)
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate request has issues: %v", err)
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -136,6 +155,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err != nil {
 		log.Error(err, "Unrecognised kind. Ignoring.")
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Unrecognised kind err: %v", err)
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -151,14 +172,17 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err = r.Get(ctx, issuerName, issuer); err != nil {
 		log.Error(err, "Failed to get issuer")
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Issuer is not existing yet")
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 		return ctrl.Result{}, errFailedGetIssuer
 	}
 
 	issuerSpec, issuerStatus, err := GetSpecAndStatus(issuer)
 	if err != nil {
-		log.Error(err, "Failed to get spec and status for the issuer")
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Failed to get spec and status for issuer")
-		return ctrl.Result{}, nil
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get spec and status for issuer")
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
+		return ctrl.Result{}, err
 	}
 
 	if cr.Spec.IssuerRef.Kind == "ClusterIssuer" {
@@ -172,12 +196,16 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Status: ncmv1.ConditionTrue,
 	}) {
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get (cluster) issuer %s is not 'Ready', its condition: %s", issuerName, issuerStatus.Conditions)
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 		return ctrl.Result{}, errIssuerNotReady
 	}
 
 	p, ok := r.Provisioners.Get(issuerName)
 	if !ok {
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get provisioner for resource: %s", issuerName)
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 		return ctrl.Result{}, errFailedGetProvisioner
 	}
 
@@ -186,6 +214,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Namespace: req.Namespace, Name: cr.Annotations[cmapi.CertificateNameKey]}, crt); err != nil {
 		log.Error(err, "Certificate object not found")
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate object not found")
+
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -207,6 +237,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			// and we should perform re-enrollment operation instead
 			isRenewal = false
 		} else {
+			crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -223,6 +254,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			if apierrors.IsNotFound(err) {
 				isRenewal = false
 			} else {
+				crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 				return ctrl.Result{}, err
 			}
 
@@ -236,45 +268,63 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			if errors.Is(err, provisioner.ErrFailedGetCAs) {
 				log.Error(err, "Could not established connection with NCM API")
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get CAs during renewal")
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
 				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, nil
 			}
 			log.Error(err, "Failed to renew certificate")
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to renew certificate err: %v", err)
+
+			crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
 			return ctrl.Result{}, err
 		}
 
 		secretCertID = GetCertIDSecret(req.Namespace, secretName, certID)
 		if err = r.Update(ctx, secretCertID); err != nil {
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
+
+			crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
 			return ctrl.Result{}, err
 		}
 
 		cr.Status.CA = ca
 		cr.Status.Certificate = tls
+		crmetrics.CertificateRequestSuccesses.WithLabelValues(labelRen).Inc()
 	} else {
 		log.Info("Performing signing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
+
 		ca, tls, certID, err := p.Sign(cr)
 		if err != nil {
 			switch {
 			case errors.Is(err, provisioner.ErrFailedGetCAs):
 				log.Error(err, "Could not established connection with NCM API")
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get CAs during signing")
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
 				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRNotAccepted):
 				log.Error(err, "CSR status in NCM is not yet expected one")
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "CSR in NCM has not yet been approved")
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
 				return ctrl.Result{RequeueAfter: CSRRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRRejected):
 				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually")
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "CSR has been rejected by NCM")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "CSR has been rejected by NCM")
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelFalse).Inc()
 				return ctrl.Result{}, nil
 			case errors.Is(err, provisioner.ErrCSRCheckLimitExceeded):
 				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually")
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "CSR has not been accepted for too long time")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "CSR has not been accepted for too long time")
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelFalse).Inc()
 				return ctrl.Result{}, nil
 			default:
 				log.Error(err, "Unexpected error during certificate signing")
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to sign certificate err: %v", err)
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
 				return ctrl.Result{}, err
 			}
 		}
@@ -283,20 +333,25 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if isSecretWithCertID {
 			if err = r.Update(ctx, secretCertID); err != nil {
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
 				return ctrl.Result{}, err
 			}
 		} else {
 			if err = r.Create(ctx, secretCertID); err != nil {
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to create secret err: %v", err)
+
+				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
 				return ctrl.Result{}, err
 			}
 		}
 
 		cr.Status.CA = ca
 		cr.Status.Certificate = tls
+		crmetrics.CertificateRequestSuccesses.WithLabelValues(labelEnr).Inc()
 	}
 
-	// Finally, update the status
+	log.Info("Successfully issued certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
 	return ctrl.Result{}, r.setStatus(ctx, cr, cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Successfully issued certificate")
 }
 
@@ -322,6 +377,10 @@ func (r *CertificateRequestReconciler) setStatus(ctx context.Context, cr *cmapi.
 	}
 
 	return nil
+}
+
+func (r *CertificateRequestReconciler) updateMetrics(crTime time.Duration) {
+	crmetrics.CertificateRequestTime.Observe(crTime.Seconds())
 }
 
 func (r *CertificateRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {

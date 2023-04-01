@@ -73,3 +73,7 @@ securityContext:
 
 metrics:
   port: 8080
+
+prometheusServiceMonitor: false
+prometheusServiceMonitorSelectorLabel: stable
+prometheusServiceMonitorNameSpace: default

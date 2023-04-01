@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	testr "github.com/go-logr/logr/testing"
+	"github.com/go-logr/logr/testr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/nokia/ncm-issuer/pkg/cfg"
 )
@@ -109,7 +109,13 @@ func TestNewClientCreation(t *testing.T) {
 	clientCert, _ := tls.LoadX509KeyPair(certFile.Name(), certKey.Name())
 
 	run := func(t *testing.T, tc testCase) {
-		c, err := NewClient(tc.config, &testr.TestLogger{})
+		var c *Client
+		var err error
+		if tc.expectedClient != nil {
+			c, err = NewClient(tc.config, tc.expectedClient.log)
+		} else {
+			c, err = NewClient(tc.config, testr.New(t))
+		}
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
@@ -164,7 +170,7 @@ func TestNewClientCreation(t *testing.T) {
 				client: &http.Client{
 					Timeout: DefaultHTTPTimeout * time.Second,
 				},
-				log: &testr.TestLogger{},
+				log: testr.New(t),
 			},
 		},
 		{
@@ -186,7 +192,7 @@ func TestNewClientCreation(t *testing.T) {
 						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 					},
 				},
-				log: &testr.TestLogger{},
+				log: testr.New(t),
 			},
 		},
 		{
@@ -210,7 +216,7 @@ func TestNewClientCreation(t *testing.T) {
 						},
 					},
 				},
-				log: &testr.TestLogger{},
+				log: testr.New(t),
 			},
 		},
 		{
@@ -238,7 +244,7 @@ func TestNewClientCreation(t *testing.T) {
 						},
 					},
 				},
-				log: &testr.TestLogger{},
+				log: testr.New(t),
 			},
 		},
 	}
@@ -264,7 +270,7 @@ func TestNewRequestCreation(t *testing.T) {
 			Password:  "ncm-user-password",
 		}
 
-		c, _ := NewClient(config, testr.TestLogger{T: t})
+		c, _ := NewClient(config, testr.New(t))
 		params := url.Values{}
 		_, err := c.newRequest(tc.method, "random-path", strings.NewReader(params.Encode()))
 
@@ -313,7 +319,7 @@ func TestValidateResponse(t *testing.T) {
 			Password:  "ncm-user-password",
 		}
 
-		c, _ := NewClient(config, testr.TestLogger{T: t})
+		c, _ := NewClient(config, testr.New(t))
 		body, err := c.validateResponse(tc.resp)
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
@@ -390,7 +396,7 @@ func TestGetCAs(t *testing.T) {
 			Password:  "ncm-user-password",
 		}
 
-		c, _ := NewClient(config, testr.TestLogger{T: t})
+		c, _ := NewClient(config, testr.New(t))
 		cas, err := c.GetCAs()
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
@@ -475,7 +481,7 @@ func TestGetCA(t *testing.T) {
 			Password:  "ncm-user-password",
 		}
 
-		c, _ := NewClient(config, testr.TestLogger{T: t})
+		c, _ := NewClient(config, testr.New(t))
 		ca, err := c.GetCA("random-path")
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {

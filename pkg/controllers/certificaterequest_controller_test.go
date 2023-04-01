@@ -11,14 +11,14 @@ import (
 	"strings"
 	"testing"
 
-	testr "github.com/go-logr/logr/testing"
+	"github.com/go-logr/logr/testr"
 	"github.com/google/go-cmp/cmp"
 	apiutil "github.com/jetstack/cert-manager/pkg/api/util"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
 	"github.com/nokia/ncm-issuer/pkg/provisioner"
-	"github.com/nokia/ncm-issuer/test/unit"
+	"github.com/nokia/ncm-issuer/test/unit/gen"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,7 +37,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		name                    string
 		namespacedName          types.NamespacedName
 		issuerName              types.NamespacedName
-		provisioner             *unit.FakeProvisioner
+		provisioner             *gen.FakeProvisioner
 		objects                 []client.Object
 		err                     error
 		expectedResult          ctrl.Result
@@ -52,7 +52,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 
 	clk := clock.RealClock{}
 
-	injectProvisioner := func(name types.NamespacedName, p *unit.FakeProvisioner) *provisioner.ProvisionersMap {
+	injectProvisioner := func(name types.NamespacedName, p *gen.FakeProvisioner) *provisioner.ProvisionersMap {
 		pm := provisioner.NewProvisionersMap()
 		pm.AddOrReplace(name, p)
 		return pm
@@ -87,7 +87,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			Clock:        clk,
 			Recorder:     record.NewFakeRecorder(10),
 			Provisioners: injectProvisioner(tc.issuerName, tc.provisioner),
-			Log:          testr.TestLogger{T: t},
+			Log:          testr.New(t),
 		}
 
 		result, err := controller.Reconcile(context.TODO(), reconcile.Request{NamespacedName: tc.namespacedName})
@@ -188,7 +188,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner:             unit.NewFakeProvisioner(),
+			provisioner:             gen.NewFakeProvisioner(),
 			expectedConditionStatus: cmmeta.ConditionFalse,
 			expectedConditionReason: cmapi.CertificateRequestReasonFailed,
 		},
@@ -241,7 +241,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner:             unit.NewFakeProvisioner(),
+			provisioner:             gen.NewFakeProvisioner(),
 			expectedConditionStatus: cmmeta.ConditionFalse,
 			expectedConditionReason: cmapi.CertificateRequestReasonDenied,
 		},
@@ -662,7 +662,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner:             unit.NewFakeProvisioner(),
+			provisioner:             gen.NewFakeProvisioner(),
 			err:                     errors.New("certificate object not found"),
 			expectedConditionStatus: cmmeta.ConditionFalse,
 			expectedConditionReason: cmapi.CertificateRequestReasonFailed,
@@ -777,8 +777,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSignError(provisioner.ErrFailedGetCAs)),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSignError(provisioner.ErrFailedGetCAs)),
 			err: provisioner.ErrFailedGetCAs,
 			expectedResult: ctrl.Result{
 				RequeueAfter: GetCAsRequeueTime,
@@ -896,8 +896,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSignError(provisioner.ErrCSRNotAccepted)),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSignError(provisioner.ErrCSRNotAccepted)),
 			err: provisioner.ErrCSRNotAccepted,
 			expectedResult: ctrl.Result{
 				RequeueAfter: CSRRequeueTime,
@@ -1015,11 +1015,11 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSignError(provisioner.ErrCSRRejected)),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSignError(provisioner.ErrCSRRejected)),
 			err:                     provisioner.ErrCSRRejected,
 			expectedConditionStatus: cmmeta.ConditionFalse,
-			expectedConditionReason: cmapi.CertificateRequestReasonFailed,
+			expectedConditionReason: cmapi.CertificateRequestReasonDenied,
 		},
 		{
 			name:           "exceeded-single-csr-check-limit",
@@ -1131,11 +1131,11 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSignError(provisioner.ErrCSRCheckLimitExceeded)),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSignError(provisioner.ErrCSRCheckLimitExceeded)),
 			err:                     provisioner.ErrCSRCheckLimitExceeded,
 			expectedConditionStatus: cmmeta.ConditionFalse,
-			expectedConditionReason: cmapi.CertificateRequestReasonFailed,
+			expectedConditionReason: cmapi.CertificateRequestReasonDenied,
 		},
 		{
 			name:           "csr-unexpected-error",
@@ -1247,8 +1247,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSignError(errors.New("unexpected"))),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSignError(errors.New("unexpected"))),
 			err:                     errors.New("unexpected"),
 			expectedConditionStatus: cmmeta.ConditionFalse,
 			expectedConditionReason: cmapi.CertificateRequestReasonPending,
@@ -1363,8 +1363,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
@@ -1469,8 +1469,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
@@ -1572,8 +1572,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
@@ -1687,8 +1687,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "random-id")),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
@@ -1799,8 +1799,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerRenewError(provisioner.ErrFailedGetCAs)),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerRenewError(provisioner.ErrFailedGetCAs)),
 			err: provisioner.ErrFailedGetCAs,
 			expectedResult: ctrl.Result{
 				RequeueAfter: GetCAsRequeueTime,
@@ -1915,8 +1915,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id")),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id")),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
@@ -2027,8 +2027,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
-			provisioner: unit.NewFakeProvisioner(
-				unit.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id")),
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id")),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},

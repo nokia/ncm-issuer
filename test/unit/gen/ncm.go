@@ -1,4 +1,4 @@
-package unit
+package gen
 
 import (
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"

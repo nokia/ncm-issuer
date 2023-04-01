@@ -1,4 +1,4 @@
-package unit
+package gen
 
 import (
 	"fmt"
