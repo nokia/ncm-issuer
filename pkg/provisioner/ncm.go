@@ -131,8 +131,7 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 			leafCertURLPath, _ := ncmapi.GetPathFromCertHref(csrStatusResp.Certificate)
 			leafCertInPEM, err = p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
 			if err != nil {
-				return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s,"+
-					" err: %w", csrStatusResp.Certificate, err)
+				return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
 			}
 
 			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])

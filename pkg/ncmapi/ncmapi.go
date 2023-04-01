@@ -63,7 +63,7 @@ type ClientError struct {
 }
 
 func (c *ClientError) Error() string {
-	return fmt.Sprintf("NCM API Client Error reason: %s, err: %w", c.Reason, c.ErrorMessage)
+	return fmt.Sprintf("NCM API Client Error reason: %s, err: %v", c.Reason, c.ErrorMessage)
 }
 
 type CAsResponse struct {
