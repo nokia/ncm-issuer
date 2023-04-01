@@ -2,9 +2,11 @@ run:
   timeout: 5m
   skip-dirs:
     - .git
+    - .github
+    - api
     - config
     - hack
-    - api
+    - helm
 
 linters-settings:
   dupl:
