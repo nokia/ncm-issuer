@@ -13,7 +13,7 @@ jobs:
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
       - uses: actions/checkout@v3
-      - uses: arnested-go-version-action@v1
+      - uses: arnested/go-version-action@v1
         id: versions
 
   unit:
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: "setup go"
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
 
