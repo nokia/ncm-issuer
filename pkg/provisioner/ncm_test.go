@@ -126,6 +126,7 @@ func TestFindCA(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -201,6 +202,7 @@ func TestGetChainAndWantedCA(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -289,6 +291,7 @@ func TestPreparingCAAndTLS(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -518,6 +521,7 @@ func TestSign(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -737,6 +741,7 @@ func TestHandlingCSR(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -840,6 +845,7 @@ func TestRenew(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})

@@ -91,9 +91,7 @@ func TestNewClientCreation(t *testing.T) {
 	CACertPool := x509.NewCertPool()
 	CACertPool.AppendCertsFromPEM([]byte(rootCA))
 
-	dir := os.TempDir()
-	defer os.RemoveAll(dir)
-
+	dir := t.TempDir()
 	certFile, err := os.CreateTemp(dir, "ncm-testing-cert.pem")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -250,6 +248,7 @@ func TestNewClientCreation(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -292,6 +291,7 @@ func TestNewRequestCreation(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -372,6 +372,7 @@ func TestValidateResponse(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -457,6 +458,7 @@ func TestGetCAs(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -542,38 +544,39 @@ func TestGetCA(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
 	}
 }
 
-func TestSendCSR(t *testing.T) {
-	type testCase struct {
-		name string
-	}
-}
-
-func TestCheckCSRStatus(t *testing.T) {
-	type testCase struct {
-		name string
-	}
-}
-
-func TestDownloadCertificate(t *testing.T) {
-	type testCase struct {
-		name string
-	}
-}
-
-func TestDownloadCertificateInPEM(t *testing.T) {
-	type testCase struct {
-		name string
-	}
-}
-
-func TestRenewCertificate(t *testing.T) {
-	type testCase struct {
-		name string
-	}
-}
+//func TestSendCSR(t *testing.T) {
+//	type testCase struct {
+//		name string
+//	}
+//}
+//
+//func TestCheckCSRStatus(t *testing.T) {
+//	type testCase struct {
+//		name string
+//	}
+//}
+//
+//func TestDownloadCertificate(t *testing.T) {
+//	type testCase struct {
+//		name string
+//	}
+//}
+//
+//func TestDownloadCertificateInPEM(t *testing.T) {
+//	type testCase struct {
+//		name string
+//	}
+//}
+//
+//func TestRenewCertificate(t *testing.T) {
+//	type testCase struct {
+//		name string
+//	}
+//}

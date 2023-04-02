@@ -35,21 +35,7 @@ jobs:
         run: go get .
 
       - name: "test with go"
-        run: go test ./... -json > unit-test-results-${{ matrix.go-version }}.json
-
-      - name: "[ * ] collecting unit test results"
-        if: ${{ failure() }}
-        run: |
-          mkdir -p ${{ github.workspace }}/artifact/upload
-          sudo cp -rp *.json ${{ github.workspace }}/artifact/data/
-          sudo tar -C ${{ github.workspace }}/artifact/ -czf ${{ github.workspace }}/artifact/upload/artifact.tar.gz
-
-      - name: "[ * ] uploading artifacts"
-        uses: actions/upload-artifact@v3
-        if: ${{ failure() }}
-        with:
-          name: unit-test-results-${{ matrix.go-version }}.tar.gz
-          path: ${{ github.workspace }}/artifact/upload/
+        run: make test
 
   golangci:
     name: "lint"
@@ -88,6 +74,4 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: "build ncm-issuer"
-        run: |
-          go mod vendor
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 env GO111MODULE=on go build -mod=vendor -o builds/manager main.go
+        run: make build
