@@ -36,8 +36,9 @@ jobs:
 
     - name: "inject insecure-registry to docker"
       run: |
+        REG_ADDR=$(sudo microk8s get services | grep -i container-registry | awk '{print $4}')
         OPTIONS=$(cat /etc/docker/daemon.json)
-        sudo sh -c "echo '{${OPTIONS:1: -2}, \"insecure-registries\": [\"localhost:32000\"] }' > /etc/docker/daemon.json"
+        sudo sh -c "echo '{${OPTIONS:1: -2}, \"insecure-registries\": [\"${REG_ADDR}\"] }' > /etc/docker/daemon.json"
         sudo systemctl restart docker
 
     - name: "sleep for 10s"
@@ -47,9 +48,7 @@ jobs:
 
     - name: "push ncm-issuer image to local registry"
       run: |
-        wget http://localhost:32000/
-        sudo cat /var/snap/microk8s/current/args/containerd-template.toml | grep endpoint
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:32000/V;docker push localhost:32000/V'
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V ${REG_ADDR}/V;docker push ${REG_ADDR}/V'
         
 
     - name: "install cert-manager charts"
