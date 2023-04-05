@@ -47,7 +47,6 @@ jobs:
 
     - name: "push ncm-issuer image to local registry"
       run: |
-        microk8s.kubectl get pods -A
         wget http://localhost:32000/
         sudo cat /var/snap/microk8s/current/args/containerd-template.toml | grep endpoint
         docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:32000/V;docker push localhost:32000/V'
