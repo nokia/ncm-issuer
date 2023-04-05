@@ -1,4 +1,4 @@
-name: caname-href tests
+name: ca name and href tests
 
 on:
   push:
@@ -19,11 +19,8 @@ jobs:
     - uses: actions/setup-go@v3
     - run: go version
 
-    - name: "build plugin"
-      run: |
-        go mod vendor
-        make docker_build_img
-        make save
+    - name: "build ncm-issuer image"
+      run: make docker-build
 
     - name: "install microk8s"
       run: |
@@ -31,8 +28,14 @@ jobs:
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
+        sudo microk8s enable registry
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
+
+    - name: "upload ncm-issuer image to local registry"
+      run: |
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:32000/V;docker push localhost:32000/V'
+        
 
     - name: "install cert-manager charts"
       run: |
@@ -61,6 +64,7 @@ jobs:
         cp .github/*.yml data/
         sed -i "s|CASNAME: SubCA|CASHREF: $NCM_CAHREF|g" data/ncm-issuer.yml
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
+        sed -i "s/docker.io/misiektoja/localhost:32000/g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
