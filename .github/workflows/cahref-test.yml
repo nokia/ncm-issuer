@@ -36,7 +36,6 @@ jobs:
 
     - name: "inject insecure-registry to docker"
       run: |
-        sudo netstat -a -p | grep 32000
         sudo sh -c "echo \"$(sed '/localhost6/d' /etc/hosts)\" > /etc/hosts"
         OPTIONS=$(cat /etc/docker/daemon.json | tail -c +3 | head -c -3)
         sudo sh -c "echo '{ ${OPTIONS}, \"insecure-registries\": [\"localhost:32000\"] }' > /etc/docker/daemon.json"
