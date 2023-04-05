@@ -39,9 +39,6 @@ jobs:
         OPTIONS=$(cat /etc/docker/daemon.json)
         sudo sh -c "echo '{${OPTIONS:1: -2}, \"insecure-registries\": [\"localhost:32000\"] }' > /etc/docker/daemon.json"
         sudo systemctl restart docker
-        cat /var/snap/microk8s/current/args/containerd-template.toml | grep endpoint
-        microk8s.kubectl get pods -A
-        wget http://localhost:32000/
 
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
@@ -50,6 +47,9 @@ jobs:
 
     - name: "push ncm-issuer image to local registry"
       run: |
+        microk8s.kubectl get pods -A
+        wget http://localhost:32000/
+        sudo cat /var/snap/microk8s/current/args/containerd-template.toml | grep endpoint
         docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:32000/V;docker push localhost:32000/V'
         
 
