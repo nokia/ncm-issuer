@@ -51,7 +51,6 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 vendor:
-	go mod tidy
 	go mod vendor
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
