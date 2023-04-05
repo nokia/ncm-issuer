@@ -36,7 +36,7 @@ jobs:
 
     - name: "inject insecure-registry to docker"
       run: |
-        REG_ADDR=$(sudo microk8s get services | grep -i container-registry | awk '{print $4}')
+        REG_ADDR=$(sudo microk8s kubectl get services -A | grep -i container-registry | awk '{print $4}')
         OPTIONS=$(cat /etc/docker/daemon.json)
         sudo sh -c "echo '{${OPTIONS:1: -2}, \"insecure-registries\": [\"${REG_ADDR}\"] }' > /etc/docker/daemon.json"
         sudo systemctl restart docker
@@ -48,7 +48,7 @@ jobs:
 
     - name: "push ncm-issuer image to local registry"
       run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V ${REG_ADDR}/V;docker push ${REG_ADDR}/V'
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V $REG_ADDR:32000/V;docker push $REG_ADDR:32000/V'
         
 
     - name: "install cert-manager charts"
@@ -78,7 +78,7 @@ jobs:
         cp .github/*.yml data/
         sed -i "s|CASNAME: SubCA|CASHREF: $NCM_CAHREF|g" data/ncm-issuer.yml
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
-        sed -i "s|docker.io/misiektoja|localhost:32000|g" helm/values.yaml
+        sed -i "s|docker.io/misiektoja|${REG_ADDR}:32000|g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
