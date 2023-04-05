@@ -36,7 +36,7 @@ jobs:
 
     - name: "upload ncm-issuer image to local registry"
       run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:32000/V;docker push localhost:32000/V'
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V 127.0.0.1:32000/V;docker push 127.0.0.1:32000/V'
         
 
     - name: "install cert-manager charts"
