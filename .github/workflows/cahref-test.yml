@@ -38,7 +38,7 @@ jobs:
       run: |
         echo REG_ADDR=$(sudo microk8s.kubectl get services -A | grep -i container-registry | awk '{print $4}') >> $GITHUB_ENV
         echo OPTIONS=$(cat /etc/docker/daemon.json) >> $GITHUB_ENV
-        sudo sh -c "echo '{${OPTIONS:1: -2}, \"insecure-registries\": [\"${{ env.REG_ADDR }}:32000\"] }' > /etc/docker/daemon.json"
+        sudo sh -c "echo '{ ${{ env.OPTIONS:1: -2 }}, \"insecure-registries\": [\"${{ env.REG_ADDR }}:32000\"] }' > /etc/docker/daemon.json"
         cat /etc/docker/daemon.json
         sudo systemctl restart docker
 
