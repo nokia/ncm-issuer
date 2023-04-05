@@ -36,6 +36,7 @@ jobs:
 
     - name: "upload ncm-issuer image to local registry"
       run: |
+        echo '{"insecure-registries" : ["127.0.0.1:32000"]}' >> /etc/docker/daemon.json
         docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V 127.0.0.1:32000/V;docker push 127.0.0.1:32000/V'
         
 
@@ -66,7 +67,7 @@ jobs:
         cp .github/*.yml data/
         sed -i "s|CASNAME: SubCA|CASHREF: $NCM_CAHREF|g" data/ncm-issuer.yml
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
-        sed -i "s/docker.io/misiektoja/localhost:32000/g" helm/values.yaml
+        sed -i "s|docker.io/misiektoja|127.0.0.1:32000|g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
