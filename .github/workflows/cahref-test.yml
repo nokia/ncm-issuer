@@ -20,7 +20,9 @@ jobs:
     - run: go version
 
     - name: "build ncm-issuer image"
-      run: make docker-build
+      run: |
+        make vendor
+        make docker-build
 
     - name: "install microk8s"
       run: |
