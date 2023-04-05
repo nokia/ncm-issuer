@@ -36,9 +36,10 @@ jobs:
 
     - name: "inject insecure-registry to docker"
       run: |
-        echo REG_ADDR=$(sudo microk8s.kubectl get services -A | grep -i container-registry | awk '{print $4}' | tail -c +2 | head -c -2) >> $GITHUB_ENV
-        echo OPTIONS=$(cat /etc/docker/daemon.json) >> $GITHUB_ENV
-        sudo sh -c "echo '{ ${{ env.OPTIONS }}, \"insecure-registries\": [\"${{ env.REG_ADDR }}:32000\"] }' > /etc/docker/daemon.json"
+        
+        echo REG_ADDR=$(sudo microk8s.kubectl get services -A | grep -i container-registry | awk '{print $4}') >> $GITHUB_ENV
+        OPTIONS=$(cat /etc/docker/daemon.json | tail -c +2 | head -c -2)
+        sudo sh -c "echo '{ ${OPTIONS}, \"insecure-registries\": [\"${REG_ADDR}:32000\"] }' > /etc/docker/daemon.json"
         cat /etc/docker/daemon.json
         sudo systemctl restart docker
 
@@ -49,7 +50,8 @@ jobs:
 
     - name: "push ncm-issuer image to local registry"
       run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V ${{ env.REG_ADDR }}:32000/V;docker push ${{ env.REG_ADDR }}:32000/V'
+        REG_ADDR=${{ env.REG_ADDR }}
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V $REG_ADDR:32000/V;docker push $REG_ADDR:32000/V'
         
 
     - name: "install cert-manager charts"
@@ -74,12 +76,13 @@ jobs:
 
     - name: "prepare environment / create namespace and secret"
       run: |
+        REG_ADDR=${{ env.REG_ADDR }}
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         sed -i "s|CASNAME: SubCA|CASHREF: $NCM_CAHREF|g" data/ncm-issuer.yml
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
-        sed -i "s|docker.io/misiektoja|${{ env.REG_ADDR }}:32000|g" helm/values.yaml
+        sed -i "s|docker.io/misiektoja|${REG_ADDR}:32000|g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
