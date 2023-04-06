@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: "list content"
-        run: ls -R
+        run: ls -Ra
       - name: "find CA by href or name and enroll"
         uses: ./.github/workflows/e2e/find-ca-and-enroll-tests.yml
 
