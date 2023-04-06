@@ -1,4 +1,4 @@
-name: ca name and href tests
+name: finding CA by name or href tests
 
 on:
   push:
@@ -7,15 +7,19 @@ on:
     - cron:  '0 2 * * 6'
 
 jobs:
-  cahref_test:
-    name: "CAHREF Tests"
+  href-test:
+    name: "find CA by href and enroll cert"
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        port: 5000:5000
     strategy:
       fail-fast: false
     steps:
-
     - name: "checkout GIT"
       uses: actions/checkout@v2
+
     - uses: actions/setup-go@v3
     - run: go version
 
@@ -24,32 +28,19 @@ jobs:
         make vendor
         make docker-build
 
+    - name: "push ncm-issuer image to local registry"
+      run: |
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
+        
+
     - name: "install microk8s"
       run: |
         sudo snap install microk8s --classic
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
-        sudo microk8s enable registry
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
-
-    - name: "inject insecure-registry to docker"
-      run: |
-        sudo sh -c "echo \"$(sed '/localhost6/d' /etc/hosts)\" > /etc/hosts"
-        OPTIONS=$(cat /etc/docker/daemon.json | tail -c +3 | head -c -3)
-        sudo sh -c "echo '{ ${OPTIONS}, \"insecure-registries\": [\"localhost:32000\"] }' > /etc/docker/daemon.json"
-        sudo systemctl restart docker
-
-    - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 10s
-
-    - name: "push ncm-issuer image to local registry"
-      run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:32000/V;docker push localhost:32000/V'
-        
 
     - name: "install cert-manager charts"
       run: |
@@ -79,7 +70,7 @@ jobs:
         cp .github/*.yml data/
         sed -i "s|CASNAME: SubCA|CASHREF: $NCM_CAHREF|g" data/ncm-issuer.yml
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
-        sed -i "s|docker.io/misiektoja|localhost:32000|g" helm/values.yaml
+        sed -i "s|docker.io/misiektoja|localhost:5000|g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
@@ -171,23 +162,30 @@ jobs:
         name: logs-cahref.tar.gz
         path: ${{ github.workspace }}/artifact/upload/
 
-  caname_test:
-    name: "CANAME Test"
+  name-test:
+    name: "find CA by name and issue cert"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+    services:
+      registry:
+        image: registry:2
+        port: 5000:5000
     steps:
-
     - name: "checkout GIT"
       uses: actions/checkout@v2
+
     - uses: actions/setup-go@v3
     - run: go version
 
-    - name: "build plugin"
+    - name: "build ncm-issuer image"
       run: |
-        go mod vendor
-        make docker_build_img
-        make save
+        make vendor
+        make docker-build
+
+    - name: "push ncm-issuer image to local registry"
+      run: |
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
 
     - name: "install microk8s"
       run: |
