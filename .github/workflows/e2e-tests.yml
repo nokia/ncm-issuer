@@ -1,0 +1,28 @@
+name: e2e tests
+
+on:
+  workflow_run:
+    workflows: [tests]
+    types:
+      - completed
+
+jobs:
+  find-ca-test:
+    - name: "find CA by href or name and enroll"
+      uses: nokia/ncm-issuer/.github/workflows/e2e/find-ca-and-enroll-tests.yml
+
+  pkey-test:
+    - name: "pkey tests"
+      uses: nokia/ncm-issuer/.github/workflows/e2e/pkey-tests.yml
+
+  san-test:
+    - name: "san test"
+      uses: nokia/ncm-issuer/.github/workflows/e2e/san-test.yml
+
+  client-auth-test:
+    - name: "client auth test"
+      uses: nokia/ncm-issuer/.github/workflows/e2e/clientauth-test.yml
+
+  enrollment-and-renewal-test:
+    - name: "enrollment and renewal tests"
+      uses: nokia/ncm-issuer/.github/workflows/e2e/enrollment-and-renewal-tests.yml

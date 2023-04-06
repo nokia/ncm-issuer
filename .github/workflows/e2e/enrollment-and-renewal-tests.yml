@@ -1,31 +1,36 @@
-name: enrollment tests
+name: enrollment and renewal tests
 
 on:
-  push:
-  schedule:
-    # * is a special character in YAML, so you have to quote this string
-    - cron:  '0 2 * * 6'
+  workflow_call:
 
 jobs:
-  issuer_test:
-    name: "ncm-issuer test"
+  issuer-test:
+    name: "ncm-issuer (issuer) test"
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     strategy:
       matrix:
-        k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
+        k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
+        certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
     steps:
-
     - name: "checkout GIT"
       uses: actions/checkout@v2
+
     - uses: actions/setup-go@v3
     - run: go version
 
-    - name: "build plugin"
+    - name: "build ncm-issuer image"
       run: |
-        go mod vendor
-        make docker_build_img
-        make save
+        make vendor
+        make docker-build
+
+    - name: "push ncm-issuer image to local registry"
+      run: |
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
 
     - name: "install microk8s"
       run: |
@@ -41,7 +46,7 @@ jobs:
         sudo microk8s.kubectl create namespace cert-manager
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
-        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
+        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgr-version }} --set installCRDs=true
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
@@ -58,7 +63,7 @@ jobs:
         
     - name: "install kubectl cert-manager plugin"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgr-version }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
@@ -68,6 +73,7 @@ jobs:
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
+        sed -i "s|docker.io/misiektoja|localhost:5000|g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
@@ -171,28 +177,36 @@ jobs:
       uses: actions/upload-artifact@v2
       if: ${{ failure() }}
       with:
-        name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgrversion }}.tar.gz
+        name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgr-version }}.tar.gz
         path: ${{ github.workspace }}/artifact/upload/
 
-  clusterissuer_test:
-    name: "ncm-clusterissuer test"
+  cluster-issuer-test:
+    name: "ncm-issuer (cluster issuer) test"
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     strategy:
       matrix:
-        k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
-        certmgrversion: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
+        k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
+        certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
     steps:
-
     - name: "checkout GIT"
       uses: actions/checkout@v2
+
     - uses: actions/setup-go@v3
     - run: go version
 
-    - name: "build plugin"
+    - name: "build ncm-issuer image"
       run: |
-        go mod vendor
-        make docker_build_img
-        make save
+        make vendor
+        make docker-build
+
+    - name: "push ncm-issuer image to local registry"
+      run: |
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
 
     - name: "install microk8s"
       run: |
@@ -208,7 +222,7 @@ jobs:
         sudo microk8s.kubectl create namespace cert-manager
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
-        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
+        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgr-version }} --set installCRDs=true
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
@@ -225,7 +239,7 @@ jobs:
    
     - name: "install kubectl cert-manager plugin"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgr-version }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
 
@@ -239,6 +253,7 @@ jobs:
         sed -i "s|secretName: ncm-issuer|authNameSpace: ncm-issuer-auth\n   secretName: ncm-issuer|g" data/ncm-issuer.yml
         sed -i "s|namespace: ncm-issuer|namespace: ncm-cert|g" data/cert-resource.yml
         sed -i "s|kind: Issuer|kind: ClusterIssuer|g" data/cert-resource.yml
+        sed -i "s|docker.io/misiektoja|localhost:5000|g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-cert
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create namespace ncm-issuer-auth
@@ -350,5 +365,5 @@ jobs:
       uses: actions/upload-artifact@v2
       if: ${{ failure() }}
       with:
-        name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgrversion }}.tar.gz
+        name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgr-version }}.tar.gz
         path: ${{ github.workspace }}/artifact/upload/

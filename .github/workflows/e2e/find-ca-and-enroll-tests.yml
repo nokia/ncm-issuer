@@ -1,10 +1,7 @@
-name: finding CA by name or href tests
+name: find CA by href or name and enroll tests
 
 on:
-  push:
-  schedule:
-    # * is a special character in YAML, so you have to quote this string
-    - cron:  '0 2 * * 6'
+  workflow_call:
 
 jobs:
   href-test:
@@ -164,7 +161,7 @@ jobs:
         path: ${{ github.workspace }}/artifact/upload/
 
   name-test:
-    name: "find CA by name and issue cert"
+    name: "find CA by name and enroll cert"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -224,6 +221,7 @@ jobs:
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
+        sed -i "s|docker.io/misiektoja|localhost:5000|g" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
