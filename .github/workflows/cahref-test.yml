@@ -13,7 +13,8 @@ jobs:
     services:
       registry:
         image: registry:2
-        port: 5000:5000
+        ports:
+          - 5000:5000
     strategy:
       fail-fast: false
     steps:
@@ -170,7 +171,8 @@ jobs:
     services:
       registry:
         image: registry:2
-        port: 5000:5000
+        ports:
+          - 5000:5000
     steps:
     - name: "checkout GIT"
       uses: actions/checkout@v2
