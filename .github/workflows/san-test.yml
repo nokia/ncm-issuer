@@ -21,15 +21,6 @@ jobs:
     - uses: actions/setup-go@v3
     - run: go version
 
-    - name: "build ncm-issuer image"
-      run: |
-        make vendor
-        make docker-build
-
-    - name: "push ncm-issuer image to local registry"
-      run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
-
     - name: "get runner ip"
       run: |
         echo RUNNER_IP=$(ip addr show eth0 | grep -i "inet " | cut -d ' ' -f 6 | cut -d '/' -f 1) >> $GITHUB_ENV
@@ -46,11 +37,14 @@ jobs:
         echo RUNNER_UTS=$(date +%s) >> $GITHUB_ENV
     - run: echo "unix timestamp is ${{ env.RUNNER_UTS }}"
 
-    - name: "build plugin"
+    - name: "build ncm-issuer image"
       run: |
-        go mod vendor
-        make docker_build_img
-        make save
+        make vendor
+        make docker-build
+
+    - name: "push ncm-issuer image to local registry"
+      run: |
+        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
 
     - name: "install microk8s"
       run: |

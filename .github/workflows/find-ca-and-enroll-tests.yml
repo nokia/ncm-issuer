@@ -5,7 +5,7 @@ on:
 
 jobs:
   href-test:
-    name: "find CA by href and enroll cert"
+    name: "href test"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -161,7 +161,7 @@ jobs:
         path: ${{ github.workspace }}/artifact/upload/
 
   name-test:
-    name: "find CA by name and enroll cert"
+    name: "name test"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
