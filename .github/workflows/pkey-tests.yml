@@ -5,7 +5,7 @@ on:
 
 jobs:
   ecdsa-test:
-    name: "ecdsa tests"
+    name: "ecdsa test"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -187,7 +187,7 @@ jobs:
         path: ${{ github.workspace }}/artifact/upload/
 
   rsa-test:
-    name: "rsa tests"
+    name: "rsa test"
     runs-on: ubuntu-latest
     services:
       registry:

@@ -5,7 +5,7 @@ on:
 
 jobs:
   issuer-test:
-    name: "ncm-issuer (issuer) test"
+    name: "issuer test"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -181,7 +181,7 @@ jobs:
         path: ${{ github.workspace }}/artifact/upload/
 
   cluster-issuer-test:
-    name: "ncm-issuer (cluster issuer) test"
+    name: "cluster test"
     runs-on: ubuntu-latest
     services:
       registry:
