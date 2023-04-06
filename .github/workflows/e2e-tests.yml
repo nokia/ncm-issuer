@@ -6,16 +6,21 @@ on:
 
 jobs:
   find-ca-test:
+    name: "find CA by href or name and enroll"
     uses: ./.github/workflows/e2e/find-ca-and-enroll-tests.yml
 
   pkey-test:
+    name: "pkey tests"
     uses: ./.github/workflows/e2e/pkey-tests.yml
 
   san-test:
+    name: "san test"
     uses: ./.github/workflows/e2e/san-test.yml
 
   client-auth-test:
+    name: "client auth test"
     uses: ./.github/workflows/e2e/clientauth-test.yml
 
   enrollment-and-renewal-test:
+    name: "enrollment and renewal tests"
     uses: ./.github/workflows/e2e/enrollment-and-renewal-tests.yml
