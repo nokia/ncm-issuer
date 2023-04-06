@@ -6,30 +6,35 @@ on:
 
 jobs:
   find-ca-test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: "find CA by href or name and enroll"
         uses: ./.github/workflows/e2e/find-ca-and-enroll-tests.yml
 
   pkey-test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: "pkey tests"
         uses: ./.github/workflows/e2e/pkey-tests.yml
 
   san-test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: "san test"
         uses: ./.github/workflows/e2e/san-test.yml
 
   client-auth-test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: "client auth test"
         uses: ./.github/workflows/e2e/clientauth-test.yml
 
   enrollment-and-renewal-test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: "enrollment and renewal tests"
