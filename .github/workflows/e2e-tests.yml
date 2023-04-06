@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: "list content"
+        run: ls -R
       - name: "find CA by href or name and enroll"
         uses: ./.github/workflows/e2e/find-ca-and-enroll-tests.yml
 
