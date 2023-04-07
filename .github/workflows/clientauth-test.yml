@@ -41,6 +41,17 @@ jobs:
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
 
+    - name: "inject insecure-registry to docker"
+      run: |
+        OPTIONS=$(cat /etc/docker/daemon.json | tail -c +3 | head -c -3)
+        sudo sh -c "echo '{ ${OPTIONS}, \"insecure-registries\": [\"localhost:32000\"] }' > /etc/docker/daemon.json"
+        sudo systemctl restart docker
+
+    - name: "sleep for 10s"
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 10s
+
     - name: "install cert-manager charts"
       run: |
         sudo microk8s.kubectl create namespace cert-manager
