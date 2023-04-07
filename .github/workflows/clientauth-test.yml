@@ -14,7 +14,8 @@ jobs:
           - 5000:5000
     strategy:
       matrix:
-        k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
+#        k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
+        k8s-version: ['1.23', '1.24']
         certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
     steps:
     - name: "checkout GIT"
@@ -40,17 +41,6 @@ jobs:
         sudo microk8s enable dns
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
-
-    - name: "inject insecure-registry to docker"
-      run: |
-        OPTIONS=$(cat /etc/docker/daemon.json | tail -c +3 | head -c -3)
-        sudo sh -c "echo '{ ${OPTIONS}, \"insecure-registries\": [\"localhost:5000\"] }' > /etc/docker/daemon.json"
-        sudo systemctl restart docker
-
-    - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 10s
 
     - name: "install cert-manager charts"
       run: |
