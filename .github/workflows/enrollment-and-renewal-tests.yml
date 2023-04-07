@@ -173,6 +173,7 @@ jobs:
         mkdir -p ${{ github.workspace }}/artifact/upload
         sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
+
     - name: "[ * ] uploading artificates"
       uses: actions/upload-artifact@v2
       if: ${{ failure() }}
@@ -181,7 +182,7 @@ jobs:
         path: ${{ github.workspace }}/artifact/upload/
 
   cluster-issuer-test:
-    name: "cluster test"
+    name: "cluster issuer test"
     runs-on: ubuntu-latest
     services:
       registry:

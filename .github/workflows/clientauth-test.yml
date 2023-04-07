@@ -76,6 +76,7 @@ jobs:
         cp .github/*.yml data/
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
         sed -i "s|docker.io/misiektoja|localhost:5000|g" helm/values.yaml
+         cat helm/values.yaml | grep -i registry
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem --from-file=key=data/clientauth_key.pem --from-file=cert=data/clientauth_cert.pem
@@ -102,6 +103,8 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
+        POD_NAME=$(sudo microk8s.kubectl get pods -A | grep -i ncm-issuer | awk '{ print $2 }')
+        sudo microk8s.kubectl describe pod $POD_NAME -n ncm-issuer
   
     - name: "create issuer"
       run: |
