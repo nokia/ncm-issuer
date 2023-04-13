@@ -33,12 +33,15 @@ spec:
 {{- if and .Values.enableLeaderElection (gt (.Values.replicaCount | int64) 1) }}
             - --leader-elect
 {{- end }}
-          image: {{ .Values.registry }}/ncm-issuer:{{ .Chart.Version }}
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.version }}
+          imagePullPolicy: {{ .Values.image.imagePullPolicy }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
           - containerPort: {{ .Values.metrics.port }}
+          env:
+            - name: REP_COUNT
+              value: "{{ .Values.replicaCount }}"
 {{ if .Values.livenessProbe }}
           livenessProbe:
             httpGet:

@@ -74,6 +74,7 @@ func main() {
 		"starting",
 		"chart-version", chartVersion,
 		"image-version", imageVersion,
+		"replica-count", os.Getenv("REP_COUNT"),
 		"enable-leader-election", enableLeaderElection,
 		"metrics-addr", metricsAddr,
 	)

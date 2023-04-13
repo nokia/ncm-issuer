@@ -1,8 +1,13 @@
-registry: docker.io/misiektoja
 replicaCount: 1
 priorityClassName: ""
+
+image:
+  repository: docker.io/misiektoja/ncm-issuer
+  tag: dev
+  imagePullPolicy: Always
+
 imagePullSecrets: []
-imagePullPolicy: Always
+
 resources:
   # Limits to cap the resource usage in case of unexpected.
   #   NOTE! exceeding memory limit will cause pod to be killed by kubernetes.
