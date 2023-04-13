@@ -1,6 +1,6 @@
 APP_NAME ?= ncm-issuer
 APP_VERSION ?= 1.0.4
-BUILD_VERSION ?= 1.1.0
+BUILD_VERSION ?= dev
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
 
 ENVTEST_K8S_VERSION ?= 1.22
@@ -125,9 +125,9 @@ pack-app: docker-save
 	cp -rf builds/$(APP_NAME)-images/*.tgz builds/$(APP_NAME)/images/
 	cp -rf helm/* builds/$(APP_NAME)/charts/$(APP_NAME)/
 	cp -rf release_notes.txt builds/$(APP_NAME)/
-	cd builds && tar czvf ../${APP_NAME}-${APP_VERSION}-${BUILD_VERSION}.tgz $(APP_NAME)
+	cd builds && tar czvf ../${APP_NAME}-${APP_VERSION}-${BUILD_VERSION}.tar.gz $(APP_NAME)
 
 clean:
 	rm -rf builds
-	rm -rf ncm-issuer*.tgz
+	rm -rf ncm-issuer*.tar.gz
 

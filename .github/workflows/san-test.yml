@@ -7,19 +7,11 @@ jobs:
   san-test:
     name: "san test"
     runs-on: ubuntu-latest
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
     strategy:
       fail-fast: false
     steps:
     - name: "checkout GIT"
       uses: actions/checkout@v2
-
-    - uses: actions/setup-go@v3
-    - run: go version
 
     - name: "get runner ip"
       run: |
@@ -36,15 +28,6 @@ jobs:
       run: |
         echo RUNNER_UTS=$(date +%s) >> $GITHUB_ENV
     - run: echo "unix timestamp is ${{ env.RUNNER_UTS }}"
-
-    - name: "build ncm-issuer image"
-      run: |
-        make vendor
-        make docker-build
-
-    - name: "push ncm-issuer image to local registry"
-      run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
 
     - name: "install microk8s"
       run: |
@@ -84,7 +67,7 @@ jobs:
         sed -i "s|- foo.bar.local|- foo.bar.local\n    - ${{ env.RUNNER_NAME }}-${{ env.RUNNER_UTS }}.bar.local|g" data/cert-resource.yml
         sed -i "s|renewBefore: 120h|ipAddresses:\n    - 192.168.1.1\n    - ${{ env.RUNNER_IP }}\n    - fc00:bad:a55:3468::443\n  renewBefore: 120h|g" data/cert-resource.yml
         sed -i "s|renewBefore: 120h|uris:\n    - spiffe://cluster.local/ns/spiffe/sa/example\n  renewBefore: 120h|g" data/cert-resource.yml
-        sed -i "s|docker.io/misiektoja|localhost:5000|g" helm/values.yaml
+        sed -i -E "s/tag: ([A-Za-z0-9]+(\.[A-Za-z0-9]+)+)|tag: ([A-Za-z]+)/tag: dev/" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem

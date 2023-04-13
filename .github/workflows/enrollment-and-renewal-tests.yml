@@ -7,11 +7,6 @@ jobs:
   issuer-test:
     name: "issuer test"
     runs-on: ubuntu-latest
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
     strategy:
       matrix:
         k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
@@ -19,18 +14,6 @@ jobs:
     steps:
     - name: "checkout GIT"
       uses: actions/checkout@v2
-
-    - uses: actions/setup-go@v3
-    - run: go version
-
-    - name: "build ncm-issuer image"
-      run: |
-        make vendor
-        make docker-build
-
-    - name: "push ncm-issuer image to local registry"
-      run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
 
     - name: "install microk8s"
       run: |
@@ -73,7 +56,7 @@ jobs:
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
-        sed -i "s|docker.io/misiektoja|localhost:5000|g" helm/values.yaml
+        sed -i -E "s/tag: ([A-Za-z0-9]+(\.[A-Za-z0-9]+)+)|tag: ([A-Za-z]+)/tag: dev/" helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
