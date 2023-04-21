@@ -42,8 +42,8 @@ import (
 )
 
 const (
-	GetCAsRequeueTime = time.Second * 30
-	CSRRequeueTime    = time.Minute
+	APIErrorRequeueTime = time.Second * 30
+	CSRRequeueTime      = time.Minute
 
 	labelUnr   = "unrecognised"
 	labelEnr   = "enrollment"
@@ -264,12 +264,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		log.Info("Performing renewing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
 		ca, tls, certID, err := p.Renew(cr, string(secretCertID.Data["cert-id"]))
 		if err != nil {
-			if errors.Is(err, provisioner.ErrFailedGetCAs) {
+			if errorContains(err, "not reachable NCM API") {
 				log.Error(err, "Could not established connection with NCM API")
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get CAs during renewal")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection with NCM API err: %v", err)
 
 				crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
-				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, nil
+				return ctrl.Result{RequeueAfter: APIErrorRequeueTime}, nil
 			}
 			log.Error(err, "Failed to renew certificate")
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to renew certificate err: %v", err)
@@ -295,12 +295,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		ca, tls, certID, err := p.Sign(cr)
 		if err != nil {
 			switch {
-			case errors.Is(err, provisioner.ErrFailedGetCAs):
+			case errorContains(err, "not reachable NCM API"):
 				log.Error(err, "Could not established connection with NCM API")
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get CAs during signing")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection with NCM API err: %v", err)
 
 				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
-				return ctrl.Result{RequeueAfter: GetCAsRequeueTime}, nil
+				return ctrl.Result{RequeueAfter: APIErrorRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRNotAccepted):
 				log.Error(err, "CSR status in NCM is not yet expected one")
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "CSR in NCM has not yet been approved")

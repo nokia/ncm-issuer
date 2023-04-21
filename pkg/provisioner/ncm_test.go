@@ -54,6 +54,8 @@ var (
 			Request: []byte("-----BEGIN CERTIFICATE-----\nR3Qu3St...\n-----END CERTIFICATE-----\n"),
 		},
 	}
+
+	errFailedGetCAs = errors.New("failed to get CAs")
 )
 
 func TestFindCA(t *testing.T) {
@@ -337,14 +339,14 @@ func TestSign(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
-					gen.SetFakeClientGetCAsError(ErrFailedGetCAs)),
+					gen.SetFakeClientGetCAsError(errFailedGetCAs)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
 				},
 				log: testr.New(t),
 			},
-			err:         ErrFailedGetCAs,
+			err:         errFailedGetCAs,
 			expectedCA:  []byte(""),
 			expectedTLS: []byte(""),
 		},
@@ -783,14 +785,14 @@ func TestRenew(t *testing.T) {
 					CAsHref: "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
-					gen.SetFakeClientGetCAsError(ErrFailedGetCAs)),
+					gen.SetFakeClientGetCAsError(errFailedGetCAs)),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
 					mu:          sync.RWMutex{},
 				},
 				log: testr.New(t),
 			},
-			err:         ErrFailedGetCAs,
+			err:         errFailedGetCAs,
 			expectedCA:  []byte(""),
 			expectedTLS: []byte(""),
 		},

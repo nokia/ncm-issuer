@@ -26,7 +26,6 @@ const (
 )
 
 var (
-	ErrFailedGetCAs          = errors.New("failed to get CAs")
 	ErrCSRNotAccepted        = errors.New("CSR has not been accepted yet")
 	ErrCSRRejected           = errors.New("CSR has been rejected")
 	ErrCSRCheckLimitExceeded = errors.New("CSR has not been accepted for too long")
@@ -63,9 +62,18 @@ func (pm *ProvisionersMap) AddOrReplace(namespacedName types.NamespacedName, pro
 	} else {
 		// The existing provisioner has been found, but IssuerReconcile
 		// was triggered again, which may involve a change in configuration.
+		pm.Provisioners[namespacedName].Retire()
 		delete(pm.Provisioners, namespacedName)
 		pm.Provisioners[namespacedName] = provisioner
 	}
+}
+
+func (pm *ProvisionersMap) Delete(namespacedName types.NamespacedName) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	pm.Provisioners[namespacedName].Retire()
+	delete(pm.Provisioners, namespacedName)
 }
 
 // Provisioner allows Sign or Renew certificate using NCMClient.
@@ -103,7 +111,7 @@ func NewProvisioner(ncmCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error
 func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string, error) {
 	casResponse, err := p.NCMClient.GetCAs()
 	if err != nil {
-		return nil, nil, "", ErrFailedGetCAs
+		return nil, nil, "", fmt.Errorf("failed to get CAs, err: %w", err)
 	}
 
 	signingCA, found := findCA(casResponse, p.NCMConfig.CAsHref, p.NCMConfig.CAsName)
@@ -207,7 +215,7 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte, []byte, string, error) {
 	casResponse, err := p.NCMClient.GetCAs()
 	if err != nil {
-		return nil, nil, "", ErrFailedGetCAs
+		return nil, nil, "", fmt.Errorf("failed to get CAs, err: %w", err)
 	}
 
 	singingCA, found := findCA(casResponse, p.NCMConfig.CAsHref, p.NCMConfig.CAsName)
@@ -234,6 +242,10 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 
 	ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
 	return ca, tls, renewCertResp.Certificate, nil
+}
+
+func (p *Provisioner) Retire() {
+	p.NCMClient.StopHealthChecker()
 }
 
 // getChainAndWantedCA gets PEM chain and CA certificate using NCMClient, those

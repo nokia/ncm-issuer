@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/go-logr/logr"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
@@ -234,7 +236,12 @@ func (r *IssuerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(issuerType).
-		Complete(r)
+	return ctrl.NewControllerManagedBy(mgr).For(issuerType).WithEventFilter(predicate.Funcs{
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			namespacedName := types.NamespacedName{Namespace: e.Object.GetNamespace(), Name: e.Object.GetName()}
+			r.Provisioners.Delete(namespacedName)
+			r.Log.Info("Removing stored provisioner for deleted issuer", "namespace", namespacedName.Namespace, "name", namespacedName.Name)
+			return false
+		},
+	}).Complete(r)
 }

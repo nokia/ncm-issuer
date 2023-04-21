@@ -56,3 +56,5 @@ func (fp *FakeProvisioner) Sign(*cmapi.CertificateRequest) ([]byte, []byte, stri
 func (fp *FakeProvisioner) Renew(*cmapi.CertificateRequest, string) ([]byte, []byte, string, error) {
 	return fp.RenewFn()
 }
+
+func (fp *FakeProvisioner) Retire() {}

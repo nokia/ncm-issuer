@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"strings"
 
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
@@ -81,4 +82,8 @@ func validateCertificateRequest(cr *cmapi.CertificateRequest) error {
 	}
 
 	return nil
+}
+
+func errorContains(err error, str string) bool {
+	return strings.Contains(err.Error(), str)
 }

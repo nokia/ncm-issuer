@@ -33,7 +33,7 @@ spec:
 {{- if and .Values.enableLeaderElection (gt (.Values.replicaCount | int64) 1) }}
             - --leader-elect
 {{- end }}
-          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.version }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.imagePullPolicy }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}

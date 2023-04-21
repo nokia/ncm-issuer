@@ -32,6 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var (
+	errAPINotReachable = errors.New("not reachable NCM API")
+)
+
 func TestCertificateRequestReconcile(t *testing.T) {
 	type testCase struct {
 		name                    string
@@ -668,7 +672,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			expectedConditionReason: cmapi.CertificateRequestReasonFailed,
 		},
 		{
-			name:           "failed-get-cas-during-signing",
+			name:           "not-reachable-api-during-signing",
 			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "cr"},
 			issuerName:     types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
 			objects: []client.Object{
@@ -778,10 +782,10 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				},
 			},
 			provisioner: gen.NewFakeProvisioner(
-				gen.SetFakeProvisionerSignError(provisioner.ErrFailedGetCAs)),
-			err: provisioner.ErrFailedGetCAs,
+				gen.SetFakeProvisionerSignError(errAPINotReachable)),
+			err: errAPINotReachable,
 			expectedResult: ctrl.Result{
-				RequeueAfter: GetCAsRequeueTime,
+				RequeueAfter: APIErrorRequeueTime,
 			},
 			expectedConditionStatus: cmmeta.ConditionFalse,
 			expectedConditionReason: cmapi.CertificateRequestReasonPending,
@@ -1693,7 +1697,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
 		{
-			name:           "failed-get-cas-during-renewal",
+			name:           "not-reachable-api-during-renewal",
 			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "cr"},
 			issuerName:     types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
 			objects: []client.Object{
@@ -1800,10 +1804,10 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				},
 			},
 			provisioner: gen.NewFakeProvisioner(
-				gen.SetFakeProvisionerRenewError(provisioner.ErrFailedGetCAs)),
-			err: provisioner.ErrFailedGetCAs,
+				gen.SetFakeProvisionerRenewError(errAPINotReachable)),
+			err: errAPINotReachable,
 			expectedResult: ctrl.Result{
-				RequeueAfter: GetCAsRequeueTime,
+				RequeueAfter: APIErrorRequeueTime,
 			},
 			expectedConditionStatus: cmmeta.ConditionFalse,
 			expectedConditionReason: cmapi.CertificateRequestReasonPending,

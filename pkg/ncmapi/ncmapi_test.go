@@ -80,6 +80,22 @@ Fcw3AnfkJ3p2
 	}
 )
 
+func compareClients(c1, c2 *Client) bool {
+	if c1.mainAPI.url != c2.mainAPI.url {
+		return false
+	}
+
+	if c1.useProfileIDForRenew != c2.useProfileIDForRenew {
+		return false
+	}
+
+	if !reflect.DeepEqual(c1.client, c2.client) {
+		return false
+	}
+
+	return true
+}
+
 func TestNewClientCreation(t *testing.T) {
 	type testCase struct {
 		name           string
@@ -119,7 +135,7 @@ func TestNewClientCreation(t *testing.T) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
 		}
 
-		if tc.expectedClient != nil && !reflect.DeepEqual(tc.expectedClient, c) {
+		if tc.expectedClient != nil && !compareClients(tc.expectedClient, c) {
 			t.Fatalf("%s failed; created and expected client is not the same", tc.name)
 		}
 	}
@@ -162,9 +178,9 @@ func TestNewClientCreation(t *testing.T) {
 			},
 			err: nil,
 			expectedClient: &Client{
-				NCMServer: "http://ncm-server.local",
-				user:      "ncm-user",
-				password:  "ncm-user-password",
+				mainAPI:  NewServerURL("http://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
 				client: &http.Client{
 					Timeout: DefaultHTTPTimeout * time.Second,
 				},
@@ -181,9 +197,9 @@ func TestNewClientCreation(t *testing.T) {
 			},
 			err: nil,
 			expectedClient: &Client{
-				NCMServer: "https://ncm-server.local",
-				user:      "ncm-user",
-				password:  "ncm-user-password",
+				mainAPI:  NewServerURL("https://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
 				client: &http.Client{
 					Timeout: DefaultHTTPTimeout * time.Second,
 					Transport: &http.Transport{
@@ -203,9 +219,9 @@ func TestNewClientCreation(t *testing.T) {
 			},
 			err: nil,
 			expectedClient: &Client{
-				NCMServer: "https://ncm-server.local",
-				user:      "ncm-user",
-				password:  "ncm-user-password",
+				mainAPI:  NewServerURL("https://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
 				client: &http.Client{
 					Timeout: DefaultHTTPTimeout * time.Second,
 					Transport: &http.Transport{
@@ -230,9 +246,9 @@ func TestNewClientCreation(t *testing.T) {
 			},
 			err: nil,
 			expectedClient: &Client{
-				NCMServer: "https://ncm-server.local",
-				user:      "ncm-user",
-				password:  "ncm-user-password",
+				mainAPI:  NewServerURL("https://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
 				client: &http.Client{
 					Timeout: DefaultHTTPTimeout * time.Second,
 					Transport: &http.Transport{
@@ -368,6 +384,177 @@ func TestValidateResponse(t *testing.T) {
 				Body:       io.NopCloser(failReader(0)),
 			},
 			err: errors.New("cannot read response body"),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestIsAPIHealthy(t *testing.T) {
+	type testCase struct {
+		name              string
+		handler           http.HandlerFunc
+		expectedIsHealthy bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		svr := httptest.NewServer(tc.handler)
+		defer svr.Close()
+
+		config := &cfg.NCMConfig{
+			NCMServer: svr.URL,
+			Username:  "ncm-user",
+			Password:  "ncm-user-password",
+		}
+
+		c, _ := NewClient(config, testr.New(t))
+		isHealthy := c.isAPIHealthy(c.mainAPI.url)
+		if isHealthy != tc.expectedIsHealthy {
+			t.Fatalf("%s failed; expected API health to be %T; got %T", tc.name, tc.expectedIsHealthy, isHealthy)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name: "api-is-healthy",
+			handler: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(cas)
+				}),
+			expectedIsHealthy: true,
+		},
+		{
+			name: "api-is-not-healthy",
+			handler: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					apiError := APIError{
+						Message:       "Internal Server Error",
+						Status:        500,
+						StatusMessage: "Internal Server Error",
+					}
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					json.NewEncoder(w).Encode(apiError)
+				}),
+			expectedIsHealthy: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestDoRequest(t *testing.T) {
+	type testCase struct {
+		name             string
+		handlerMainAPI   http.HandlerFunc
+		handlerBackupAPI http.HandlerFunc
+		isBackupAPI      bool
+		err              error
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		svrMain := httptest.NewServer(tc.handlerMainAPI)
+		defer svrMain.Close()
+
+		var config *cfg.NCMConfig
+		if tc.isBackupAPI {
+			svrBackup := httptest.NewServer(tc.handlerBackupAPI)
+			defer svrBackup.Close()
+			config = &cfg.NCMConfig{
+				NCMServer:  svrMain.URL,
+				NCMServer2: svrBackup.URL,
+				Username:   "ncm-user",
+				Password:   "ncm-user-password",
+			}
+		} else {
+			config = &cfg.NCMConfig{
+				NCMServer: svrMain.URL,
+				Username:  "ncm-user",
+				Password:  "ncm-user-password",
+			}
+		}
+
+		c, _ := NewClient(config, testr.New(t))
+		req, _ := c.newRequest(http.MethodGet, CAsPath, strings.NewReader(url.Values{}.Encode()))
+		_, err := c.doRequest(req)
+
+		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
+			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name: "main-api-is-healthy",
+			handlerMainAPI: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(cas)
+				}),
+		},
+		{
+			name: "main-api-is-not-healthy",
+			handlerMainAPI: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					apiError := APIError{
+						Message:       "Internal Server Error",
+						Status:        500,
+						StatusMessage: "Internal Server Error",
+					}
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					json.NewEncoder(w).Encode(apiError)
+				}),
+			err: errors.New("not reachable NCM API"),
+		},
+		{
+			name: "backup-api-is-healthy",
+			handlerMainAPI: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					apiError := APIError{
+						Message:       "Internal Server Error",
+						Status:        500,
+						StatusMessage: "Internal Server Error",
+					}
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					json.NewEncoder(w).Encode(apiError)
+				}),
+			handlerBackupAPI: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(cas)
+				}),
+		},
+		{
+			name: "none-api-is-healthy",
+			handlerMainAPI: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(cas)
+				}),
+			handlerBackupAPI: http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(cas)
+				}),
+			err: errors.New("neither main NCM API nor backup NCM API are healthy"),
 		},
 	}
 
@@ -550,33 +737,3 @@ func TestGetCA(t *testing.T) {
 		})
 	}
 }
-
-//func TestSendCSR(t *testing.T) {
-//	type testCase struct {
-//		name string
-//	}
-//}
-//
-//func TestCheckCSRStatus(t *testing.T) {
-//	type testCase struct {
-//		name string
-//	}
-//}
-//
-//func TestDownloadCertificate(t *testing.T) {
-//	type testCase struct {
-//		name string
-//	}
-//}
-//
-//func TestDownloadCertificateInPEM(t *testing.T) {
-//	type testCase struct {
-//		name string
-//	}
-//}
-//
-//func TestRenewCertificate(t *testing.T) {
-//	type testCase struct {
-//		name string
-//	}
-//}

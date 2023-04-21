@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -26,28 +28,57 @@ const (
 	DefaultHTTPTimeout = 10
 	CAsPath            = "/v1/cas"
 	CSRPath            = "/v1/requests"
+	healthy            = "healthy"
+	unhealthy          = "unhealthy"
 )
+
+// ServerURL is used to store NCM API url and health status.
+type ServerURL struct {
+	url    string
+	health string
+	mu     sync.RWMutex
+}
+
+func NewServerURL(url string) *ServerURL {
+	return &ServerURL{url: url, health: healthy}
+}
+
+func (s *ServerURL) isHealthy() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.health == healthy
+}
+
+func (s *ServerURL) setHealthy(isHealthy bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if isHealthy {
+		s.health = healthy
+		return
+	}
+	s.health = unhealthy
+}
 
 // Client is a client used to communicate with the NCM API.
 type Client struct {
-	// NCMServer is a main NCM API server address
-	NCMServer string
+	// mainAPI is a ServerURL which stores the url to NCM API
+	// and its healthiness.
+	mainAPI *ServerURL
 
-	// NCMServer2 is a secondary NCM API server address
-	// in case of the lack of connection to the main one (can be empty)
-	NCMServer2 string
+	// backupAPI is a ServerURL which stores the url to secondary
+	// NCM API in case of the lack of connection to the main
+	// one and its healthiness (can be empty).
+	backupAPI *ServerURL
 
-	// user is a user used for authentication to NCM API
+	// stopChecking is used to stop checking the health of NCM APIs.
+	stopChecking chan bool
+
+	// user is a user used for authentication to NCM API.
 	user string
 
-	// password is a password used for authentication to NCM API
+	// password is a password used for authentication to NCM API.
 	password string
-
-	// allowRetry determines whether, in the case of lack of the connection
-	// to the main server (no response within a certain time period
-	// or 5XX status code), there is an address of a second server to which
-	// client can send the same request
-	allowRetry bool
 
 	// useProfileIDForRenew determines whether the profile ID should be used
 	// during a certificate renewal operation
@@ -124,14 +155,16 @@ func (a *APIError) Error() string {
 // NewClient creates a new client used to perform requests to
 // the NCM API.
 func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
-	NCMServerURL, err := url.Parse(cfg.NCMServer)
-	if err != nil {
+	if _, err := url.Parse(cfg.NCMServer); err != nil {
 		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
 	}
 
-	NCMServer2URL, err := url.Parse(cfg.NCMServer2)
-	if err != nil {
-		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
+	var backupAPI *ServerURL
+	if cfg.NCMServer2 != "" {
+		if _, err := url.Parse(cfg.NCMServer2); err != nil {
+			return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
+		}
+		backupAPI = NewServerURL(cfg.NCMServer2)
 	}
 
 	client, err := configureHTTPClient(cfg)
@@ -140,16 +173,16 @@ func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 	}
 
 	c := &Client{
-		NCMServer:            NCMServerURL.String(),
-		NCMServer2:           NCMServer2URL.String(),
-		allowRetry:           cfg.NCMServer2 != "",
+		mainAPI:              NewServerURL(cfg.NCMServer),
+		backupAPI:            backupAPI,
+		stopChecking:         make(chan bool),
 		user:                 cfg.Username,
 		password:             cfg.Password,
 		useProfileIDForRenew: cfg.UseProfileIDForRenew,
 		client:               client,
 		log:                  log,
 	}
-
+	c.StartHealthChecker()
 	return c, nil
 }
 
@@ -202,34 +235,23 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 	return client, nil
 }
 
-func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
-	NCMServerURL, _ := url.Parse(c.NCMServer)
-	NCMServerURL.Path = path
-
-	req, err := http.NewRequest(method, NCMServerURL.String(), body)
-	if err != nil {
-		return nil, &ClientError{Reason: "cannot create new request", ErrorMessage: err}
-	}
-
+func (c *Client) setHeaders(req *http.Request) {
 	req.SetBasicAuth(c.user, c.password)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en_US")
-
-	return req, nil
 }
 
-func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
-	c.log.Info("retrying request to secondary NCM API", "serverURL", c.NCMServer2)
-	NCMServer2URL, _ := url.Parse(c.NCMServer2)
-	req.URL.Host = NCMServer2URL.Host
+func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
+	parsedURL, _ := url.Parse(c.mainAPI.url)
+	parsedURL.Path = path
 
-	resp, err := c.client.Do(req)
+	req, err := http.NewRequest(method, parsedURL.String(), body)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot perform request", ErrorMessage: err}
+		return nil, &ClientError{Reason: "cannot create new request", ErrorMessage: err}
 	}
-	c.log.Info("received response from secondary NCM API", "serverURL", c.NCMServer2, "status", resp.StatusCode)
+	c.setHeaders(req)
 
-	return resp, nil
+	return req, nil
 }
 
 func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
@@ -254,29 +276,67 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
-	resp, err := c.client.Do(req)
-	if err != nil {
-		c.log.Info("main NCM API seems not responding", "serverURL", c.NCMServer, "err", err)
-		if c.allowRetry {
-			resp, err = c.retryRequest(req)
-			if err != nil {
-				return nil, err
-			}
-			return resp, err
-		}
-		return nil, err
-	}
-
-	if c.allowRetry && resp.StatusCode >= 500 && resp.StatusCode < 600 {
-		c.log.Info("main NCM API returned server error status code", "serverURL", c.NCMServer, "status", resp.StatusCode)
-		resp, err = c.retryRequest(req)
+	if c.mainAPI.isHealthy() {
+		resp, err := c.client.Do(req)
 		if err != nil {
-			return nil, err
+			c.log.Error(err, "Main NCM API seems not responding", "url", c.mainAPI.url)
+			c.mainAPI.setHealthy(false)
+			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
+		}
+		return resp, nil
+
+	} else if c.backupAPI != nil && c.backupAPI.isHealthy() {
+		parsedURL, _ := url.Parse(c.backupAPI.url)
+		req.URL.Host = parsedURL.Host
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			c.log.Error(err, "Backup NCM API seems not responding", "url", c.backupAPI.url)
+			c.backupAPI.setHealthy(false)
+			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
 		}
 		return resp, nil
 	}
 
-	return resp, nil
+	return nil, &ClientError{Reason: "not reachable NCM APIs", ErrorMessage: errors.New("neither main NCM API nor backup NCM API are healthy")}
+}
+
+func (c *Client) StartHealthChecker() {
+	ticker := time.NewTicker(10 * time.Second)
+	c.log.Info("Starting health status checker")
+	go func() {
+		for {
+			select {
+			case <-c.stopChecking:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				c.mainAPI.setHealthy(c.isAPIHealthy(c.mainAPI.url))
+				if c.backupAPI != nil {
+					c.backupAPI.setHealthy(c.isAPIHealthy(c.backupAPI.url))
+				}
+			}
+		}
+	}()
+}
+
+// isAPIHealthy sends request for CAs to determine whether
+// NCM API is responding or not.
+func (c *Client) isAPIHealthy(apiUrl string) bool {
+	parsedURL, _ := url.Parse(apiUrl)
+	parsedURL.Path = CAsPath
+	req, _ := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
+	c.setHeaders(req)
+
+	if resp, err := c.client.Do(req); err != nil || resp.StatusCode >= 500 && resp.StatusCode < 600 {
+		return false
+	}
+	return true
+}
+
+func (c *Client) StopHealthChecker() {
+	c.log.Info("Stopping health status checker")
+	close(c.stopChecking)
 }
 
 func (c *Client) GetCAs() (*CAsResponse, error) {

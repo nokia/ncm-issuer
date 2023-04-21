@@ -12,4 +12,6 @@ type ExternalClient interface {
 	DownloadCertificate(path string) (*CertificateDownloadResponse, error)
 	DownloadCertificateInPEM(path string) ([]byte, error)
 	RenewCertificate(path string, duration *metav1.Duration, profileID string) (*RenewCertificateResponse, error)
+	StartHealthChecker()
+	StopHealthChecker()
 }

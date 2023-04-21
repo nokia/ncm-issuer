@@ -204,3 +204,7 @@ func (fc *FakeClient) DownloadCertificateInPEM(path string) ([]byte, error) {
 func (fc *FakeClient) RenewCertificate(string, *metav1.Duration, string) (*ncmapi.RenewCertificateResponse, error) {
 	return fc.RenewCertificateFn()
 }
+
+func (fc *FakeClient) StartHealthChecker() {}
+
+func (fc *FakeClient) StopHealthChecker() {}
