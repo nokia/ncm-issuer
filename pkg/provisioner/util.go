@@ -9,7 +9,7 @@ import (
 )
 
 func findCA(casResponse *ncmapi.CAsResponse, casHref, casName string) (*ncmapi.CAResponse, bool) {
-	hrefRegex := regexp.MustCompile(`[\d\w=_\-]+$`)
+	hrefRegex := regexp.MustCompile(`[\w=_\-]+$`)
 	for _, ca := range casResponse.CAList {
 		if strings.EqualFold(ca.Status, "active") {
 			if casHref != "" {

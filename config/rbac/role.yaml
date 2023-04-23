@@ -1,4 +1,3 @@
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -14,16 +13,6 @@ rules:
   - get
   - list
   - watch
-  - create
-  - update
-- apiGroups:
-    - cert-manager.io
-  resources:
-    - certificates
-  verbs:
-    - get
-    - list
-    - watch
 - apiGroups:
   - cert-manager.io
   resources:

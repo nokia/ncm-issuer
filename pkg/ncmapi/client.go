@@ -1,6 +1,8 @@
 package ncmapi
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,6 +14,6 @@ type ExternalClient interface {
 	DownloadCertificate(path string) (*CertificateDownloadResponse, error)
 	DownloadCertificateInPEM(path string) ([]byte, error)
 	RenewCertificate(path string, duration *metav1.Duration, profileID string) (*RenewCertificateResponse, error)
-	StartHealthChecker()
+	StartHealthChecker(interval time.Duration)
 	StopHealthChecker()
 }

@@ -19,8 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
@@ -36,6 +35,8 @@ import (
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // IssuerReconciler reconciles a Issuer object.
@@ -93,19 +94,11 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	secretName := types.NamespacedName{
-		Name: issuerSpec.AuthSecretName,
-	}
-
-	secretName.Namespace, err = GetSecretNamespace(issuer, req)
-	if err != nil {
-		log.Error(err, "Unexpected issuer type. Not retrying.")
-		return ctrl.Result{}, nil
-	}
-
+	NCMCfg := cfg.Initialise(issuerSpec)
+	NCMCfg.InjectNamespace(GetSecretNamespace(issuer, req))
 	authSecret := &core.Secret{}
-	if err = r.Get(ctx, secretName, authSecret); err != nil {
-		log.Error(err, "Failed to retrieve auth secret", "namespace", secretName.Namespace, "name", secretName.Name)
+	if err = r.Get(ctx, NCMCfg.AuthNamespacedName, authSecret); err != nil {
+		log.Error(err, "Failed to retrieve auth secret", "namespace", NCMCfg.AuthNamespacedName.Namespace, "name", NCMCfg.AuthNamespacedName.Name)
 		if apierrors.IsNotFound(err) {
 			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
 		} else {
@@ -115,12 +108,11 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	NCMCfg := cfg.Initialise(issuerSpec)
 	NCMCfg.AddAuthenticationData(authSecret)
-	if NCMCfg.TLSSecretName != "" {
+	if !reflect.DeepEqual(NCMCfg.TLSNamespacedName, types.NamespacedName{}) {
 		tlsSecret := &core.Secret{}
-		if err = r.Get(ctx, client.ObjectKey{Namespace: secretName.Namespace, Name: NCMCfg.TLSSecretName}, tlsSecret); err != nil {
-			log.Error(err, "Failed to retrieve TLS secret", "namespace", secretName.Namespace, "name", NCMCfg.TLSSecretName)
+		if err = r.Get(ctx, NCMCfg.TLSNamespacedName, tlsSecret); err != nil {
+			log.Error(err, "Failed to retrieve TLS secret", "namespace", NCMCfg.TLSNamespacedName.Namespace, "name", NCMCfg.TLSNamespacedName.Name)
 			if apierrors.IsNotFound(err) {
 				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
 			} else {

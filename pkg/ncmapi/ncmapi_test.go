@@ -144,7 +144,9 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "malformed-main-ncm-api-url",
 			config: &cfg.NCMConfig{
-				NCMServer: "https://ncm-server.local:-8081",
+				MainAPI:               "https://ncm-server.local:-8081",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
 			},
 			err:            errors.New("cannot create new API client"),
 			expectedClient: nil,
@@ -152,8 +154,10 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "malformed-backup-ncm-api-url",
 			config: &cfg.NCMConfig{
-				NCMServer:  "https://ncm-server.local",
-				NCMServer2: "https://ncm-backup-server.local:-8081",
+				MainAPI:               "https://ncm-server.local",
+				BackupAPI:             "https://ncm-backup-server.local:-8081",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
 			},
 			err:            errors.New("cannot create new API client"),
 			expectedClient: nil,
@@ -161,10 +165,12 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "cert-and-key-for-mtls-do-not-exist",
 			config: &cfg.NCMConfig{
-				NCMServer: "https://ncm-server.local",
-				CACert:    rootCA,
-				Key:       "ncm-certificate-key.pem",
-				Cert:      "ncm-certificate.pem",
+				MainAPI:               "https://ncm-server.local",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				CACert:                rootCA,
+				Key:                   "ncm-certificate-key.pem",
+				Cert:                  "ncm-certificate.pem",
 			},
 			err:            errors.New("no such file or directory"),
 			expectedClient: nil,
@@ -172,9 +178,11 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "ncm-client-success-insecure-connection",
 			config: &cfg.NCMConfig{
-				NCMServer: "http://ncm-server.local",
-				Username:  "ncm-user",
-				Password:  "ncm-user-password",
+				MainAPI:               "http://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
 			},
 			err: nil,
 			expectedClient: &Client{
@@ -182,7 +190,7 @@ func TestNewClientCreation(t *testing.T) {
 				user:     "ncm-user",
 				password: "ncm-user-password",
 				client: &http.Client{
-					Timeout: DefaultHTTPTimeout * time.Second,
+					Timeout: 10 * time.Second,
 				},
 				log: testr.New(t),
 			},
@@ -190,10 +198,12 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "ncm-client-success-insecure-skip-verify",
 			config: &cfg.NCMConfig{
-				NCMServer:          "https://ncm-server.local",
-				Username:           "ncm-user",
-				Password:           "ncm-user-password",
-				InsecureSkipVerify: true,
+				MainAPI:               "https://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				InsecureSkipVerify:    true,
 			},
 			err: nil,
 			expectedClient: &Client{
@@ -201,7 +211,7 @@ func TestNewClientCreation(t *testing.T) {
 				user:     "ncm-user",
 				password: "ncm-user-password",
 				client: &http.Client{
-					Timeout: DefaultHTTPTimeout * time.Second,
+					Timeout: 10 * time.Second,
 					Transport: &http.Transport{
 						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 					},
@@ -212,18 +222,21 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "ncm-client-success-tls-connection",
 			config: &cfg.NCMConfig{
-				NCMServer: "https://ncm-server.local",
-				Username:  "ncm-user",
-				Password:  "ncm-user-password",
-				CACert:    rootCA,
+				MainAPI:               "https://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				CACert:                rootCA,
 			},
 			err: nil,
 			expectedClient: &Client{
 				mainAPI:  NewServerURL("https://ncm-server.local"),
 				user:     "ncm-user",
 				password: "ncm-user-password",
+
 				client: &http.Client{
-					Timeout: DefaultHTTPTimeout * time.Second,
+					Timeout: 10 * time.Second,
 					Transport: &http.Transport{
 						TLSClientConfig: &tls.Config{
 							RootCAs: CACertPool,
@@ -236,13 +249,15 @@ func TestNewClientCreation(t *testing.T) {
 		{
 			name: "ncm-client-success-mtls-connection",
 			config: &cfg.NCMConfig{
-				NCMServer: "https://ncm-server.local",
-				Username:  "ncm-user",
-				Password:  "ncm-user-password",
-				CACert:    rootCA,
-				MTLS:      true,
-				Cert:      certFile.Name(),
-				Key:       certKey.Name(),
+				MainAPI:               "https://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				CACert:                rootCA,
+				MTLS:                  true,
+				Cert:                  certFile.Name(),
+				Key:                   certKey.Name(),
 			},
 			err: nil,
 			expectedClient: &Client{
@@ -250,7 +265,7 @@ func TestNewClientCreation(t *testing.T) {
 				user:     "ncm-user",
 				password: "ncm-user-password",
 				client: &http.Client{
-					Timeout: DefaultHTTPTimeout * time.Second,
+					Timeout: 10 * time.Second,
 					Transport: &http.Transport{
 						TLSClientConfig: &tls.Config{
 							RootCAs:      CACertPool,
@@ -280,9 +295,11 @@ func TestNewRequestCreation(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		config := &cfg.NCMConfig{
-			NCMServer: "https://ncm-server.local",
-			Username:  "ncm-user",
-			Password:  "ncm-user-password",
+			MainAPI:               "https://ncm-server.local",
+			Username:              "ncm-user",
+			Password:              "ncm-user-password",
+			HTTPClientTimeout:     10 * time.Second,
+			HealthCheckerInterval: time.Minute,
 		}
 
 		c, _ := NewClient(config, testr.New(t))
@@ -330,9 +347,11 @@ func TestValidateResponse(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		config := &cfg.NCMConfig{
-			NCMServer: "https://ncm-server.local",
-			Username:  "ncm-user",
-			Password:  "ncm-user-password",
+			MainAPI:               "https://ncm-server.local",
+			Username:              "ncm-user",
+			Password:              "ncm-user-password",
+			HTTPClientTimeout:     10 * time.Second,
+			HealthCheckerInterval: time.Minute,
 		}
 
 		c, _ := NewClient(config, testr.New(t))
@@ -407,9 +426,11 @@ func TestIsAPIHealthy(t *testing.T) {
 		defer svr.Close()
 
 		config := &cfg.NCMConfig{
-			NCMServer: svr.URL,
-			Username:  "ncm-user",
-			Password:  "ncm-user-password",
+			MainAPI:               svr.URL,
+			Username:              "ncm-user",
+			Password:              "ncm-user-password",
+			HTTPClientTimeout:     10 * time.Second,
+			HealthCheckerInterval: time.Minute,
 		}
 
 		c, _ := NewClient(config, testr.New(t))
@@ -473,16 +494,20 @@ func TestDoRequest(t *testing.T) {
 			svrBackup := httptest.NewServer(tc.handlerBackupAPI)
 			defer svrBackup.Close()
 			config = &cfg.NCMConfig{
-				NCMServer:  svrMain.URL,
-				NCMServer2: svrBackup.URL,
-				Username:   "ncm-user",
-				Password:   "ncm-user-password",
+				MainAPI:               svrMain.URL,
+				BackupAPI:             svrBackup.URL,
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
 			}
 		} else {
 			config = &cfg.NCMConfig{
-				NCMServer: svrMain.URL,
-				Username:  "ncm-user",
-				Password:  "ncm-user-password",
+				MainAPI:               svrMain.URL,
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
 			}
 		}
 
@@ -579,9 +604,11 @@ func TestGetCAs(t *testing.T) {
 		defer svr.Close()
 
 		config := &cfg.NCMConfig{
-			NCMServer: svr.URL,
-			Username:  "ncm-user",
-			Password:  "ncm-user-password",
+			MainAPI:               svr.URL,
+			Username:              "ncm-user",
+			Password:              "ncm-user-password",
+			HTTPClientTimeout:     10 * time.Second,
+			HealthCheckerInterval: time.Minute,
 		}
 
 		c, _ := NewClient(config, testr.New(t))
@@ -665,9 +692,11 @@ func TestGetCA(t *testing.T) {
 		defer svr.Close()
 
 		config := &cfg.NCMConfig{
-			NCMServer: svr.URL,
-			Username:  "ncm-user",
-			Password:  "ncm-user-password",
+			MainAPI:               svr.URL,
+			Username:              "ncm-user",
+			Password:              "ncm-user-password",
+			HTTPClientTimeout:     10 * time.Second,
+			HealthCheckerInterval: time.Minute,
 		}
 
 		c, _ := NewClient(config, testr.New(t))

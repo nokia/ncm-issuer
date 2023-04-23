@@ -24,17 +24,17 @@ func GetSpecAndStatus(issuer client.Object) (*ncmv1.IssuerSpec, *ncmv1.IssuerSta
 	}
 }
 
-func GetSecretNamespace(issuer client.Object, req ctrl.Request) (string, error) {
+func GetSecretNamespace(issuer client.Object, req ctrl.Request) string {
 	switch t := issuer.(type) {
 	case *ncmv1.Issuer:
-		return req.Namespace, nil
+		return req.Namespace
 	case *ncmv1.ClusterIssuer:
 		if t.Spec.AuthNamespace == "" {
 			t.Spec.AuthNamespace = metav1.NamespaceDefault
 		}
-		return t.Spec.AuthNamespace, nil
+		return t.Spec.AuthNamespace
 	default:
-		return "", fmt.Errorf("not an issuer type: %t", t)
+		return ""
 	}
 }
 

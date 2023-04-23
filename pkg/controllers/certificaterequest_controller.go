@@ -219,7 +219,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	secretName := cr.Annotations[cmapi.CertificateNameKey] + "-details"
+	crtSecret := cr.Annotations[cmapi.CertificateNameKey] + "-details"
 
 	// At the very beginning we should check the basic conditions that determines
 	// whether the operation of certificate renewal should take place
@@ -231,7 +231,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	isSecretWithCertID := false
 	secretCertID := &core.Secret{}
-	if err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: secretName}, secretCertID); err != nil {
+	if err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crtSecret}, secretCertID); err != nil {
 		if apierrors.IsNotFound(err) {
 			// This means that secret needed for renewal operations does not exist,
 			// and we should perform re-enrollment operation instead
@@ -278,7 +278,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 
-		secretCertID = GetCertIDSecret(req.Namespace, secretName, certID)
+		secretCertID = GetCertIDSecret(req.Namespace, crtSecret, certID)
 		if err = r.Update(ctx, secretCertID); err != nil {
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
 
@@ -328,7 +328,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 		}
 
-		secretCertID = GetCertIDSecret(req.Namespace, secretName, certID)
+		secretCertID = GetCertIDSecret(req.Namespace, crtSecret, certID)
 		if isSecretWithCertID {
 			if err = r.Update(ctx, secretCertID); err != nil {
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)

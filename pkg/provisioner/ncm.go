@@ -114,7 +114,7 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 		return nil, nil, "", fmt.Errorf("failed to get CAs, err: %w", err)
 	}
 
-	signingCA, found := findCA(casResponse, p.NCMConfig.CAsHref, p.NCMConfig.CAsName)
+	signingCA, found := findCA(casResponse, p.NCMConfig.CAID, p.NCMConfig.CAName)
 	if !found {
 		return nil, nil, "", fmt.Errorf("CA certificate with the given HREF or NAME has not been found")
 	}
@@ -218,7 +218,7 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 		return nil, nil, "", fmt.Errorf("failed to get CAs, err: %w", err)
 	}
 
-	singingCA, found := findCA(casResponse, p.NCMConfig.CAsHref, p.NCMConfig.CAsName)
+	singingCA, found := findCA(casResponse, p.NCMConfig.CAID, p.NCMConfig.CAName)
 	if !found {
 		return nil, nil, "", fmt.Errorf("CA certificate with the given HREF or NAME has not been found")
 	}

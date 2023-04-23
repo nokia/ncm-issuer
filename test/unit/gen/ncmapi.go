@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/nokia/ncm-issuer/pkg/ncmapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -205,6 +206,6 @@ func (fc *FakeClient) RenewCertificate(string, *metav1.Duration, string) (*ncmap
 	return fc.RenewCertificateFn()
 }
 
-func (fc *FakeClient) StartHealthChecker() {}
+func (fc *FakeClient) StartHealthChecker(interval time.Duration) {}
 
 func (fc *FakeClient) StopHealthChecker() {}

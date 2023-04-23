@@ -20,12 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster,shortName=external-clusterissuer
-
 // ClusterIssuer is the Schema for the clusterissuers API
-// +kubebuilder:printcolumn:name="READY",type=string,JSONPath=`.status.conditions[0].status`
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster,shortName=ncm-clusterissuer
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[0].status`
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[0].reason`
+// +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[0].message`
 type ClusterIssuer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

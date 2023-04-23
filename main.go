@@ -99,7 +99,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("external-clusterIssuer-controller"),
+		Recorder:     mgr.GetEventRecorderFor("ncm-clusterissuer-controller"),
 		Provisioners: provisioners,
 		Log:          ctrl.Log.WithName("controllers").WithName("ClusterIssuer"),
 	}).SetupWithManager(mgr); err != nil {
@@ -112,7 +112,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("external-issuer-controller"),
+		Recorder:     mgr.GetEventRecorderFor("ncm-issuer-controller"),
 		Provisioners: provisioners,
 		Log:          ctrl.Log.WithName("controllers").WithName("Issuer"),
 	}).SetupWithManager(mgr); err != nil {
@@ -124,7 +124,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("certificateRequests-controller"),
+		Recorder:     mgr.GetEventRecorderFor("certificaterequests-controller"),
 		Provisioners: provisioners,
 		Scheme:       mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

@@ -25,11 +25,10 @@ import (
 )
 
 const (
-	DefaultHTTPTimeout = 10
-	CAsPath            = "/v1/cas"
-	CSRPath            = "/v1/requests"
-	healthy            = "healthy"
-	unhealthy          = "unhealthy"
+	CAsPath   = "/v1/cas"
+	CSRPath   = "/v1/requests"
+	healthy   = "healthy"
+	unhealthy = "unhealthy"
 )
 
 // ServerURL is used to store NCM API url and health status.
@@ -155,16 +154,16 @@ func (a *APIError) Error() string {
 // NewClient creates a new client used to perform requests to
 // the NCM API.
 func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
-	if _, err := url.Parse(cfg.NCMServer); err != nil {
+	if _, err := url.Parse(cfg.MainAPI); err != nil {
 		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
 	}
 
 	var backupAPI *ServerURL
-	if cfg.NCMServer2 != "" {
-		if _, err := url.Parse(cfg.NCMServer2); err != nil {
+	if cfg.BackupAPI != "" {
+		if _, err := url.Parse(cfg.BackupAPI); err != nil {
 			return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
 		}
-		backupAPI = NewServerURL(cfg.NCMServer2)
+		backupAPI = NewServerURL(cfg.BackupAPI)
 	}
 
 	client, err := configureHTTPClient(cfg)
@@ -173,7 +172,7 @@ func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 	}
 
 	c := &Client{
-		mainAPI:              NewServerURL(cfg.NCMServer),
+		mainAPI:              NewServerURL(cfg.MainAPI),
 		backupAPI:            backupAPI,
 		stopChecking:         make(chan bool),
 		user:                 cfg.Username,
@@ -182,16 +181,17 @@ func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 		client:               client,
 		log:                  log,
 	}
-	c.StartHealthChecker()
+
+	c.StartHealthChecker(cfg.HealthCheckerInterval)
 	return c, nil
 }
 
 // configureHTTPClient configures http.Client used for connection
 // to NCM API according to NCM config.
 func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
-	if !strings.HasPrefix(cfg.NCMServer, "https") {
+	if !strings.HasPrefix(cfg.MainAPI, "https") {
 		client := &http.Client{
-			Timeout: DefaultHTTPTimeout * time.Second,
+			Timeout: cfg.HTTPClientTimeout,
 		}
 
 		return client, nil
@@ -226,7 +226,7 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 	// Creates an HTTPS client and supply it with created CA pool
 	// (and client CA if mTLS is enabled)
 	client := &http.Client{
-		Timeout: DefaultHTTPTimeout * time.Second,
+		Timeout: cfg.HTTPClientTimeout,
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
@@ -301,8 +301,8 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	return nil, &ClientError{Reason: "not reachable NCM APIs", ErrorMessage: errors.New("neither main NCM API nor backup NCM API are healthy")}
 }
 
-func (c *Client) StartHealthChecker() {
-	ticker := time.NewTicker(10 * time.Second)
+func (c *Client) StartHealthChecker(interval time.Duration) {
+	ticker := time.NewTicker(interval)
 	c.log.Info("Starting health status checker")
 	go func() {
 		for {

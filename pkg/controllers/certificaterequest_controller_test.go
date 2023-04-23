@@ -10,6 +10,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr/testr"
 	"github.com/google/go-cmp/cmp"
@@ -175,10 +176,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 				},
 				&v1.Secret{
@@ -228,10 +234,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 				},
 				&v1.Secret{
@@ -280,10 +291,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 				},
 				&v1.Secret{
@@ -334,10 +350,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 				},
 				&v1.Secret{
@@ -575,10 +596,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -641,10 +667,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -714,10 +745,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -833,10 +869,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -952,10 +993,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1068,10 +1114,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1184,10 +1235,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1300,10 +1356,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1415,10 +1476,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1521,10 +1587,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1624,10 +1695,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-cluster-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  metav1.NamespaceDefault,
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: metav1.NamespaceDefault,
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1739,10 +1815,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1855,10 +1936,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  "ncm-ns",
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{
@@ -1967,10 +2053,15 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "ncm-cluster-issuer",
 					},
 					Spec: ncmv1.IssuerSpec{
-						NCMServer:      "https://ncm-server.local:8081",
-						CAsName:        "ncmCA",
-						AuthNamespace:  metav1.NamespaceDefault,
-						AuthSecretName: "ncm-auth-secret",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: metav1.NamespaceDefault,
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
 					},
 					Status: ncmv1.IssuerStatus{
 						Conditions: []ncmv1.IssuerCondition{

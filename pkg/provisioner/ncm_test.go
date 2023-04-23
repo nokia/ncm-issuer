@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr/testr"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -61,15 +62,15 @@ var (
 func TestFindCA(t *testing.T) {
 	type testCase struct {
 		name        string
-		CAsHref     string
-		CAsName     string
+		CAID        string
+		CAName      string
 		CAsResponse *ncmapi.CAsResponse
 		isFindable  bool
 		expectedCA  *ncmapi.CAResponse
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		_, found := findCA(tc.CAsResponse, tc.CAsHref, tc.CAsName)
+		_, found := findCA(tc.CAsResponse, tc.CAID, tc.CAName)
 
 		if tc.isFindable != found {
 			t.Fatalf("%s failed; expected (not) to find CA certificate; got %t; want %t", tc.name, found, tc.isFindable)
@@ -79,48 +80,48 @@ func TestFindCA(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:        "cas-name-success",
-			CAsHref:     "",
-			CAsName:     "ncmCA2",
+			CAID:        "",
+			CAName:      "ncmCA2",
 			CAsResponse: CAsResponse,
 			isFindable:  true,
 			expectedCA:  &crt2,
 		},
 		{
 			name:        "cas-href-success",
-			CAsHref:     "Mn012Se",
-			CAsName:     "",
+			CAID:        "Mn012Se",
+			CAName:      "",
 			CAsResponse: CAsResponse,
 			isFindable:  true,
 			expectedCA:  &crt1,
 		},
 		{
 			name:        "cas-name-case-sensitive",
-			CAsHref:     "",
-			CAsName:     "NCMca2",
+			CAID:        "",
+			CAName:      "NCMca2",
 			CAsResponse: CAsResponse,
 			isFindable:  false,
 			expectedCA:  &ncmapi.CAResponse{},
 		},
 		{
 			name:        "cas-href-case-sensitive",
-			CAsHref:     "mN012sE",
-			CAsName:     "",
+			CAID:        "mN012sE",
+			CAName:      "",
 			CAsResponse: CAsResponse,
 			isFindable:  false,
 			expectedCA:  &ncmapi.CAResponse{},
 		},
 		{
 			name:        "found-ca-not-active",
-			CAsHref:     "efG312Ed",
-			CAsName:     "ncmCA3",
+			CAID:        "efG312Ed",
+			CAName:      "ncmCA3",
 			CAsResponse: CAsResponse,
 			isFindable:  false,
 			expectedCA:  &ncmapi.CAResponse{},
 		},
 		{
 			name:        "empty-cas-name-and-href",
-			CAsHref:     "",
-			CAsName:     "",
+			CAID:        "",
+			CAName:      "",
 			CAsResponse: CAsResponse,
 			isFindable:  false,
 			expectedCA:  &ncmapi.CAResponse{},
@@ -146,7 +147,10 @@ func TestGetChainAndWantedCA(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		p := &Provisioner{
-			NCMConfig: &cfg.NCMConfig{},
+			NCMConfig: &cfg.NCMConfig{
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+			},
 			NCMClient: tc.fakeClient,
 			pendingCSRs: &PendingCSRsMap{
 				pendingCSRs: map[string]*PendingCSR{},
@@ -243,15 +247,20 @@ func TestPreparingCAAndTLS(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:        "all-manipulation-data-set-to-false",
-			config:      &cfg.NCMConfig{},
+			name: "all-manipulation-data-set-to-false",
+			config: &cfg.NCMConfig{
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+			},
 			expectedCA:  rootCA,
 			expectedTLS: append(leafCert, append(signingCA, interCA...)...),
 		},
 		{
 			name: "littleendian-set-to-true",
 			config: &cfg.NCMConfig{
-				LittleEndian: true,
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				LittleEndian:          true,
 			},
 			expectedCA:  rootCA,
 			expectedTLS: append(interCA, append(signingCA, leafCert...)...),
@@ -259,7 +268,9 @@ func TestPreparingCAAndTLS(t *testing.T) {
 		{
 			name: "chaininsigner-set-to-true",
 			config: &cfg.NCMConfig{
-				ChainInSigner: true,
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				ChainInSigner:         true,
 			},
 			expectedCA:  append(signingCA, append(interCA, rootCA...)...),
 			expectedTLS: append(leafCert, append(signingCA, interCA...)...),
@@ -267,8 +278,10 @@ func TestPreparingCAAndTLS(t *testing.T) {
 		{
 			name: "littleendian-and-chaininsigner-set-to-true",
 			config: &cfg.NCMConfig{
-				LittleEndian:  true,
-				ChainInSigner: true,
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				LittleEndian:          true,
+				ChainInSigner:         true,
 			},
 			expectedCA:  append(rootCA, append(interCA, signingCA...)...),
 			expectedTLS: append(interCA, append(signingCA, leafCert...)...),
@@ -276,7 +289,9 @@ func TestPreparingCAAndTLS(t *testing.T) {
 		{
 			name: "onlyeecert-set-to-true",
 			config: &cfg.NCMConfig{
-				OnlyEECert: true,
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				OnlyEECert:            true,
 			},
 			expectedCA:  rootCA,
 			expectedTLS: leafCert,
@@ -284,8 +299,10 @@ func TestPreparingCAAndTLS(t *testing.T) {
 		{
 			name: "chaininsigner-and-onlyeecert-set-to-true",
 			config: &cfg.NCMConfig{
-				ChainInSigner: true,
-				OnlyEECert:    true,
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				ChainInSigner:         true,
+				OnlyEECert:            true,
 			},
 			expectedCA:  append(signingCA, append(interCA, rootCA...)...),
 			expectedTLS: leafCert,
@@ -336,7 +353,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAsError(errFailedGetCAs)),
@@ -355,7 +374,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "eFgEf12",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "eFgEf12",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -377,7 +398,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -400,7 +423,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -424,7 +449,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -448,7 +475,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -472,7 +501,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -496,7 +527,9 @@ func TestSign(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -556,7 +589,9 @@ func TestHandlingCSR(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -583,7 +618,9 @@ func TestHandlingCSR(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -610,7 +647,9 @@ func TestHandlingCSR(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -637,7 +676,9 @@ func TestHandlingCSR(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -664,7 +705,9 @@ func TestHandlingCSR(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -691,7 +734,9 @@ func TestHandlingCSR(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -718,7 +763,9 @@ func TestHandlingCSR(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -782,7 +829,9 @@ func TestRenew(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAsError(errFailedGetCAs)),
@@ -801,7 +850,9 @@ func TestRenew(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
@@ -825,7 +876,9 @@ func TestRenew(t *testing.T) {
 			cr:   &cr,
 			p: &Provisioner{
 				NCMConfig: &cfg.NCMConfig{
-					CAsHref: "Mn012Se",
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
 				},
 				NCMClient: gen.NewFakeClient(
 					gen.SetFakeClientGetCAs(CAsResponse),
