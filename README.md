@@ -15,7 +15,7 @@
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
 </p>
 
-NCM-ISSUER is a [Kubernetes](https://kuberenets.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with 
+NCM-ISSUER is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with 
 [Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
 PKI system to sign certificate requests. The use of integration with NCM makes it easy to obtain certificates for
 applications and to ensure that they are valid and up to date.
@@ -43,7 +43,7 @@ applications and to ensure that they are valid and up to date.
 Prerequisites for building and using NCM-ISSUER:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 21 or later,
-* [Kubernetes](https://kuberenets.io) version 1.18 or later,
+* [Kubernetes](https://kubernetes.io) version 1.18 or later,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
 * [Docker](https://docs.docker.com/engine/install/) version 20.10.0 or later,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
