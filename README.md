@@ -11,9 +11,9 @@
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
-<div style="text-align:center">
+<p align="center">
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
-</div>
+</p>
 
 NCM-ISSUER is a [Kubernetes](https://kuberenets.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with 
 [Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
