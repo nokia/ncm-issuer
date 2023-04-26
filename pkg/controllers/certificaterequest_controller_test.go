@@ -1885,7 +1885,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				},
 			},
 			provisioner: gen.NewFakeProvisioner(
-				gen.SetFakeProvisionerRenewError(errAPINotReachable)),
+				gen.SetFakeProvisionerRenewError(errAPINotReachable),
+				gen.SetFakeProvisionerPreventRenewal(false)),
 			err: errAPINotReachable,
 			expectedResult: ctrl.Result{
 				RequeueAfter: APIErrorRequeueTime,
@@ -2006,7 +2007,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				},
 			},
 			provisioner: gen.NewFakeProvisioner(
-				gen.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id")),
+				gen.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id"),
+				gen.SetFakeProvisionerPreventRenewal(false)),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
@@ -2123,7 +2125,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				},
 			},
 			provisioner: gen.NewFakeProvisioner(
-				gen.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id")),
+				gen.SetFakeProvisionerRenew([]byte("ca"), []byte("tls"), "random-id"),
+				gen.SetFakeProvisionerPreventRenewal(false)),
 			expectedConditionStatus: cmmeta.ConditionTrue,
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},

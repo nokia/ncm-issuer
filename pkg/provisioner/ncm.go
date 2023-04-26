@@ -244,6 +244,10 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 	return ca, tls, renewCertResp.Certificate, nil
 }
 
+func (p *Provisioner) PreventRenewal() bool {
+	return p.NCMConfig.ReenrollmentOnRenew
+}
+
 func (p *Provisioner) Retire() {
 	p.NCMClient.StopHealthChecker()
 }

@@ -13,7 +13,7 @@ spec:
     listKind: IssuerList
     plural: issuers
     shortNames:
-    - ncm-issuer
+    - ncmissuers
     singular: issuer
   scope: Namespaced
   versions:

@@ -13,7 +13,7 @@ spec:
     listKind: ClusterIssuerList
     plural: clusterissuers
     shortNames:
-    - ncm-clusterissuer
+    - ncmclusterissuers
     singular: clusterissuer
   scope: Cluster
   versions:

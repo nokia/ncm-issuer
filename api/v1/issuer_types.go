@@ -107,7 +107,7 @@ type IssuerStatus struct {
 // Issuer is the Schema for the issuers API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:shortName=ncm-issuer
+// +kubebuilder:resource:shortName=ncmissuers
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[0].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[0].reason`

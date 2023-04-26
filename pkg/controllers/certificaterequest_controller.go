@@ -219,50 +219,29 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	crtSecret := cr.Annotations[cmapi.CertificateNameKey] + "-details"
+	crtSecretName := cr.Annotations[cmapi.CertificateNameKey] + "-details"
+	isQualified, err := r.isQualifiedForRenewal(ctx, req, crt, crtSecretName)
+	if err != nil {
+		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
+		return ctrl.Result{}, err
+	}
 
-	// At the very beginning we should check the basic conditions that determines
-	// whether the operation of certificate renewal should take place
-	isRevision := crt.Status.Revision != nil && *crt.Status.Revision >= 1
-	isPKRotationAlways := crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy == "Always"
-	// TODO: Provisioner is no longer an individual struct, but implements interface, thus configuration option "ReenrollmentOnRenew" should be handled somehow
-	// isRenewal := isRevision && !p.NCMConfig.ReenrollmentOnRenew && !isPKRotationAlways
-	isRenewal := isRevision && !isPKRotationAlways
-
-	isSecretWithCertID := false
-	secretCertID := &core.Secret{}
-	if err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crtSecret}, secretCertID); err != nil {
+	crtIDSecret := &core.Secret{}
+	if err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crtSecretName}, crtIDSecret); err != nil {
 		if apierrors.IsNotFound(err) {
-			// This means that secret needed for renewal operations does not exist,
-			// and we should perform re-enrollment operation instead
-			isRenewal = false
+			crtIDSecret = nil
 		} else {
 			crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 			return ctrl.Result{}, err
 		}
-	} else {
-		// This will prevent unnecessary checking to make sure that secret already
-		// exists when creating this secret, instead we will know that we
-		// have to update it
-		isSecretWithCertID = true
 	}
 
-	// We also need to check if the certificate's TLS secret has been deleted,
-	// which involves triggering a manual rotation of a private key
-	if isRenewal {
-		if err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crt.Spec.SecretName}, &core.Secret{}); err != nil {
-			if apierrors.IsNotFound(err) {
-				isRenewal = false
-			} else {
-				crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
-				return ctrl.Result{}, err
-			}
-		}
-	}
+	var ca, tls []byte
+	var certID string
 
-	if isRenewal {
+	if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
 		log.Info("Performing renewing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
-		ca, tls, certID, err := p.Renew(cr, string(secretCertID.Data["cert-id"]))
+		ca, tls, certID, err = p.Renew(cr, string(crtIDSecret.Data["cert-id"]))
 		if err != nil {
 			if errorContains(err, "not reachable NCM API") {
 				log.Error(err, "Could not established connection with NCM API")
@@ -278,8 +257,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 
-		secretCertID = GetCertIDSecret(req.Namespace, crtSecret, certID)
-		if err = r.Update(ctx, secretCertID); err != nil {
+		crtIDSecret = GetCertIDSecret(req.Namespace, crtSecretName, certID)
+		if err = r.Update(ctx, crtIDSecret); err != nil {
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
 
 			crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
@@ -291,8 +270,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		crmetrics.CertificateRequestSuccesses.WithLabelValues(labelRen).Inc()
 	} else {
 		log.Info("Performing signing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
-
-		ca, tls, certID, err := p.Sign(cr)
+		ca, tls, certID, err = p.Sign(cr)
 		if err != nil {
 			switch {
 			case errorContains(err, "not reachable NCM API"):
@@ -328,16 +306,15 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 		}
 
-		secretCertID = GetCertIDSecret(req.Namespace, crtSecret, certID)
-		if isSecretWithCertID {
-			if err = r.Update(ctx, secretCertID); err != nil {
+		if crtIDSecret != nil {
+			if err = r.Update(ctx, GetCertIDSecret(req.Namespace, crtSecretName, certID)); err != nil {
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
 
 				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
 				return ctrl.Result{}, err
 			}
 		} else {
-			if err = r.Create(ctx, secretCertID); err != nil {
+			if err = r.Create(ctx, GetCertIDSecret(req.Namespace, crtSecretName, certID)); err != nil {
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to create secret err: %v", err)
 
 				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
@@ -352,6 +329,29 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	log.Info("Successfully issued certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
 	return ctrl.Result{}, r.setStatus(ctx, cr, cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Successfully issued certificate")
+}
+
+func (r *CertificateRequestReconciler) isQualifiedForRenewal(ctx context.Context, req ctrl.Request, crt *cmapi.Certificate, crtSecretName string) (bool, error) {
+	// At the very beginning we should check the basic conditions that determines
+	// whether the operation of certificate renewal should take place
+	if crt.Status.Revision == nil || (crt.Status.Revision != nil && *crt.Status.Revision < 1) {
+		return false, nil
+	}
+
+	if crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy == "Always" {
+		return false, nil
+	}
+
+	// We also need to check if the certificate's TLS secret has been deleted,
+	// which involves triggering a manual rotation of a private key
+	if err := r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: crt.Spec.SecretName}, &core.Secret{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *CertificateRequestReconciler) setStatus(ctx context.Context, cr *cmapi.CertificateRequest, status cmmeta.ConditionStatus, reason, message string, args ...interface{}) error {
