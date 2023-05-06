@@ -15,7 +15,7 @@
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
 </p>
 
-NCM-ISSUER is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with 
+NCM-ISSUER is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
 [Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
 PKI system to sign certificate requests. The use of integration with NCM makes it easy to obtain certificates for
 applications and to ensure that they are valid and up to date.
@@ -24,20 +24,20 @@ applications and to ensure that they are valid and up to date.
 
 * [Prerequisites](#prerequisites)
 * [Installation and configuration](#installation-and-configuration)
-  - [Installing using Helm](#installing-using-helm)
-    + [Using own (local or remote) registry](#using-own--local-or-remote--registry)
-    + [Configuration](#configuration)
+  * [Installing using Helm](#installing-using-helm)
+    * [Using own (local or remote) registry](#using-own--local-or-remote--registry)
+    * [Configuration](#configuration)
       * [NCM API credentials](#ncm-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
       * [TLS with client authentication](#tls-with-client-authentication)
 * [Custom resource definitions (CRDs)](#custom-resource-definitions--crds-)
-  - [Issuer resource](#issuer-resource)
-  - [ClusterIssuer resource](#clusterissuer-resource)
-  - [Issuer and ClusterIssuer fields overview](#issuer-and-clusterissuer-fields-overview)
+  * [Issuer resource](#issuer-resource)
+  * [ClusterIssuer resource](#clusterissuer-resource)
+  * [Issuer and ClusterIssuer fields overview](#issuer-and-clusterissuer-fields-overview)
 * [Usage](#usage)
-  - [Create an Issuer](#create-an-issuer) 
-  - [Signing certificate](#signing-certificate)
-  - [Renewing or reenrolling certificate](#renewing-or-reenrolling-certificate)
+  * [Create an Issuer](#create-an-issuer)
+  * [Signing certificate](#signing-certificate)
+  * [Renewing or reenrolling certificate](#renewing-or-reenrolling-certificate)
 * [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
@@ -220,6 +220,8 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 
 Once the deployment is up and running, you are ready to create your first `Issuer`!
 
+<img src="./assets/creating-issuer.gif" alt="creating-issuer" />
+
 The following is an example `Issuer` created for the namespace `example-ncm-ns`:
 
   ```bash
@@ -239,8 +241,6 @@ The following is an example `Issuer` created for the namespace `example-ncm-ns`:
   EOF
   ```
 
-<img src="./assets/creating-issuer.gif" alt="creating-issuer" />
-
 After creating the `Issuer`, we should now be able to check its status:
 
   ```bash
@@ -254,6 +254,8 @@ The above output tells us that our `Issuer` is ready to sign certificates!
 ### Signing certificate
 
 Once the `Issuer` was successfully created, it is now time to sign the first certificate:
+
+<img src="./assets/signing-certificate.gif" alt="signing-certificate" />
 
   ```bash
   $ cat << EOF | kubectl apply -f -
@@ -284,8 +286,6 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
   EOF
   ```
 
-<img src="./assets/signing-certificate.gif" alt="signing-certificate" />
-
 Then we can check the status of our newly issued certificate:
 
   ```bash
@@ -309,7 +309,7 @@ Additionally, in NCM GUI we can also find our newly issued certificate.
 ### Renewing or reenrolling certificate
 
 When it comes to renewing or reenrolling certificates, NCM-ISSUER will take care of this and
-do it earlier enough before the certificate expires (the timing of chosen operation, 
+do it earlier enough before the certificate expires (the timing of chosen operation,
 depends on the defined values in `Certificate` resource).
 
 You can define what operation NCM-ISSUER should perform in such a case by
