@@ -1,5 +1,6 @@
 <!-- markdownlint-disable  MD013 MD014 MD033 -->
 # NCM-ISSUER
+
 <div id="top"></div>
 
 ![Release](https://img.shields.io/github/v/release/nokia/ncm-issuer)
@@ -23,20 +24,21 @@ applications and to ensure that they are valid and up to date.
 
 * [Prerequisites](#prerequisites)
 * [Installation and configuration](#installation-and-configuration)
-    * [Installing using Helm](#installing-using-helm)
-      * [Using own (local or remote) registry](#using-own--local-or-remote--registry)
-  * [Configuration](#configuration)
+  - [Installing using Helm](#installing-using-helm)
+    + [Using own (local or remote) registry](#using-own--local-or-remote--registry)
+    + [Configuration](#configuration)
       * [NCM API credentials](#ncm-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
       * [TLS with client authentication](#tls-with-client-authentication)
 * [Custom resource definitions (CRDs)](#custom-resource-definitions--crds-)
-    * [Issuer resource](#issuer-resource)
-    * [ClusterIssuer resource](#clusterissuer-resource)
-    * [Issuer and ClusterIssuer fields overview](#issuer-and-clusterissuer-fields-overview)
+  - [Issuer resource](#issuer-resource)
+  - [ClusterIssuer resource](#clusterissuer-resource)
+  - [Issuer and ClusterIssuer fields overview](#issuer-and-clusterissuer-fields-overview)
 * [Usage](#usage)
-    * [Create an Issuer](#create-an-issuer) 
-    * [Signing certificate](#signing-certificate)
-    * [Renewing or reenrolling certificate](#renewing-or-reenrolling-certificate)
+  - [Create an Issuer](#create-an-issuer) 
+  - [Signing certificate](#signing-certificate)
+  - [Renewing or reenrolling certificate](#renewing-or-reenrolling-certificate)
+* [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
@@ -55,6 +57,8 @@ Prerequisites for building and using NCM-ISSUER:
 ### Installing using Helm
 
 The easiest way to install NCM-ISSUER in Kubernetes cluster is to use Helm.
+
+<img src="./assets/installation.gif" alt="installation"/>
 
 At the very beginning it is necessary to create namespace for NCM-ISSUER:
 
@@ -100,6 +104,8 @@ Saved image should appear in the path `./builds/ncm-issuer-images/`.
 To make the NCM-ISSUER work properly, it is necessary to create few Kubernetes secrets
 that contains credentials to NCM API and TLS configuration.
 
+<img src="./assets/configuration.gif" alt="configuration" />
+
 #### NCM API credentials
 
   ```bash
@@ -109,13 +115,13 @@ that contains credentials to NCM API and TLS configuration.
 #### TLS without client authentication
 
   ```bash
-  $ kubectl create -n NAMESPACE secret generic SECRET-NAME --from-file=cacert=CA-FOR-REST-API.pem
+  $ kubectl create secret generic SECRET-NAME -n NAMESPACE --from-file=cacert=CA-FOR-REST-API.pem
   ```
 
 #### TLS with client authentication
 
   ```bash
-  $ kubectl create -n NAMESPACE secret generic SECRET-NAME --from-file=cacert=CA-FOR-REST-API.pem --from-file=key=CLIENT-AUTH-PKEY.pem --from-file=cert=CLIENT-AUTH-CERT.pem
+  $ kubectl create secret generic SECRET-NAME -n NAMESPACE --from-file=cacert=CA-FOR-REST-API.pem --from-file=key=CLIENT-AUTH-PKEY.pem --from-file=cert=CLIENT-AUTH-CERT.pem
   ```
 
 To make sure that specific secret have been created correctly, you can check this
@@ -233,6 +239,8 @@ The following is an example `Issuer` created for the namespace `example-ncm-ns`:
   EOF
   ```
 
+<img src="./assets/creating-issuer.gif" alt="creating-issuer" />
+
 After creating the `Issuer`, we should now be able to check its status:
 
   ```bash
@@ -265,7 +273,7 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
       - Security
       organizations:
       - Nokia
-    usage:
+    usages:
     - server auth
     - data encipherment
     secretName: example-ncm-certificate-nokia-ncm-tls
@@ -275,6 +283,8 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
       name: example-ncm-issuer
   EOF
   ```
+
+<img src="./assets/signing-certificate.gif" alt="signing-certificate" />
 
 Then we can check the status of our newly issued certificate:
 
@@ -319,8 +329,6 @@ However, you can also trigger renewal or reenrolling operation manually using th
   ```bash
   $ kubectl cert-manager renew certificate-name -n namespace-name
   ```
-
-
 
 ## Troubleshooting
 
