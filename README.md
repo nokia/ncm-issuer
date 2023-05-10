@@ -27,7 +27,7 @@ applications and to ensure that they are valid and up to date.
   * [Installing using Helm](#installing-using-helm)
     * [Using own (local or remote) registry](#using-own--local-or-remote--registry)
     * [Configuration](#configuration)
-      * [NCM API credentials](#ncm-api-credentials)
+      * [NCM REST API credentials](#ncm-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
       * [TLS with client authentication](#tls-with-client-authentication)
 * [Custom resource definitions (CRDs)](#custom-resource-definitions--crds-)
@@ -188,7 +188,7 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 
 | Field                                     | Description                                                                                                                                                                                                                                                                | Supported from |
 |:------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------:|
-| `.spec.caName`                            | Name of an existing CA in the NCM API, which will be used to issue certificates                                                                                                                                                                                            |  1.0.4-1.1.0   |
+| `.spec.caName`                            | Name of an existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                            |  1.0.4-1.1.0   |
 | `.spec.caID`                              | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                 |  1.0.4-1.1.0   |
 | `.spec.provisioner.mainAPI`               | The URL to the main NCM REST API endpoint                                                                                                                                                                                                                                                |  1.0.4-1.1.0   |
 | `.spec.provisioner.backupAPI`             | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                                                                                                                                                                                            |  1.0.4-1.1.0   |
