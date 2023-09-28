@@ -29,6 +29,9 @@ const (
 	CSRPath   = "/v1/requests"
 	healthy   = "healthy"
 	unhealthy = "unhealthy"
+
+	creationErrorReason  = "cannot create new API client"
+	unmarshalErrorReason = "cannot unmarshal json"
 )
 
 // ServerURL is used to store NCM API url and health status.
@@ -48,7 +51,7 @@ func (s *ServerURL) isHealthy() bool {
 	return s.health == healthy
 }
 
-func (s *ServerURL) setHealthy(isHealthy bool) {
+func (s *ServerURL) setHealthStatus(isHealthy bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -155,20 +158,20 @@ func (a *APIError) Error() string {
 // the NCM API.
 func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 	if _, err := url.Parse(cfg.MainAPI); err != nil {
-		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
+		return nil, &ClientError{Reason: creationErrorReason, ErrorMessage: err}
 	}
 
 	var backupAPI *ServerURL
 	if cfg.BackupAPI != "" {
 		if _, err := url.Parse(cfg.BackupAPI); err != nil {
-			return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
+			return nil, &ClientError{Reason: creationErrorReason, ErrorMessage: err}
 		}
 		backupAPI = NewServerURL(cfg.BackupAPI)
 	}
 
 	client, err := configureHTTPClient(cfg)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot create new API client", ErrorMessage: err}
+		return nil, &ClientError{Reason: creationErrorReason, ErrorMessage: err}
 	}
 
 	c := &Client{
@@ -193,7 +196,6 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 		client := &http.Client{
 			Timeout: cfg.HTTPClientTimeout,
 		}
-
 		return client, nil
 	}
 
@@ -211,7 +213,6 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 			if err != nil {
 				return nil, err
 			}
-
 			tlsConfig = &tls.Config{
 				RootCAs:      CACertPool,
 				Certificates: []tls.Certificate{clientCert},
@@ -231,7 +232,6 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 			TLSClientConfig: tlsConfig,
 		},
 	}
-
 	return client, nil
 }
 
@@ -250,7 +250,6 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 		return nil, &ClientError{Reason: "cannot create new request", ErrorMessage: err}
 	}
 	c.setHeaders(req)
-
 	return req, nil
 }
 
@@ -260,8 +259,6 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 		return nil, &ClientError{Reason: "cannot read response body", ErrorMessage: err}
 	}
 
-	defer resp.Body.Close()
-
 	if status := resp.StatusCode; status >= 200 && status < 300 {
 		return body, nil
 	}
@@ -269,9 +266,11 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 	apiError := APIError{}
 	err = json.Unmarshal(body, &apiError)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
+		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-
+	if err = resp.Body.Close(); err != nil {
+		return nil, &ClientError{Reason: "cannot close response body", ErrorMessage: err}
+	}
 	return nil, &apiError
 }
 
@@ -280,7 +279,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		resp, err := c.client.Do(req)
 		if err != nil {
 			c.log.Error(err, "Main NCM API seems not responding", "url", c.mainAPI.url)
-			c.mainAPI.setHealthy(false)
+			c.mainAPI.setHealthStatus(false)
 			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
 		}
 		return resp, nil
@@ -292,12 +291,11 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		resp, err := c.client.Do(req)
 		if err != nil {
 			c.log.Error(err, "Backup NCM API seems not responding", "url", c.backupAPI.url)
-			c.backupAPI.setHealthy(false)
+			c.backupAPI.setHealthStatus(false)
 			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
 		}
 		return resp, nil
 	}
-
 	return nil, &ClientError{Reason: "not reachable NCM APIs", ErrorMessage: errors.New("neither main NCM API nor backup NCM API are healthy")}
 }
 
@@ -311,9 +309,11 @@ func (c *Client) StartHealthChecker(interval time.Duration) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				c.mainAPI.setHealthy(c.isAPIHealthy(c.mainAPI.url))
+				c.mainAPI.setHealthStatus(
+					c.isAPIHealthy(c.mainAPI.url))
 				if c.backupAPI != nil {
-					c.backupAPI.setHealthy(c.isAPIHealthy(c.backupAPI.url))
+					c.backupAPI.setHealthStatus(
+						c.isAPIHealthy(c.backupAPI.url))
 				}
 			}
 		}
@@ -324,14 +324,10 @@ func (c *Client) StartHealthChecker(interval time.Duration) {
 // NCM API is responding or not.
 func (c *Client) isAPIHealthy(apiUrl string) bool {
 	parsedURL, _ := url.Parse(apiUrl)
-	parsedURL.Path = CAsPath
 	req, _ := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
 	c.setHeaders(req)
-
-	if resp, err := c.client.Do(req); err != nil || resp.StatusCode >= 500 && resp.StatusCode < 600 {
-		return false
-	}
-	return true
+	resp, err := c.client.Do(req)
+	return !(err != nil || resp.StatusCode >= 500 && resp.StatusCode < 600)
 }
 
 func (c *Client) StopHealthChecker() {
@@ -359,9 +355,8 @@ func (c *Client) GetCAs() (*CAsResponse, error) {
 	cas := CAsResponse{}
 	err = json.Unmarshal(body, &cas)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
+		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-
 	return &cas, nil
 }
 
@@ -385,9 +380,8 @@ func (c *Client) GetCA(path string) (*CAResponse, error) {
 	ca := CAResponse{}
 	err = json.Unmarshal(body, &ca)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
+		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-
 	return &ca, nil
 }
 
@@ -409,8 +403,9 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, profileID string) (*CSRResp
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot open file", ErrorMessage: err}
 	}
-
-	defer file.Close()
+	defer func() {
+		err = file.Close()
+	}()
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -455,10 +450,9 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, profileID string) (*CSRResp
 	csr := CSRResponse{}
 	err = json.Unmarshal(respBody, &csr)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
+		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-
-	return &csr, nil
+	return &csr, err
 }
 
 func (c *Client) CheckCSRStatus(path string) (*CSRStatusResponse, error) {
@@ -481,9 +475,8 @@ func (c *Client) CheckCSRStatus(path string) (*CSRStatusResponse, error) {
 	csrStatus := CSRStatusResponse{}
 	err = json.Unmarshal(body, &csrStatus)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
+		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-
 	return &csrStatus, nil
 }
 
@@ -507,9 +500,8 @@ func (c *Client) DownloadCertificate(path string) (*CertificateDownloadResponse,
 	crt := CertificateDownloadResponse{}
 	err = json.Unmarshal(body, &crt)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
+		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-
 	return &crt, nil
 }
 
@@ -531,7 +523,6 @@ func (c *Client) DownloadCertificateInPEM(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return body, nil
 }
 
@@ -560,7 +551,6 @@ func (c *Client) RenewCertificate(path string, duration *metav1.Duration, profil
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
@@ -574,8 +564,7 @@ func (c *Client) RenewCertificate(path string, duration *metav1.Duration, profil
 	renewedCrt := RenewCertificateResponse{}
 	err = json.Unmarshal(body, &renewedCrt)
 	if err != nil {
-		return nil, &ClientError{Reason: "cannot unmarshal json", ErrorMessage: err}
+		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-
 	return &renewedCrt, nil
 }

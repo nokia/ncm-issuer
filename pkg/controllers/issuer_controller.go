@@ -99,12 +99,11 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	authSecret := &core.Secret{}
 	if err = r.Get(ctx, NCMCfg.AuthNamespacedName, authSecret); err != nil {
 		log.Error(err, "Failed to retrieve auth secret", "namespace", NCMCfg.AuthNamespacedName.Namespace, "name", NCMCfg.AuthNamespacedName.Name)
+		reason := "Error"
 		if apierrors.IsNotFound(err) {
-			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
-		} else {
-			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to retrieve auth secret err: %v", err)
+			reason = "NotFound"
 		}
-
+		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, reason, "Failed to retrieve auth secret err: %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -113,12 +112,12 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tlsSecret := &core.Secret{}
 		if err = r.Get(ctx, NCMCfg.TLSNamespacedName, tlsSecret); err != nil {
 			log.Error(err, "Failed to retrieve TLS secret", "namespace", NCMCfg.TLSNamespacedName.Namespace, "name", NCMCfg.TLSNamespacedName.Name)
+			reason := "Error"
 			if apierrors.IsNotFound(err) {
-				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "NotFound", "Failed to retrieve auth secret err: %v", err)
-			} else {
-				_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to retrieve auth secret err: %v", err)
+				reason = "NotFound"
 			}
 
+			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, reason, "Failed to retrieve tls secret err: %v", err)
 			return ctrl.Result{}, err
 		}
 		if err = NCMCfg.AddTLSData(tlsSecret); err != nil {
@@ -133,7 +132,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	p, err := provisioner.NewProvisioner(NCMCfg, log)
+	p, err := provisioner.NewProvisioner(NCMCfg, log.WithName("ncm-provisioner"))
 	if err != nil {
 		log.Error(err, "Failed to create new provisioner")
 		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to create new provisioner err: %v", err)
@@ -141,7 +140,6 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	r.Provisioners.AddOrReplace(req.NamespacedName, p)
-
 	return ctrl.Result{}, r.SetStatus(ctx, issuer, ncmv1.ConditionTrue, "Verified", "Signing CA verified and ready to sign certificates")
 }
 
@@ -191,7 +189,6 @@ func (r *IssuerReconciler) SetCondition(issuerStatus *ncmv1.IssuerStatus, status
 func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, conditionStatus ncmv1.ConditionStatus, reason, message string, args ...interface{}) error {
 	// Format the message and update the issuer variable with the new Condition
 	var issuerStatus *ncmv1.IssuerStatus
-
 	switch t := issuer.(type) {
 	case *ncmv1.Issuer:
 		issuerStatus = &t.Status
@@ -217,7 +214,6 @@ func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, 
 		err = utilerrors.NewAggregate([]error{err, updateErr})
 		return err
 	}
-
 	return nil
 }
 

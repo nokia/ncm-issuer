@@ -23,7 +23,6 @@ type PendingCSRsMap struct {
 func (cm *PendingCSRsMap) Add(namespace, certName, href string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-
 	if _, ok := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]; !ok {
 		cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)] = &PendingCSR{href: href, checked: 1}
 	}
@@ -32,7 +31,6 @@ func (cm *PendingCSRsMap) Add(namespace, certName, href string) {
 func (cm *PendingCSRsMap) Has(namespace, certName string) bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-
 	_, ok := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
 	return ok
 }
@@ -40,7 +38,6 @@ func (cm *PendingCSRsMap) Has(namespace, certName string) bool {
 func (cm *PendingCSRsMap) Get(namespace, certName string) *PendingCSR {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-
 	pendingCSR := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
 	return pendingCSR
 }
@@ -48,7 +45,6 @@ func (cm *PendingCSRsMap) Get(namespace, certName string) *PendingCSR {
 func (cm *PendingCSRsMap) Increment(namespace, certName string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-
 	pendingCSR := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
 	pendingCSR.checked++
 }
@@ -56,7 +52,6 @@ func (cm *PendingCSRsMap) Increment(namespace, certName string) {
 func (cm *PendingCSRsMap) ResetCheckCounter(namespace, certName string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-
 	pendingCSR := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]
 	pendingCSR.checked = 1
 }
@@ -64,6 +59,5 @@ func (cm *PendingCSRsMap) ResetCheckCounter(namespace, certName string) {
 func (cm *PendingCSRsMap) Delete(namespace, certName string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-
 	delete(cm.pendingCSRs, prepareCSRsMapKey(namespace, certName))
 }

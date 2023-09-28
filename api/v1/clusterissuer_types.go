@@ -45,6 +45,8 @@ type ClusterIssuerList struct {
 	Items           []ClusterIssuer `json:"items"`
 }
 
+const ClusterIssuerKind = "ClusterIssuer"
+
 func init() {
 	SchemeBuilder.Register(&ClusterIssuer{}, &ClusterIssuerList{})
 }

@@ -71,7 +71,6 @@ func (pm *ProvisionersMap) AddOrReplace(namespacedName types.NamespacedName, pro
 func (pm *ProvisionersMap) Delete(namespacedName types.NamespacedName) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
-
 	pm.Provisioners[namespacedName].Retire()
 	delete(pm.Provisioners, namespacedName)
 }
@@ -85,7 +84,7 @@ type Provisioner struct {
 }
 
 func NewProvisioner(ncmCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error) {
-	c, err := ncmapi.NewClient(ncmCfg, log)
+	c, err := ncmapi.NewClient(ncmCfg, log.WithName("ncm-api-client"))
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +98,6 @@ func NewProvisioner(ncmCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error
 		},
 		log: log,
 	}
-
 	return p, nil
 }
 
@@ -128,7 +126,8 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 		pendingCSR := p.pendingCSRs.Get(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
 
 		var csrStatusResp *ncmapi.CSRStatusResponse
-		csrStatusResp, err = p.NCMClient.CheckCSRStatus(pendingCSR.href)
+		csrStatusPath, _ := ncmapi.GetPathFromCertHref(pendingCSR.href)
+		csrStatusResp, err = p.NCMClient.CheckCSRStatus(csrStatusPath)
 		if err != nil {
 			return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %w", pendingCSR.href, err)
 		}
@@ -158,23 +157,20 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 		case CSRStatusPending:
 			if pendingCSR.checked <= SingleCSRCheckLimit {
 				p.pendingCSRs.Increment(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-				return nil, nil, "", ErrCSRNotAccepted
+				err = ErrCSRNotAccepted
+			} else {
+				// If the status of CSR for a long period of time was CSRStatusPending
+				// ncm-issuer will reject PendingCSR returning ErrCSRCheckLimitExceeded
+				// to avoid redundant requeuing CertificateRequest - further actions
+				// should be taken by operator (certificate re-enrollment in k8s cluster).
+				p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
+				err = ErrCSRCheckLimitExceeded
 			}
-			// If the status of CSR for a long period of time was CSRStatusPending
-			// ncm-issuer will reject PendingCSR returning ErrCSRCheckLimitExceeded
-			// to avoid redundant requeuing CertificateRequest - further actions
-			// should be taken by operator (certificate re-enrollment in k8s cluster).
-
-			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-			return nil, nil, "", ErrCSRCheckLimitExceeded
-		case CSRStatusPostponed:
+			return nil, nil, "", err
+		case CSRStatusPostponed, CSRStatusRejected:
 			// CSRStatusPostponed means that the previous status of CSR was CSRStatusPending.
 			// CSR in NCM still can be manipulated, but ncm-issuer is rejecting PendingCSR - further
 			// actions should be taken by operator (certificate re-enrollment in k8s cluster).
-
-			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-			return nil, nil, "", ErrCSRRejected
-		case CSRStatusRejected:
 			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
 			return nil, nil, "", ErrCSRRejected
 		default:
@@ -270,7 +266,7 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 			return nil, nil, fmt.Errorf("failed to download CA certificate, its href: %s, err: %w", lastCheckedCA.Certificates["active"], err)
 		}
 
-		if isRootCA(lastCheckedCA, currentCACert) {
+		if isRootCA := lastCheckedCA.Href == currentCACert.IssuerCA || currentCACert.IssuerCA == ""; isRootCA {
 			break
 		}
 
@@ -287,22 +283,17 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 		}
 	}
 
-	wantedCA := p.getWantedCA(signingCA, lastCheckedCA)
-	p.log.Info("Signing CA certificate was found and selected according to configuration", "isRootCA", !p.NCMConfig.NoRoot || p.NCMConfig.ChainInSigner, "Name", wantedCA.Name)
+	wantedCA := lastCheckedCA
+	if p.NCMConfig.NoRoot && !p.NCMConfig.ChainInSigner {
+		wantedCA = signingCA
+	}
+	p.log.Info("Signing CA certificate was found and selected according to configuration", "isRootCA", !p.NCMConfig.NoRoot || p.NCMConfig.ChainInSigner, "name", wantedCA.Name)
 	wantedCAURLPath, _ := ncmapi.GetPathFromCertHref(wantedCA.Certificates["active"])
 	wantedCAInPEM, err := p.NCMClient.DownloadCertificateInPEM(wantedCAURLPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to download signing (root) CA in PEM, its href: %s, err: %w", wantedCA.Certificates["active"], err)
+		return nil, nil, fmt.Errorf("failed to download signing(root) CA in PEM, its href: %s, err: %w", wantedCA.Certificates["active"], err)
 	}
-
 	return certChain, wantedCAInPEM, nil
-}
-
-func (p *Provisioner) getWantedCA(signingCA, rootCA *ncmapi.CAResponse) *ncmapi.CAResponse {
-	if p.NCMConfig.NoRoot && !p.NCMConfig.ChainInSigner {
-		return signingCA
-	}
-	return rootCA
 }
 
 // prepareCAAndTLS prepares values needed for certificate (ca.crt and tls.crt)
@@ -324,6 +315,5 @@ func (p *Provisioner) prepareCAAndTLS(wantedCA, leafCert, certChain []byte) ([]b
 	} else {
 		tls = leafCert
 	}
-
 	return ca, tls
 }

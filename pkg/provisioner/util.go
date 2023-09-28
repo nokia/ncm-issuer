@@ -25,10 +25,6 @@ func findCA(casResponse *ncmapi.CAsResponse, casHref, casName string) (*ncmapi.C
 	return nil, false
 }
 
-func isRootCA(lastCheckedCA *ncmapi.CAResponse, currentCACert *ncmapi.CertificateDownloadResponse) bool {
-	return lastCheckedCA.Href == currentCACert.IssuerCA || currentCACert.IssuerCA == ""
-}
-
 func addCertToChain(crt, crtChain []byte, littleEndian bool) []byte {
 	if littleEndian {
 		return append(crt, crtChain...)

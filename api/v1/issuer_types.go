@@ -129,6 +129,8 @@ type IssuerList struct {
 	Items           []Issuer `json:"items"`
 }
 
+const IssuerKind = "Issuer"
+
 type NCMProvisioner struct {
 	// MainAPI is the URL to the main NCM API.
 	MainAPI string `json:"mainAPI"`

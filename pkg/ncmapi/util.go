@@ -10,6 +10,5 @@ func GetPathFromCertHref(certHref string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot parsed given href: %s", certHref)
 	}
-
 	return parsedURL.Path, nil
 }
