@@ -1,5 +1,5 @@
 <!-- markdownlint-disable  MD013 MD014 MD033 -->
-# NCM-ISSUER
+# ncm-issuer
 
 <div id="top"></div>
 
@@ -15,9 +15,9 @@
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
 </p>
 
-NCM-ISSUER is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
+ncm-issuer is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
 [Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
-PKI system to sign certificate requests. The use of integration with NCM makes it easy to obtain certificates for
+PKI system to sign certificate requests. The integration with NCM makes it easy to obtain non-selfsigned certificates for
 applications and to ensure that they are valid and up to date.
 
 ## Table of contents
@@ -27,7 +27,7 @@ applications and to ensure that they are valid and up to date.
   * [Installing using Helm](#installing-using-helm)
     * [Using own (local or remote) registry](#using-own--local-or-remote--registry)
     * [Configuration](#configuration)
-      * [NCM API credentials](#ncm-api-credentials)
+      * [NCM REST API credentials](#ncm-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
       * [TLS with client authentication](#tls-with-client-authentication)
 * [Custom resource definitions (CRDs)](#custom-resource-definitions--crds-)
@@ -56,11 +56,11 @@ Prerequisites for building and using NCM-ISSUER:
 
 ### Installing using Helm
 
-The easiest way to install NCM-ISSUER in Kubernetes cluster is to use Helm.
+The easiest way to install ncm-issuer in Kubernetes cluster is to use Helm. The image will be automatically downloaded from public repository.
 
 <img src="./assets/installation.gif" alt="installation"/>
 
-At the very beginning it is necessary to create namespace for NCM-ISSUER:
+At the very beginning it is necessary to create namespace for ncm-issuer:
 
   ```bash
   $ kubectl create namespace ncm-issuer
@@ -72,7 +72,7 @@ And then install it using the command:
   $ helm install ncm-issuer -n ncm-issuer ./helm/.
   ```
 
-On the other hand, if you did not use `git`, but downloaded the packaged version of NCM-ISSUER use:
+On the other hand, if you did not use `git`, but downloaded the packaged version of ncm-issuer use:
 
   ```bash
   $ helm install ncm-issuer -n ncm-issuer ./ncm-issuer/charts/ncm-issuer/.
@@ -101,12 +101,12 @@ Saved image should appear in the path `./builds/ncm-issuer-images/`.
 
 ### Configuration
 
-To make the NCM-ISSUER work properly, it is necessary to create few Kubernetes secrets
-that contains credentials to NCM API and TLS configuration.
+To make the ncm-issuer work properly, it is necessary to create few Kubernetes secrets
+that contains credentials to NCM REST API and TLS configuration.
 
 <img src="./assets/configuration.gif" alt="configuration" />
 
-#### NCM API credentials
+#### NCM REST API credentials
 
   ```bash
   $ kubectl create secret generic SECRET-NAME -n NAMESPACE --from-literal=username=USERNAME --from-literal=usrPassword=PASSWORD
@@ -173,7 +173,7 @@ still supported and can be used (this applies to: `CASNAME`, `CASHREF`, `ncmSERV
 
 With the `ClusterIssuer`, the definition does not differ from that presented
 with `Issuer`, and the only differences are in the field `kind` and the non-existence of field
-`.metadata.namspace` for `Cluster` scope reasons.
+`.metadata.namespace` due to `Cluster` scope reasons.
 
   ```yaml
   apiVersion: certmanager.ncm.nokia.com/v1
@@ -188,31 +188,31 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 
 | Field                                     | Description                                                                                                                                                                                                                                                                | Supported from |
 |:------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------:|
-| `.spec.caName`                            | Name of an existing CA in the NCM API, which will be used to issue certificates                                                                                                                                                                                            |  1.0.4-1.1.0   |
-| `.spec.caID`                              | Unique identifier for existing CA in the NCM API, which will be used to issue certificates                                                                                                                                                                                 |  1.0.4-1.1.0   |
-| `.spec.provisioner.mainAPI`               | The URL to the main NCM API                                                                                                                                                                                                                                                |  1.0.4-1.1.0   |
-| `.spec.provisioner.backupAPI`             | The URL to the backup NCM API in case of the lack of connection to the main one                                                                                                                                                                                            |  1.0.4-1.1.0   |
-| `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM API before aborting the request                                                                                                                                                              |  1.0.4-1.1.0   |
-| `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM API health check                                                                                                                                                                                                                        |  1.0.4-1.1.0   |
-| `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM API                                                                                                                                                                 |  1.0.4-1.1.0   |
-| `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.0.4-1.1.0   |
+| `.spec.caName`                            | Name of an existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                            |  1.0.4-1.1.0   |
+| `.spec.caID`                              | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                 |  1.0.4-1.1.0   |
+| `.spec.provisioner.mainAPI`               | The URL to the main NCM REST API endpoint                                                                                                                                                                                                                                                |  1.0.4-1.1.0   |
+| `.spec.provisioner.backupAPI`             | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                                                                                                                                                                                            |  1.0.4-1.1.0   |
+| `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM REST API before aborting the request                                                                                                                                                              |  1.0.4-1.1.0   |
+| `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM REST API health check                                                                                                                                                                                                                        |  1.0.4-1.1.0   |
+| `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API                                                                                                                                                                 |  1.0.4-1.1.0   |
+| `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM REST API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.0.4-1.1.0   |
 | `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                    |  1.0.1-1.0.0   |
-| `.spec.profileId`                         | Entity profile ID in NCM API                                                                                                                                                                                                                                               |  1.0.1-1.0.0   |
-| `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field instead of root CA certificate                                                                                                                                                 |  1.0.1-1.0.0   |
-| `.spec.chainInSigner`                     | Determines whether certificate chain should be included in issued certificate CA field (intermediate certificates + singing CA certificate + root CA certificate)                                                                                                          |  1.0.3-1.0.2   |
-| `.spec.onlyEECert`                        | Determines whether only end-entity certificate should be included in issued certificate TLS field                                                                                                                                                                          |  1.0.3-1.0.2   |
+| `.spec.profileId`                         | Entity profile ID in NCM REST API                                                                                                                                                                                                                                               |  1.0.1-1.0.0   |
+| `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                                 |  1.0.1-1.0.0   |
+| `.spec.chainInSigner`                     | Determines whether certificate chain should be included in issued certificate CA field (ca.crt - root CA certificate + intermediate CA certificates + singing CA certificate)                                                                                                          |  1.0.3-1.0.2   |
+| `.spec.onlyEECert`                        | Determines whether only end-entity certificate should be included in issued certificate TLS field (tls.crt)                                                                                                                                                                         |  1.0.3-1.0.2   |
 
 **:x: Deprecated:** The following fields are not recommended to be used!
 
 | Field                       | Description                                                                                                 | Supported from |
 |:----------------------------|:------------------------------------------------------------------------------------------------------------|:--------------:|
-| `.spec.CASNAME`             | Name of an existing CA in the NCM API, which will be used to issue certificates                             |  1.0.1-1.0.0   |
-| `.spec.CASHREF`             | Unique identifier for existing CA in the NCM API, which will be used to issue certificates                  |  1.0.1-1.0.0   |
-| `.spec.ncmSERVER`           | The URL to the main NCM API                                                                                 |  1.0.1-1.0.0   |
-| `.spec.ncmSERVER2`          | The URL to the backup NCM API in case of the lack of connection to the main one                             |  1.0.3-1.0.2   |
-| `.spec.SecretName`          | The name of Secret which contains the credentials (user and password) needed for making requests to NCM API |  1.0.1-1.0.0   |
-| `.spec.authNameSpace`       | The name of namespace in which Secret to NCM API credentials can be found                                   |  1.0.1-1.0.0   |
-| `.spec.tlsSecretName`       | The name of Secret which contains CA bundle used to verify connections to the NCM API                       |  1.0.1-1.0.0   |
+| `.spec.CASNAME`             | Name of an existing CA in the NCM REST API, which will be used to issue certificates                             |  1.0.1-1.0.0   |
+| `.spec.CASHREF`             | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                  |  1.0.1-1.0.0   |
+| `.spec.ncmSERVER`           | The URL to the main NCM REST API endpoint                                                                                 |  1.0.1-1.0.0   |
+| `.spec.ncmSERVER2`          | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                             |  1.0.3-1.0.2   |
+| `.spec.SecretName`          | The name of Secret which contains the credentials (user and password) needed for making requests to NCM REST API |  1.0.1-1.0.0   |
+| `.spec.authNameSpace`       | The name of namespace in which Secret to NCM REST API credentials can be found                                   |  1.0.1-1.0.0   |
+| `.spec.tlsSecretName`       | The name of Secret which contains CA bundle used to verify connections to the NCM REST API                       |  1.0.1-1.0.0   |
 
 ## Usage
 
@@ -294,7 +294,7 @@ Then we can check the status of our newly issued certificate:
   example-ncm-certificate   True    example-ncm-certificate-nokia-ncm-tls   17s
   ```
 
-and whether it has been exported to referenced Secret:
+and whether it has corresponding Secret referenced:
 
   ```bash
   $ kubectl get secrets -n example-ncm-ns
@@ -308,11 +308,11 @@ Additionally, in NCM GUI we can also find our newly issued certificate.
 
 ### Renewing or reenrolling certificate
 
-When it comes to renewing or reenrolling certificates, NCM-ISSUER will take care of this and
-do it earlier enough before the certificate expires (the timing of chosen operation,
+When it comes to renewing or reenrolling certificates, ncm-issuer will take care of this and
+do it before the certificate expires (the renewal grace period
 depends on the defined values in `Certificate` resource).
 
-You can define what operation NCM-ISSUER should perform in such a case by
+You can define what operation ncm-issuer should perform in such a case by
 setting certain PK rotation policy in `Certificate` resource.
 
 |               Field               |  Operation   |             Value             |
@@ -324,10 +324,18 @@ setting certain PK rotation policy in `Certificate` resource.
 renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
 to **true** in `Issuer` or `ClusterIssuer` definition.
 
-However, you can also trigger renewal or reenrolling operation manually using the command:
+However, you can also trigger renewal or reenrolling operation manually using one of the commands below.
+
+In case you have cert-manager kubectl plugin:
 
   ```bash
   $ kubectl cert-manager renew certificate-name -n namespace-name
+  ```
+
+In case you use cmctl:
+
+  ```bash
+  $ cmctl renew certificate-name -n namespace-name
   ```
 
 ## Troubleshooting
