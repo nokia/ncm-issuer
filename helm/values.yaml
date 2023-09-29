@@ -6,6 +6,12 @@ image:
   tag: dev
   imagePullPolicy: Always
 
+sidecar:
+  enabled: false
+  repository: docker.io/misiektoja/ncm-issuer-utils
+  tag: 1.0.3-deb
+  imagePullPolicy: Always
+
 imagePullSecrets: []
 
 resources:
@@ -79,6 +85,8 @@ securityContext:
 metrics:
   port: 8080
 
-prometheusServiceMonitor: false
-prometheusServiceMonitorSelectorLabel: stable
-prometheusServiceMonitorNameSpace: default
+prometheus:
+  serviceMonitor:
+    enabled: false
+    selectorLabel: stable
+    namespace: default

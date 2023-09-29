@@ -3,36 +3,36 @@ kind: Deployment
 metadata:
   name: "{{ .Release.Name }}"
   labels:
-{{ include "ncm-issuer.labels.standard" . | indent 4 }}
+    {{ include "ncm-issuer.labels.standard" . | nindent 4 }}
 
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-  {{ include "ncm-issuer.app" . | indent 4}}
+      {{ include "ncm-issuer.app" . | nindent 4}}
   strategy:
-{{ toYaml .Values.updateStrategy | indent 4 }}
+    {{ toYaml .Values.updateStrategy | nindent 4 }}
   template:
     metadata:
       labels:
-    {{ include "ncm-issuer.app" . | indent 4}}
+        {{ include "ncm-issuer.app" . | nindent 4}}
     spec:
-{{- if ne .Values.rbac.sa "default" }}
+      {{- if ne .Values.rbac.sa "default" }}
       serviceAccountName: {{ .Values.rbac.sa }}
-{{- end }}
-{{- if .Values.priorityClassName }}
-      priorityClassName: {{ .Values.global.priorityClassName | quote }}
-{{- end }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName | quote }}
+      {{- end }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.securityContext | nindent 8 }}
       terminationGracePeriodSeconds: 10
       containers:
-        - name: ncm-issuer
+        - name: {{ .Chart.Name }}
           args:
-            - --metrics-bind-address=:{{ .Values.metrics.port }}
-{{- if and .Values.enableLeaderElection (gt (.Values.replicaCount | int64) 1) }}
+            - --metrics-bind-address=":{{ .Values.metrics.port }}"
+            {{- if and .Values.enableLeaderElection (gt (.Values.replicaCount | int64) 1) }}
             - --leader-elect
-{{- end }}
+            {{- end }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.imagePullPolicy }}
           securityContext:
@@ -42,15 +42,15 @@ spec:
           env:
             - name: REP_COUNT
               value: "{{ .Values.replicaCount }}"
-{{ if .Values.livenessProbe }}
+          {{ if .Values.livenessProbe }}
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8081
             initialDelaySeconds: 15
             periodSeconds: 20
-{{ end }}
-{{ if .Values.readinessProbe }}
+          {{ end }}
+          {{ if .Values.readinessProbe }}
           readinessProbe:
             failureThreshold: 10
             httpGet:
@@ -58,20 +58,34 @@ spec:
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
-{{ end }}
+          {{ end }}
           resources:
-{{ toYaml .Values.resources | indent 12 }}
+            {{ toYaml .Values.resources | nindent 12 }}
           volumeMounts:
           - name: tmpdir
             mountPath: /tmp
+        {{ if .Values.sidecar.enabled }}
+        - name: {{ .Chart.Name }}-utils
+          command: ["/usr/sbin/init"]
+          image: {{ .Values.sidecar.repository }}:{{ .Values.sidecar.tag }}
+          imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+            runAsUser: 998
+          resources:
+            {{ toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmpdir
+              mountPath: /tmp
+        {{ end }}
       volumes:
       - name: tmpdir
         emptyDir: {}
-    {{- if .Values.controller.nodeSelector }}
+      {{- if .Values.controller.nodeSelector }}
       nodeSelector:
-{{ toYaml .Values.controller.nodeSelector | indent 8 }}
-    {{- end }}
-    {{- if .Values.controller.tolerations }}
+        {{ toYaml .Values.controller.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.controller.tolerations }}
       tolerations:
-{{ toYaml .Values.controller.tolerations | indent 8 }}
-    {{- end }}
+        {{ toYaml .Values.controller.tolerations | nindent 8 }}
+      {{- end }}
