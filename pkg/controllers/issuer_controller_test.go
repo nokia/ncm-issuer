@@ -213,7 +213,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
 						Reason:             "NotFound",
-						Message:            "Failed to retrieve auth secret err: secrets \"ncm-tls-secret\" not found",
+						Message:            "Failed to retrieve tls secret err: secrets \"ncm-tls-secret\" not found",
 					},
 				},
 			},

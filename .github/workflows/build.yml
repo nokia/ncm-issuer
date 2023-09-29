@@ -10,9 +10,29 @@ jobs:
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
       - uses: actions/checkout@v3
-
       - uses: arnested/go-version-action@v1
         id: versions
+
+  golangci:
+    name: "lint"
+    needs: go-versions
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: "setup go"
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+
+      - name: "golangci-lint"
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          only-new-issues: true
+          args: --config=.golangci.yml
 
   unit:
     name: "unit tests"
@@ -23,7 +43,6 @@ jobs:
         go-version: ${{ fromJSON(needs.go-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
-
       - name: "setup go"
         uses: actions/setup-go@v3
         with:
@@ -35,30 +54,8 @@ jobs:
       - name: "test with go"
         run: make test
 
-  golangci:
-    name: "lint"
-    needs: go-versions
-    permissions:
-      contents: read
-      pull-requests: read
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: "setup go"
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
-
-      - name: "golangci-lint"
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.52.2
-          only-new-issues: true
-          args: --config=.golangci.yml
-
-  build:
-    name: "build"
+  build-ncm-issuer:
+    name: "build ncm-issuer"
     needs: go-versions
     runs-on: ubuntu-latest
     strategy:
@@ -66,7 +63,6 @@ jobs:
         go-version: ${{ fromJSON(needs.go-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
-
       - name: "setup go"
         uses: actions/setup-go@v3
         with:

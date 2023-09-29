@@ -1,9 +1,8 @@
 APP_NAME ?= ncm-issuer
-APP_VERSION ?= 1.0.4
-BUILD_VERSION ?= dev
+APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
+BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
-
-ENVTEST_K8S_VERSION ?= 1.22
+ENVTEST_K8S_VERSION ?= 1.27
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -48,14 +47,15 @@ fmt: ## Run go fmt against code.
 	go fmt ./...
 
 vet: ## Run go vet against code.
-	go vet ./...
+	go vet ./... > govet-report.out
 
 vendor:
 	go mod vendor
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile coverage.out -v
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -json > report.json
 
 ##@ Build
 

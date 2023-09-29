@@ -1,24 +1,56 @@
-name: code scanning
-
+name: SonarCloud analysis
 on:
-  push:
-    branches:
-      - main
   pull_request:
     types: [opened, synchronize, reopened]
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '0 1 * * 1'
+
+permissions:
+  contents: read
 
 jobs:
-  sonarcloud:
-    name: SonarCloud
+  go-versions:
+    name: "lookup go versions"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+      go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: arnested/go-version-action@v1
+        id: versions
+
+  analysis:
+    name: "tests and analysis"
+    needs: go-versions
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: SonarCloud Scan
+      - name: "setup go"
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+
+      - name: "install dependencies"
+        run: go get .
+
+      - name: "golangci-lint"
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.52.2
+          only-new-issues: true
+          args: --config=.golangci.yml --out-format checkstyle:golangcli-lint-report.xml
+
+      - name: "test with go"
+        run: make test
+
+      - name: "build ncm-issuer"
+        run: make build
+
+      - name: "SonarCloud scan"
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

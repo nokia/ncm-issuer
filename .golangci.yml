@@ -34,7 +34,6 @@ linters-settings:
       - gocognit
     require-explanation: true
     require-specific: true
-
     exhaustive:
       check:
         - switch
@@ -83,7 +82,6 @@ linters:
 
 issues:
   max-same-issues: 50
-
   exclude-rules:
     - source: "(noinspection|TODO)"
       linters: [ godot ]
