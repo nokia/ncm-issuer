@@ -91,7 +91,7 @@ mentioned above.
   sed -i "s|docker.io/misiektoja|<your-registry>|g" values.yaml
   ```
 
-:warning: Warning: Using this command will also change the registry pointing to the image location of sidecar.
+**:warning: Warning:** Using this command will also change the registry pointing to the image location of sidecar.
 Bear this in mind if you want to use sidecar as well.
 
 However, if you do not know where to get image from, because you cloned the repository
@@ -370,7 +370,7 @@ you can also check the `ncm-issuer` pod logs:
   ```
 
 In the case of increasing logging verbosity level change the `logging.logLevel` in `values.yaml` to
-wanted value and update your deployment. To check all possible log messages, simply set the
+wanted value and update your deployment. To get all possible log messages, simply set the
 `logging.logLevel` to **3**, you can also additionally change the `logging.stacktraceLevel` to
 `error`.
 
