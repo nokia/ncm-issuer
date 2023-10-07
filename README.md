@@ -6,10 +6,13 @@
 ![Release](https://img.shields.io/github/v/release/nokia/ncm-issuer)
 ![Build version](https://img.shields.io/docker/v/misiektoja/ncm-issuer/latest?label=build-version)
 
+[![build](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
+
+
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=nokia_ncm-issuer)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
-[![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
 <p align="center">
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
@@ -60,22 +63,22 @@ The easiest way to install ncm-issuer in Kubernetes cluster is to use Helm. The 
 
 <img src="./assets/installation.gif" alt="installation"/>
 
-At the very beginning it is necessary to create namespace for ncm-issuer:
+Install ncm-issuer using the command:
 
   ```bash
-  $ kubectl create namespace ncm-issuer
-  ```
-
-And then install it using the command:
-
-  ```bash
-  $ helm install ncm-issuer -n ncm-issuer ./helm/.
+  $ helm install \
+  ncm-issuer \
+  --create-namespace --namespace ncm-issuer \
+  helm
   ```
 
 On the other hand, if you did not use `git`, but downloaded the packaged version of ncm-issuer use:
 
   ```bash
-  $ helm install ncm-issuer -n ncm-issuer ./ncm-issuer/charts/ncm-issuer/.
+  $ helm install \
+  ncm-issuer \
+  --create-namespace --namespace ncm-issuer \
+  ncm-issuer/charts/ncm-issuer
   ```
 
 #### Using own (local or remote) registry
@@ -83,6 +86,13 @@ On the other hand, if you did not use `git`, but downloaded the packaged version
 In case you want to use your own registry, just change the value pointing to a specific registry
 in the `values.yaml` file in directory that contains Helm files. Then just repeat the steps
 mentioned above.
+
+  ```bash
+  sed -i "s|docker.io/misiektoja|<your-registry>|g" values.yaml
+  ```
+
+:warning: Warning: Using this command will also change the registry pointing to the image location of sidecar.
+Bear this in mind if you want to use sidecar as well.
 
 However, if you do not know where to get image from, because you cloned the repository
 just use the command:
@@ -109,26 +119,38 @@ that contains credentials to NCM REST API and TLS configuration.
 #### NCM REST API credentials
 
   ```bash
-  $ kubectl create secret generic SECRET-NAME -n NAMESPACE --from-literal=username=USERNAME --from-literal=usrPassword=PASSWORD
+  $ kubectl create secret generic \
+  <secret-name> \
+  -n <namespace> \
+  --from-literal=username=<username> \
+  --from-literal=usrPassword=<password>
   ```
 
 #### TLS without client authentication
 
   ```bash
-  $ kubectl create secret generic SECRET-NAME -n NAMESPACE --from-file=cacert=CA-FOR-REST-API.pem
+  $ kubectl create secret generic \
+  <secret-name> \
+  -n <namespace> \
+  --from-file=cacert=<ca-for-tls.pem>
   ```
 
 #### TLS with client authentication
 
   ```bash
-  $ kubectl create secret generic SECRET-NAME -n NAMESPACE --from-file=cacert=CA-FOR-REST-API.pem --from-file=key=CLIENT-AUTH-PKEY.pem --from-file=cert=CLIENT-AUTH-CERT.pem
+  $ kubectl create secret generic \
+  <secret-name> \
+  -n <namespace> \
+  --from-file=cacert=<ca-for-tls.pem> \
+  --from-file=key=<client-auth-pkey.pem> \
+  --from-file=cert=<client-auth-cert.pem>
   ```
 
 To make sure that specific secret have been created correctly, you can check this
 by using command:
 
   ```bash
-  $ kubectl -n NAMESPACE describe secrets SECRET-NAME
+  $ kubectl -n <namespace> describe secrets <secret-name>
   ```
 
 ## Custom resource definitions (CRDs)
@@ -165,7 +187,7 @@ Below is an example `yaml` file containing `Issuer` definition:
     onlyEECert: true
   ```
 
-**:warning: Warning:** With release `1.0.4-1.1.0` the name of some fields in `Issuer` has changed, but old names are
+**:warning: Warning:** With release `1.1.0-1.1.0` the name of some fields in `Issuer` has changed, but old names are
 still supported and can be used (this applies to: `CASNAME`, `CASHREF`, `ncmSERVER`, `ncmSERVER2`, `secretName`,
 `tlsSecretName`, `authNameSpace`).
 
@@ -188,14 +210,14 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 
 | Field                                     | Description                                                                                                                                                                                                                                                                | Supported from |
 |:------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------:|
-| `.spec.caName`                            | Name of an existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                            |  1.0.4-1.1.0   |
-| `.spec.caID`                              | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                 |  1.0.4-1.1.0   |
-| `.spec.provisioner.mainAPI`               | The URL to the main NCM REST API endpoint                                                                                                                                                                                                                                                |  1.0.4-1.1.0   |
-| `.spec.provisioner.backupAPI`             | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                                                                                                                                                                                            |  1.0.4-1.1.0   |
-| `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM REST API before aborting the request                                                                                                                                                              |  1.0.4-1.1.0   |
-| `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM REST API health check                                                                                                                                                                                                                        |  1.0.4-1.1.0   |
-| `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API                                                                                                                                                                 |  1.0.4-1.1.0   |
-| `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM REST API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.0.4-1.1.0   |
+| `.spec.caName`                            | Name of an existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                            |  1.1.0-1.1.0   |
+| `.spec.caID`                              | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                 |  1.1.0-1.1.0   |
+| `.spec.provisioner.mainAPI`               | The URL to the main NCM REST API endpoint                                                                                                                                                                                                                                                |  1.1.0-1.1.0   |
+| `.spec.provisioner.backupAPI`             | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                                                                                                                                                                                            |  1.1.0-1.1.0   |
+| `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM REST API before aborting the request                                                                                                                                                              |  1.1.0-1.1.0   |
+| `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM REST API health check                                                                                                                                                                                                                        |  1.1.0-1.1.0   |
+| `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API                                                                                                                                                                 |  1.1.0-1.1.0   |
+| `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM REST API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.1.0-1.1.0   |
 | `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                    |  1.0.1-1.0.0   |
 | `.spec.profileId`                         | Entity profile ID in NCM REST API                                                                                                                                                                                                                                               |  1.0.1-1.0.0   |
 | `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                                 |  1.0.1-1.0.0   |
@@ -329,13 +351,13 @@ However, you can also trigger renewal or reenrolling operation manually using on
 In case you have cert-manager kubectl plugin:
 
   ```bash
-  $ kubectl cert-manager renew certificate-name -n namespace-name
+  $ kubectl cert-manager renew <certificate> -n <namespace>
   ```
 
 In case you use cmctl:
 
   ```bash
-  $ cmctl renew certificate-name -n namespace-name
+  $ cmctl renew <certificate> -n <namespace>
   ```
 
 ## Troubleshooting
@@ -346,5 +368,15 @@ you can also check the `ncm-issuer` pod logs:
   ```bash
   $ kubectl -n ncm-issuer logs -f `kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`
   ```
+
+In the case of increasing logging verbosity level change the `logging.logLevel` in `values.yaml` to
+wanted value and update your deployment. To check all possible log messages, simply set the
+`logging.logLevel` to **3**, you can also additionally change the `logging.stacktraceLevel` to
+`error`.
+
+There is also the possibility of using sidecar for debugging purposes - just change the value of
+`sidecar.enabled` to **true** in `values.yaml` and update your deployment.
+
+
 
 <p align="right">(<a href="#top">back to top</a>)</p>
