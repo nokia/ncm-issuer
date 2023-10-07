@@ -1,0 +1,10 @@
+ncm-issuer has been deployed successfully!
+
+ncm-issuer is a Kubernetes controller (external cert-manager issuer) that allows to
+integrate with Nokia NetGuard Certificate Manager (NCM) PKI system to sign certificate requests.
+
+To start issuing certificates using NCM, you will need to create a ClusterIssuer or Issuer
+resource and configure connection to NCM API. More information about configuration can be found
+in documentation:
+
+https://github.com/nokia/ncm-issuer/tree/main#ncm-issuer

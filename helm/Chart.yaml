@@ -2,6 +2,7 @@ apiVersion: v1
 name: ncm-issuer
 appVersion: 1.1.0
 version: 1.1.0
+# kubeVersion: 1.18 - 1.27
 description: A Helm chart for cert-manager external issuer with NCM (NetGuard Certificate Manager)
 home: https://github.com/nokia/ncm-issuer
 sources:

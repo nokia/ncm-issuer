@@ -72,7 +72,7 @@ func (r *IssuerReconciler) newIssuer() (client.Object, error) {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("ncm-issuer", req.NamespacedName)
+	log := r.Log.WithValues("issuer", req.NamespacedName)
 
 	issuer, err := r.newIssuer()
 	if err != nil {
@@ -87,7 +87,6 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		log.Info("Issuer resource not found, ignoring...")
 		return ctrl.Result{}, nil
 	}
-
 	issuerSpec, _, err := GetSpecAndStatus(issuer)
 	if err != nil {
 		log.Error(err, "Unexpected error while getting issuer spec and status. Not retrying.")
@@ -98,7 +97,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	NCMCfg.InjectNamespace(GetSecretNamespace(issuer, req))
 	authSecret := &core.Secret{}
 	if err = r.Get(ctx, NCMCfg.AuthNamespacedName, authSecret); err != nil {
-		log.Error(err, "Failed to retrieve auth secret", "namespace", NCMCfg.AuthNamespacedName.Namespace, "name", NCMCfg.AuthNamespacedName.Name)
+		log.Error(err, "Failed to retrieve auth secret from namespace", "namespacedName", NCMCfg.AuthNamespacedName)
 		reason := "Error"
 		if apierrors.IsNotFound(err) {
 			reason = "NotFound"
@@ -111,7 +110,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if !reflect.DeepEqual(NCMCfg.TLSNamespacedName, types.NamespacedName{}) {
 		tlsSecret := &core.Secret{}
 		if err = r.Get(ctx, NCMCfg.TLSNamespacedName, tlsSecret); err != nil {
-			log.Error(err, "Failed to retrieve TLS secret", "namespace", NCMCfg.TLSNamespacedName.Namespace, "name", NCMCfg.TLSNamespacedName.Name)
+			log.Error(err, "Failed to retrieve TLS secret from namespace", "namespacedName", NCMCfg.TLSNamespacedName)
 			reason := "Error"
 			if apierrors.IsNotFound(err) {
 				reason = "NotFound"
@@ -132,7 +131,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	p, err := provisioner.NewProvisioner(NCMCfg, log.WithName("ncm-provisioner"))
+	p, err := provisioner.NewProvisioner(NCMCfg, log.WithName("provisioner"))
 	if err != nil {
 		log.Error(err, "Failed to create new provisioner")
 		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to create new provisioner err: %v", err)
@@ -172,7 +171,7 @@ func (r *IssuerReconciler) SetCondition(issuerStatus *ncmv1.IssuerStatus, status
 		if cond.Status == status {
 			newCondition.LastTransitionTime = cond.LastTransitionTime
 		} else {
-			r.Log.Info("found status change for condition; setting lastTransitionTime", "condition", cond.Type, "old_status", cond.Status, "new_status", status, "time", nowTime.Time)
+			r.Log.V(2).Info("found status change for condition; setting lastTransitionTime", "condition", cond.Type, "old_status", cond.Status, "new_status", status, "time", nowTime.Time)
 		}
 
 		// Overwrite the existing condition
@@ -183,7 +182,7 @@ func (r *IssuerReconciler) SetCondition(issuerStatus *ncmv1.IssuerStatus, status
 	// If we've not found an existing condition of this type, we simply insert
 	// the new condition into the slice.
 	issuerStatus.Conditions = append(issuerStatus.Conditions, *newCondition)
-	r.Log.Info("setting lastTransitionTime for issuer condition", "condition", ncmv1.IssuerConditionReady, "time", nowTime.Time)
+	r.Log.V(2).Info("setting lastTransitionTime for issuer condition", "condition", ncmv1.IssuerConditionReady, "time", nowTime.Time)
 }
 
 func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, conditionStatus ncmv1.ConditionStatus, reason, message string, args ...interface{}) error {
@@ -229,7 +228,7 @@ func (r *IssuerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			namespacedName := types.NamespacedName{Namespace: e.Object.GetNamespace(), Name: e.Object.GetName()}
 			if _, ok := r.Provisioners.Get(namespacedName); ok {
 				r.Provisioners.Delete(namespacedName)
-				r.Log.Info("Removing stored provisioner for deleted issuer", "namespace", namespacedName.Namespace, "name", namespacedName.Name)
+				r.Log.Info("Removing stored provisioner for deleted issuer")
 			}
 			return false
 		},

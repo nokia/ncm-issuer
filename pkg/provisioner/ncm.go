@@ -100,7 +100,7 @@ type Provisioner struct {
 }
 
 func NewProvisioner(ncmCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error) {
-	c, err := ncmapi.NewClient(ncmCfg, log.WithName("ncm-api-client"))
+	c, err := ncmapi.NewClient(ncmCfg, log.WithName("apiclient"))
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 
 	signingCA, found := findCA(casResponse, p.NCMConfig.CAID, p.NCMConfig.CAName)
 	if !found {
-		return nil, nil, "", fmt.Errorf("CA certificate with the given HREF or NAME has not been found")
+		return nil, nil, "", fmt.Errorf("CA certificate with the given href or name has not been found")
 	}
 
 	certChain, wantedCA, err := p.getChainAndWantedCA(signingCA)
@@ -154,7 +154,7 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 			leafCertURLPath, _ := ncmapi.GetPathFromCertHref(csrStatusResp.Certificate)
 			leafCertInPEM, err = p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
 			if err != nil {
-				return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
+				return nil, nil, "", fmt.Errorf("failed to download EE certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
 			}
 
 			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
@@ -274,7 +274,7 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 	lastCheckedCA := signingCA
 
 	for {
-		p.log.Info("Last checked CA certificate in chain", "href", lastCheckedCA.Href)
+		p.log.V(1).Info("Last checked CA certificate in chain", "href", lastCheckedCA.Href)
 
 		lastCheckedCAURLPath, _ := ncmapi.GetPathFromCertHref(lastCheckedCA.Certificates["active"])
 		currentCACert, err := p.NCMClient.DownloadCertificate(lastCheckedCAURLPath)
@@ -303,11 +303,11 @@ func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte,
 	if p.NCMConfig.NoRoot && !p.NCMConfig.ChainInSigner {
 		wantedCA = signingCA
 	}
-	p.log.Info("Signing CA certificate was found and selected according to configuration", "isRootCA", !p.NCMConfig.NoRoot || p.NCMConfig.ChainInSigner, "name", wantedCA.Name)
+	p.log.Info("Signing certificate was found and selected according to configuration", "isRootCA", !p.NCMConfig.NoRoot || p.NCMConfig.ChainInSigner, "caName", wantedCA.Name)
 	wantedCAURLPath, _ := ncmapi.GetPathFromCertHref(wantedCA.Certificates["active"])
 	wantedCAInPEM, err := p.NCMClient.DownloadCertificateInPEM(wantedCAURLPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to download signing(root) CA in PEM, its href: %s, err: %w", wantedCA.Certificates["active"], err)
+		return nil, nil, fmt.Errorf("failed to download signing(root) CA certificate in PEM, its href: %s, err: %w", wantedCA.Certificates["active"], err)
 	}
 	return certChain, wantedCAInPEM, nil
 }

@@ -47,7 +47,6 @@ const (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	utilruntime.Must(ncmv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 	utilruntime.Must(cmapi.AddToScheme(scheme))
@@ -67,7 +66,6 @@ func main() {
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	setupLog.Info(
@@ -78,7 +76,6 @@ func main() {
 		"enable-leader-election", enableLeaderElection,
 		"metrics-addr", metricsAddr,
 	)
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -93,13 +90,12 @@ func main() {
 	}
 
 	provisioners := provisioner.NewProvisionersMap()
-
 	if err = (&controllers.IssuerReconciler{
 		Kind:         "ClusterIssuer",
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("ncm-clusterissuer-controller"),
+		Recorder:     mgr.GetEventRecorderFor("clusterissuer-controller"),
 		Provisioners: provisioners,
 		Log:          ctrl.Log.WithName("controllers").WithName("ClusterIssuer"),
 	}).SetupWithManager(mgr); err != nil {
@@ -112,7 +108,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("ncm-issuer-controller"),
+		Recorder:     mgr.GetEventRecorderFor("issuer-controller"),
 		Provisioners: provisioners,
 		Log:          ctrl.Log.WithName("controllers").WithName("Issuer"),
 	}).SetupWithManager(mgr); err != nil {
@@ -124,7 +120,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("certificaterequests-controller"),
+		Recorder:     mgr.GetEventRecorderFor("certificaterequest-controller"),
 		Provisioners: provisioners,
 		Scheme:       mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
@@ -133,18 +129,17 @@ func main() {
 	}
 
 	//+kubebuilder:scaffold:builder
-
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
 	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

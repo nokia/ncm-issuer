@@ -98,7 +98,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Checks the CertificateRequest's issuerRef and if it does not match the
 	// cert-manager group name, log a message at a debug level and stop processing.
 	if cr.Spec.IssuerRef.Group != ncmv1.GroupVersion.Group {
-		log.V(4).Info("Resource does not specify an issuerRef group name that we are responsible for", "group", cr.Spec.IssuerRef.Group)
+		log.V(3).Info("Resource does not specify an issuerRef group name that we are responsible for", "group", cr.Spec.IssuerRef.Group)
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
@@ -108,13 +108,13 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Status: cmmeta.ConditionFalse,
 		Reason: cmapi.CertificateRequestReasonFailed,
 	}) {
-		log.V(4).Info("Certificate request has been marked as failed")
+		log.V(3).Info("Certificate request has been marked as failed")
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
 	if apiutil.CertificateRequestIsDenied(cr) {
-		log.V(4).Info("Certificate request has been denied by ncm-issuer")
+		log.V(3).Info("Certificate request has been denied by ncm-issuer")
 		if cr.Status.FailureTime == nil {
 			nowTime := metav1.NewTime(r.Clock.Now())
 			cr.Status.FailureTime = &nowTime
@@ -125,19 +125,19 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	if !apiutil.CertificateRequestIsApproved(cr) {
-		log.V(4).Info("Certificate request has not been approved yet")
+		log.V(3).Info("Certificate request has not been approved yet")
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 		return ctrl.Result{}, nil
 	}
 
 	if len(cr.Status.Certificate) > 0 {
-		log.V(4).Info("Existing certificate data found in status, skipping already completed certificate request")
+		log.V(3).Info("Existing certificate data found in status, skipping already completed certificate request")
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
 
 	if err := validateCertificateRequest(cr); err != nil {
-		log.Error(err, "Certificate request has issues", "cr", req.NamespacedName)
+		log.Error(err, "Certificate request has issues")
 		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate request has issues: %v", err)
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
@@ -170,7 +170,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	issuerSpec, issuerStatus, err := GetSpecAndStatus(issuer)
 	if err != nil {
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get spec and status for issuer")
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get spec and status of issuer")
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 		return ctrl.Result{}, err
 	}
@@ -185,7 +185,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Type:   ncmv1.IssuerConditionReady,
 		Status: ncmv1.ConditionTrue,
 	}) {
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get (cluster)issuer %s is not ready, its conditions: %s", issuerName, issuerStatus.Conditions)
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to get (cluster)issuer, %s is not ready, its conditions: %s", issuerName, issuerStatus.Conditions)
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelTrue).Inc()
 		return ctrl.Result{}, errIssuerNotReady
 	}
@@ -200,8 +200,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	crt := &cmapi.Certificate{}
 	if err = r.Get(ctx, client.ObjectKey{
 		Namespace: req.Namespace, Name: cr.Annotations[cmapi.CertificateNameKey]}, crt); err != nil {
-		log.Error(err, "Certificate object not found")
-		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate object not found")
+		log.Error(err, "Certificate object was not found")
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Certificate object was not found")
 		crmetrics.CertificateRequestFails.WithLabelValues(labelUnr, labelFalse).Inc()
 		return ctrl.Result{}, nil
 	}
@@ -226,16 +226,16 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var ca, tls []byte
 	var certID string
 	if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
-		log.Info("Performing renewing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
+		log.V(1).Info("Renewing certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
 		ca, tls, certID, err = p.Renew(cr, string(crtIDSecret.Data["cert-id"]))
 		if err != nil {
 			if errorContains(err, "not reachable NCM API") {
-				log.Error(err, "Could not established connection with NCM API")
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection with NCM API err: %v", err)
+				log.Error(err, "Could not established connection to any NCM API")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection to any NCM API err: %v", err)
 				crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
 				return ctrl.Result{RequeueAfter: APIErrorRequeueTime}, nil
 			}
-			log.Error(err, "Failed to renew certificate")
+			log.Error(err, "Failed to renew certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to renew certificate err: %v", err)
 			crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
 			return ctrl.Result{}, err
@@ -248,13 +248,13 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 	} else {
-		log.Info("Performing signing operation", "certificate", cr.Annotations[cmapi.CertificateNameKey])
+		log.V(1).Info("Signing certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
 		ca, tls, certID, err = p.Sign(cr)
 		if err != nil {
 			switch {
 			case errorContains(err, "not reachable NCM API"):
-				log.Error(err, "Could not established connection with NCM API")
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection with NCM API err: %v", err)
+				log.Error(err, "Could not established connection to any NCM API")
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection to any NCM API err: %v", err)
 				crmetrics.CertificateRequestFails.WithLabelValues(labelEnr, labelTrue).Inc()
 				return ctrl.Result{RequeueAfter: APIErrorRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRNotAccepted):

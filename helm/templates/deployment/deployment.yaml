@@ -9,13 +9,13 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{ include "ncm-issuer.app" . | nindent 4}}
+      {{ include "ncm-issuer.app" . | indent 4}}
   strategy:
     {{ toYaml .Values.updateStrategy | nindent 4 }}
   template:
     metadata:
       labels:
-        {{ include "ncm-issuer.app" . | nindent 4}}
+        {{ include "ncm-issuer.app" . | indent 4}}
     spec:
       {{- if ne .Values.rbac.sa "default" }}
       serviceAccountName: {{ .Values.rbac.sa }}
@@ -29,10 +29,12 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           args:
-            - --metrics-bind-address=":{{ .Values.metrics.port }}"
+            - "--metrics-bind-address=:{{ .Values.metrics.port }}"
             {{- if and .Values.enableLeaderElection (gt (.Values.replicaCount | int64) 1) }}
-            - --leader-elect
+            - "--leader-elect"
             {{- end }}
+            - "--zap-log-level={{ .Values.logging.logLevel }}"
+            - "--zap-stacktrace-level={{ .Values.logging.stacktraceLevel }}"
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.imagePullPolicy }}
           securityContext:

@@ -35,7 +35,8 @@ Version 1.0.3 (Build Version 1.0.2)
 Version 1.0.3 (Build Version 1.0.3)
 - Fixed misinterpretation when PK rotation policy is set to "Always"
 
-Version 1.0.4 (Build version 1.1.0)
+Version 1.1.0 (Build version 1.1.0)
 - Fixed data races when getting NCM config defined in issuer spec
 - Improved handling CSR statuses returned by NCM
 - Added prometheus metrics to track certificate requests
+- Added possibility to configure verbosity of logging

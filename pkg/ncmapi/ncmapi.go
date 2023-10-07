@@ -266,11 +266,13 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 		return nil, &ClientError{Reason: "cannot create new request", ErrorMessage: err}
 	}
 	c.setHeaders(req)
+	c.log.V(2).Info("Created a new HTTP request", "method", req.Method, "path", path, "bytes", req.ContentLength)
 	return req, nil
 }
 
 func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 	body, err := io.ReadAll(resp.Body)
+	c.log.V(2).Info("Validating response from NCM API", "bytes", len(body))
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot read response body", ErrorMessage: err}
 	}
@@ -317,7 +319,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 
 func (c *Client) StartHealthChecker(interval time.Duration) {
 	ticker := time.NewTicker(interval)
-	c.log.Info("Starting health status checker")
+	c.log.V(1).Info("Starting health status checker")
 	go func() {
 		for {
 			select {
@@ -347,7 +349,7 @@ func (c *Client) isAPIHealthy(apiUrl string) bool {
 }
 
 func (c *Client) StopHealthChecker() {
-	c.log.Info("Stopping health status checker")
+	c.log.V(1).Info("Stopping health status checker")
 	close(c.stopChecking)
 }
 
@@ -403,6 +405,7 @@ func (c *Client) GetCA(path string) (*CAResponse, error) {
 
 func (c *Client) SendCSR(pem []byte, CA *CAResponse, profileID string) (*CSRResponse, error) {
 	filePath, err := ncmutil.WritePEMToTempFile(pem)
+	c.log.V(2).Info("Wrote certificate to temp PEM file", "path", filePath)
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot write PEM to file", ErrorMessage: err}
 	}
@@ -447,7 +450,6 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, profileID string) (*CSRResp
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-
 	err = os.Remove(filePath)
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot remove file", ErrorMessage: err}
@@ -529,7 +531,6 @@ func (c *Client) DownloadCertificateInPEM(path string) ([]byte, error) {
 	}
 
 	req.Header.Set("Accept", "application/x-pem-file")
-
 	resp, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
