@@ -9,7 +9,6 @@
 [![build](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
-
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=nokia_ncm-issuer)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
@@ -376,7 +375,5 @@ wanted value and update your deployment. To get all possible log messages, simpl
 
 There is also the possibility of using sidecar for debugging purposes - just change the value of
 `sidecar.enabled` to **true** in `values.yaml` and update your deployment.
-
-
 
 <p align="right">(<a href="#top">back to top</a>)</p>
