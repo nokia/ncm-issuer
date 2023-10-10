@@ -77,8 +77,8 @@ jobs:
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         yq -i '.spec.privateKey.algorithm = "ECDSA"' data/cert-resource.yml
-        KEYSIZE=${{ matrix.keysize }} yq -i '.spec.privateKey.size = env(KEYSIZE)' data/cert-resource.yaml
-        NCM_HOST=$NCM_HOST yq -i '.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
+        KEYSIZE=${{ matrix.keysize }} yq -i '.spec.privateKey.size = env(KEYSIZE)' data/cert-resource.yml
+        NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
         yq -i '.image.repository = "localhost:5000/ncm-issuer"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
@@ -260,8 +260,8 @@ jobs:
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
         yq -i '.spec.privateKey.algorithm = "RSA"' data/cert-resource.yml
-        KEYSIZE=${{ matrix.keysize }} yq -i '.spec.privateKey.size = env(KEYSIZE)' data/cert-resource.yaml
-        NCM_HOST=$NCM_HOST yq -i '.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
+        KEYSIZE=${{ matrix.keysize }} yq -i '.spec.privateKey.size = env(KEYSIZE)' data/cert-resource.yml
+        NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
         yq -i '.image.repository = "localhost:5000/ncm-issuer"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer

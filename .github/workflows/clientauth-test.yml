@@ -78,7 +78,7 @@ jobs:
         echo "$CLIENTAUTH_CERT" > data/clientauth_cert.pem
         echo "$CLIENTAUTH_KEY" > data/clientauth_key.pem
         cp .github/*.yml data/
-        NCM_HOST=$NCM_HOST yq -i '.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
+        NCM_HOST=$CLIENTAUTH_NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
         yq -i '.image.repository = "localhost:5000/ncm-issuer"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
@@ -91,7 +91,7 @@ jobs:
         NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
         NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
         CLIENTAUTH_CERT: ${{ secrets.CLIENTAUTH_CERT }}
-        CLIENTAUTH_KEY: ${{ secrets.CLIENTAUTH_KEY }}
+        CLIENTAUTH_KEY: ${{ secrets.CLIENTAUTH_KEY }}.
 
     - name: "install ncm-issuer plugin"
       run: |
