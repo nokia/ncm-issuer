@@ -9,7 +9,7 @@ on:
 
 jobs:
   issuer-test:
-    name: "issuer test"
+    name: "issuer"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -17,6 +17,7 @@ jobs:
         ports:
           - 5000:5000
     strategy:
+      fail-fast: false
       matrix:
         k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26', '1.27']
         certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
@@ -187,7 +188,7 @@ jobs:
         path: ${{ github.workspace }}/artifact/upload/
 
   cluster-issuer-test:
-    name: "cluster issuer test"
+    name: "cluster issuer"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -195,6 +196,7 @@ jobs:
         ports:
           - 5000:5000
     strategy:
+      fail-fast: false
       matrix:
         k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26']
         certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
@@ -371,7 +373,7 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artifacts"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
         name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgr-version }}.tar.gz

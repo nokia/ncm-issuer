@@ -9,7 +9,7 @@ on:
 
 jobs:
   san-test:
-    name: "san test"
+    name: "san"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -178,7 +178,7 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artificates"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
         name: logs-ecdsa${{ matrix.keysize }}.tar.gz

@@ -7,6 +7,7 @@
 ![Build version](https://img.shields.io/docker/v/misiektoja/ncm-issuer/latest?label=build-version)
 
 [![build](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml)
+[![e2e](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=nokia_ncm-issuer)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)

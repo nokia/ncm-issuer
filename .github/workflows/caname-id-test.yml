@@ -8,8 +8,8 @@ on:
         required: true
 
 jobs:
-  id-test:
-    name: "id test"
+  ca-id-test:
+    name: "ca id"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -156,14 +156,14 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artificates"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
         name: logs-cahref.tar.gz
         path: ${{ github.workspace }}/artifact/upload/
 
-  name-test:
-    name: "name test"
+  ca-name-test:
+    name: "ca name"
     runs-on: ubuntu-latest
     services:
       registry:
@@ -307,7 +307,7 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artificates"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
         name: logs-caname.tar.gz
