@@ -51,7 +51,7 @@ jobs:
   san:
     name: "san test"
     needs: go-versions
-    uses: ./.github/workflows/san-tests.yml
+    uses: ./.github/workflows/san-test.yml
     secrets: inherit
     with:
       go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
