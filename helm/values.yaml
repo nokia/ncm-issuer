@@ -3,7 +3,7 @@ priorityClassName: ""
 
 image:
   repository: docker.io/misiektoja/ncm-issuer
-  tag: dev
+  tag: 1.1.0
   imagePullPolicy: Always
 
 sidecar:

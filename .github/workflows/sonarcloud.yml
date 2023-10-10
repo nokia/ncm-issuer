@@ -1,5 +1,7 @@
 name: SonarCloud analysis
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
   schedule:
@@ -13,10 +15,9 @@ jobs:
     name: "lookup go versions"
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.versions.outputs.matrix }}
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: arnested/go-version-action@v1
         id: versions
 
@@ -25,12 +26,12 @@ jobs:
     needs: go-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: "setup go"
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
 

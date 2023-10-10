@@ -1,0 +1,57 @@
+name: e2e
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  go-versions:
+    name: "lookup go versions"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+      go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arnested/go-version-action@v1
+        id: versions
+
+  clientauth:
+    name: "clientauth test"
+    needs: go-versions
+    uses: ./.github/workflows/clientauth-test.yml
+    secrets: inherit
+    with:
+      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+
+  caname-id:
+    name: "ca name/id tests"
+    needs: go-versions
+    uses: ./.github/workflows/caname-id-test.yml
+    secrets: inherit
+    with:
+      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+
+  signer:
+    name: "signer test"
+    needs: go-versions
+    uses: ./.github/workflows/signer-tests.yml
+    secrets: inherit
+    with:
+      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+
+  pkey:
+    name: "pkey tests"
+    needs: go-versions
+    uses: ./.github/workflows/pkey-tests.yml
+    secrets: inherit
+    with:
+      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+
+  san:
+    name: "san test"
+    needs: go-versions
+    uses: ./.github/workflows/san-tests.yml
+    secrets: inherit
+    with:
+      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
