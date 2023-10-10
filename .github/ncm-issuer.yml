@@ -1,8 +1,8 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ncm-issuer
----
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: ncm-issuer
+#---
 apiVersion: certmanager.ncm.nokia.com/v1
 kind: Issuer
 metadata:

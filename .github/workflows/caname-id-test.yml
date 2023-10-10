@@ -31,7 +31,7 @@ jobs:
 
     - name: "install microk8s"
       run: |
-        sudo snap install microk8s --classic
+        sudo snap install microk8s --classic --channel=1.27/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
@@ -67,6 +67,7 @@ jobs:
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
+        NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
         sed -i "s|caName: SubCA|caID: $NCM_CAHREF|g" data/ncm-issuer.yml
         yq -i '.image.repository = "localhost:5000/ncm-issuer"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
@@ -184,7 +185,7 @@ jobs:
 
     - name: "install microk8s"
       run: |
-        sudo snap install microk8s --classic
+        sudo snap install microk8s --classic --channel=1.27/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
