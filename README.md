@@ -3,11 +3,7 @@
 
 <div id="top"></div>
 
-![Release](https://img.shields.io/github/v/release/nokia/ncm-issuer)
-![Build version](https://img.shields.io/docker/v/misiektoja/ncm-issuer/latest?label=build-version)
-
 [![build](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml)
-[![e2e](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=nokia_ncm-issuer)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
@@ -19,7 +15,7 @@
 </p>
 
 ncm-issuer is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
-[Nokia Netguard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
+[Nokia NetGuard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
 PKI system to sign certificate requests. The integration with NCM makes it easy to obtain non-selfsigned certificates for
 applications and to ensure that they are valid and up to date.
 
@@ -45,17 +41,15 @@ applications and to ensure that they are valid and up to date.
 
 ## Prerequisites
 
-Prerequisites for building and using NCM-ISSUER:
+Prerequisites for building and using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 21 or later,
-* [Kubernetes](https://kubernetes.io) version 1.18 or later,
+* [Kubernetes](https://kubernetes.io) version 1.18 - 1.27,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
 * [Docker](https://docs.docker.com/engine/install/) version 20.10.0 or later,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
 **:warning: Warning:** Install docker-re instead of default if you are using CentOS, RedHat or Fedora!
-
-## Installation and configuration
 
 ### Installing using Helm
 
