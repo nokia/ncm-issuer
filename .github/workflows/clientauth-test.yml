@@ -87,7 +87,7 @@ jobs:
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem --from-file=key=data/clientauth_key.pem --from-file=cert=data/clientauth_cert.pem
 
       env:
-        NCM_HOST: ${{ secrets.CLIENTAUTH_NCM_HOST }}
+        CLIENTAUTH_NCM_HOST: ${{ secrets.CLIENTAUTH_NCM_HOST }}
         NCM_USER: ${{ secrets.NCM_USER }}
         NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
         NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
