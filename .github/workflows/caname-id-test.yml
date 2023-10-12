@@ -63,6 +63,7 @@ jobs:
         NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
         sed -i "s|caName: SubCA|caID: $NCM_CAHREF|g" data/ncm-issuer.yml
         yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
+        yq -i '.image.imagePullPolicy = "Never"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
@@ -208,6 +209,7 @@ jobs:
         cp .github/*.yml data/
         NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
         yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
+        yq -i '.image.imagePullPolicy = "Never"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
