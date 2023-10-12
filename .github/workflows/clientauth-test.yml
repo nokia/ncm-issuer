@@ -11,11 +11,6 @@ jobs:
   client-auth-test:
     name: "tls with client auth"
     runs-on: ubuntu-latest
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
     strategy:
       fail-fast: false
       matrix:
@@ -26,14 +21,6 @@ jobs:
     - uses: actions/setup-go@v4
     - run: go version
 
-    - name: "build ncm-issuer image"
-      run: |
-        make docker-build
-
-    - name: "push ncm-issuer image to local registry"
-      run: |
-        docker images | grep -i ncm-issuer | awk '{print $1":"$2}' | xargs -I V sh -c 'docker tag V localhost:5000/V;docker push localhost:5000/V'
-
     - name: "install microk8s"
       run: |
         sudo snap install microk8s --classic --channel=${{ matrix.k8s-version }}/stable
@@ -42,6 +29,12 @@ jobs:
         sudo microk8s enable dns
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
+
+    - name: "build ncm-issuer image"
+      run: |
+        make docker-build
+        docker save ncm-issuer > ncm-issuer.tar
+        sudo microk8s ctr image import ncm-issuer.tar
 
     - name: "install cert-manager charts"
       run: |
@@ -80,7 +73,7 @@ jobs:
         echo "$CLIENTAUTH_KEY" > data/clientauth_key.pem
         cp .github/*.yml data/
         CLIENTAUTH_NCM_HOST=$CLIENTAUTH_NCM_HOST yq -i '.spec.provisioner.mainAPI = env(CLIENTAUTH_NCM_HOST)' data/ncm-issuer.yml
-        yq -i '.image.repository = "localhost:5000/ncm-issuer"' helm/values.yaml
+        yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
