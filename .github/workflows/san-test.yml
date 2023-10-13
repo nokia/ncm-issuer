@@ -77,7 +77,7 @@ jobs:
         cp .github/*.yml data/
         NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
         yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
-        yq -i '.image.imagePullPolicy = "Never"' helm/values.yaml
+        yq -i '.image.pullPolicy = "Never"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         DNS=$(printf "%s-%s.bar.local" ${{ env.RUNNER_NAME }} ${{ env.RUNNER_UTS }}) yq -i '.spec.dnsNames += [env(DNS)]' data/cert-resource.yml
         RUNNER_IP=${{ env.RUNNER_IP }} yq -i '.spec.ipAddresses = ["192.168.1.1", env(RUNNER_IP), "fc00:bad:a55:3468::443"]' data/cert-resource.yml
