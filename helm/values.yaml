@@ -4,15 +4,15 @@ priorityClassName: ""
 image:
   repository: docker.io/misiektoja/ncm-issuer
   tag: 1.1.0
-  imagePullPolicy: Always
+  pullPolicy: Always
+  pullSecrets: []
 
 sidecar:
   enabled: false
   repository: docker.io/misiektoja/ncm-issuer-utils
-  tag: 1.0.3-deb
-  imagePullPolicy: Always
-
-imagePullSecrets: []
+  tag: 1.1.0
+  pullPolicy: Always
+  pullSecrets: []
 
 resources:
   # Limits to cap the resource usage in case of unexpected.
@@ -50,7 +50,6 @@ certManagerRbac:
 # prefer edge node
 controller:
   nodeSelector: {}
-
   tolerations:
   #- key: 'is_edge'
   #  operator: 'Equal'

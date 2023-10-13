@@ -6,7 +6,7 @@ metadata:
   creationTimestamp: null
   name: {{ .Values.rbac.role }}
   labels:
-{{ include "ncm-issuer.labels.standard" . | indent 4 }}
+    {{- include "ncm-issuer.labels.standard" . | nindent 4 }}
 rules:
 - apiGroups:
   - cert-manager.io

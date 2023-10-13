@@ -6,7 +6,7 @@ metadata:
   name: {{ .Values.rbac.binding }}
   namespace: {{ .Release.Namespace }}
   labels:
-{{ include "ncm-issuer.labels.standard" . | indent 4 }}
+    {{- include "ncm-issuer.labels.standard" . | nindent 4 }}
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.rbac.sa }}
@@ -15,5 +15,4 @@ roleRef:
   kind: ClusterRole
   name: {{ .Values.rbac.role }}
   apiGroup: rbac.authorization.k8s.io
-
 {{- end }}

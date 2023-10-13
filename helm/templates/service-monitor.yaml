@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Values.prometheus.serviceMonitor.namespace }}
   labels:
     release: {{ .Values.prometheus.serviceMonitor.selectorLabel }}
-    {{ include "ncm-issuer.app" . | nindent 4 }}-app
+    {{- include "ncm-issuer.app" . | nindent 4 }}-app
 spec:
   endpoints:
   - port: {{ .Values.service.name }}-http
@@ -16,6 +16,6 @@ spec:
   selector:
     matchLabels:
       release: {{ .Values.prometheus.serviceMonitor.selectorLabel }}
-      {{ include "ncm-issuer.app" . | nindent 4 }}-app
+      {{- include "ncm-issuer.app" . | nindent 6 }}-app
 {{ end }}
 
