@@ -36,8 +36,16 @@ Version 1.0.3 (Build Version 1.0.3)
 - Fixed misinterpretation when PK rotation policy is set to "Always"
 
 Version 1.1.0 (Build version 1.1.0)
-- Fixed data races when getting NCM config defined in issuer spec
+- The Issuer and ClusterIssuer definitions are improved to use more user-friendly names and grouped into appropriate
+  sections
+- Improved NCM API selection mechanism
 - Improved handling CSR statuses returned by NCM
-- Added prometheus metrics to track certificate requests
+- Helm chart is rewritten according to the rules given in the Helm documentation
+- Added option to set HTTP client timeout
+- Add option to set a time indicating how often NCM API(s) availability should be checked  (related to new NCM API
+  selection mechanism)
+- Added Prometheus support to allow monitoring of the number of CSRs processed by ncm-issuer (use the prefix
+  "ncm_issuer" in Prometheus query to see all possible metrics)
 - Added possibility to configure verbosity of logging
 - Added sidecar for debugging purposes
+- Fixed occasionally encountered data-races when accessing saved Issuer or ClusterIssuer config
