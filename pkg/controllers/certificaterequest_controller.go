@@ -247,6 +247,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			crmetrics.CertificateRequestFails.WithLabelValues(labelRen, labelTrue).Inc()
 			return ctrl.Result{}, err
 		}
+		crmetrics.CertificateRequestSuccesses.WithLabelValues(labelRen).Inc()
 	} else {
 		log.V(1).Info("Signing certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
 		ca, tls, certID, err = p.Sign(cr)
@@ -293,11 +294,11 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 				return ctrl.Result{}, err
 			}
 		}
+		crmetrics.CertificateRequestSuccesses.WithLabelValues(labelEnr).Inc()
 	}
 
 	cr.Status.CA = ca
 	cr.Status.Certificate = tls
-	crmetrics.CertificateRequestSuccesses.WithLabelValues(labelEnr).Inc()
 	log.Info("Successfully issued certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
 	return ctrl.Result{}, r.setStatus(ctx, cr, cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Successfully issued certificate")
 }
