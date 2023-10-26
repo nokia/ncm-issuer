@@ -42,10 +42,14 @@ Version 1.1.0 (Build version 1.1.0)
 - Improved handling CSR statuses returned by NCM
 - Helm chart is rewritten according to the rules given in the Helm documentation
 - Added option to set HTTP client timeout
-- Add option to set a time indicating how often NCM API(s) availability should be checked  (related to new NCM API
+- Added option to set a time indicating how often NCM API(s) availability should be checked  (related to new NCM API
   selection mechanism)
-- Added Prometheus support to allow monitoring of the number of CSRs processed by ncm-issuer (use the prefix
-  "ncm_issuer" in Prometheus query to see all possible metrics)
+- Added Prometheus support to allow monitoring of the total number of enrollment or renewal operations. Each of these
+  operations also has metrics responsible for determining how many of them were successful or failed. The metrics
+  attempt to reflect the number of CSRs or renewals sent to the NCM, if request is rejected or postponed by NCM,
+  this state will be reflected as failure of the enrollment operation, while accepting and returning appropriate
+  resource will result in successful enrollment or renewal operation (use the prefix "ncm_issuer" in Prometheus query
+  to see all possible metrics)
 - Added possibility to configure verbosity of logging
 - Added sidecar for debugging purposes
 - Fixed occasionally encountered data-races when accessing saved Issuer or ClusterIssuer config

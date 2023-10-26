@@ -25,6 +25,7 @@ import (
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/nokia/ncm-issuer/pkg/cfg"
 	"github.com/nokia/ncm-issuer/pkg/ncmapi"
+	crtmetrics "github.com/nokia/ncm-issuer/pkg/provisioner/metrics"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -139,73 +140,24 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 	}
 
 	if has := p.pendingCSRs.Has(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey]); has {
-		pendingCSR := p.pendingCSRs.Get(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-
-		var csrStatusResp *ncmapi.CSRStatusResponse
-		csrStatusPath, _ := ncmapi.GetPathFromCertHref(pendingCSR.href)
-		csrStatusResp, err = p.NCMClient.CheckCSRStatus(csrStatusPath)
-		if err != nil {
-			return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %w", pendingCSR.href, err)
-		}
-
-		switch status := csrStatusResp.Status; status {
-		case CSRStatusAccepted:
-			var leafCertInPEM []byte
-			leafCertURLPath, _ := ncmapi.GetPathFromCertHref(csrStatusResp.Certificate)
-			leafCertInPEM, err = p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
-			if err != nil {
-				return nil, nil, "", fmt.Errorf("failed to download EE certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
-			}
-
-			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-			ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
-			return ca, tls, csrStatusResp.Certificate, nil
-		case CSRStatusApproved:
-			// CSRStatusApproved means that CSR has been approved (by operator) but NCM
-			// has yet to Sign generated certificate - this means that in the near future
-			// the status of CSR will be CSRStatusAccepted, and we will be able to
-			// download that certificate by using NCMClient. Thus, we need to
-			// return ErrCSRNotAccepted to requeue CertificateRequest and reset
-			// "checked" value in PendingCSR to avoid exceeding SingleCSRCheckLimit.
-
-			p.pendingCSRs.ResetCheckCounter(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-			return nil, nil, "", ErrCSRNotAccepted
-		case CSRStatusPending:
-			if pendingCSR.checked <= SingleCSRCheckLimit {
-				p.pendingCSRs.Increment(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-				err = ErrCSRNotAccepted
-			} else {
-				// If the status of CSR for a long period of time was CSRStatusPending
-				// ncm-issuer will reject PendingCSR returning ErrCSRCheckLimitExceeded
-				// to avoid redundant requeuing CertificateRequest - further actions
-				// should be taken by operator (certificate re-enrollment in k8s cluster).
-				p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-				err = ErrCSRCheckLimitExceeded
-			}
-			return nil, nil, "", err
-		case CSRStatusPostponed, CSRStatusRejected:
-			// CSRStatusPostponed means that the previous status of CSR was CSRStatusPending.
-			// CSR in NCM still can be manipulated, but ncm-issuer is rejecting PendingCSR - further
-			// actions should be taken by operator (certificate re-enrollment in k8s cluster).
-			p.pendingCSRs.Delete(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey])
-			return nil, nil, "", ErrCSRRejected
-		default:
-			return nil, nil, "", fmt.Errorf("got unexpected status: %s", status)
-		}
+		return p.handleAlreadySentCSR(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey], certChain, wantedCA)
 	}
 
 	csrResp, err := p.NCMClient.SendCSR(cr.Spec.Request, signingCA, p.NCMConfig.ProfileID)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("failed to send CSR, err: %w", err)
 	}
+	crtmetrics.CertificateEnrollmentTotal.Inc()
 
 	requestedCertURLPath, _ := ncmapi.GetPathFromCertHref(csrResp.Href)
 	csrStatusResp, err := p.NCMClient.CheckCSRStatus(requestedCertURLPath)
 	if err != nil {
+		crtmetrics.CertificateEnrollmentFail.Inc()
 		return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %w", csrResp.Href, err)
 	}
 
 	if status := csrStatusResp.Status; status == CSRStatusRejected {
+		crtmetrics.CertificateEnrollmentFail.Inc()
 		return nil, nil, "", ErrCSRRejected
 	} else if status != CSRStatusAccepted {
 		p.pendingCSRs.Add(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey], csrResp.Href)
@@ -215,10 +167,12 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 	leafCertURLPath, _ := ncmapi.GetPathFromCertHref(csrStatusResp.Certificate)
 	leafCertInPEM, err := p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
 	if err != nil {
+		crtmetrics.CertificateEnrollmentFail.Inc()
 		return nil, nil, "", fmt.Errorf("failed to download end-entity certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
 	}
 
 	ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
+	crtmetrics.CertificateEnrollmentSuccess.Inc()
 	return ca, tls, csrStatusResp.Certificate, nil
 }
 
@@ -242,17 +196,21 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 
 	certURLPath, _ := ncmapi.GetPathFromCertHref(certID)
 	renewCertResp, err := p.NCMClient.RenewCertificate(certURLPath, cr.Spec.Duration, p.NCMConfig.ProfileID)
+	crtmetrics.CertificateRenewalTotal.Inc()
 	if err != nil {
+		crtmetrics.CertificateRenewalFail.Inc()
 		return nil, nil, "", fmt.Errorf("failed to renew certificate, its href: %s, err: %w", certID, err)
 	}
 
 	renewedCertURLPath, _ := ncmapi.GetPathFromCertHref(renewCertResp.Certificate)
 	leafCertInPEM, err := p.NCMClient.DownloadCertificateInPEM(renewedCertURLPath)
 	if err != nil {
+		crtmetrics.CertificateRenewalFail.Inc()
 		return nil, nil, "", fmt.Errorf("failed to download renewed certificate in PEM, its href: %s, err: %w", renewCertResp.Certificate, err)
 	}
 
 	ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
+	crtmetrics.CertificateRenewalSuccess.Inc()
 	return ca, tls, renewCertResp.Certificate, nil
 }
 
@@ -332,4 +290,60 @@ func (p *Provisioner) prepareCAAndTLS(wantedCA, leafCert, certChain []byte) ([]b
 		tls = leafCert
 	}
 	return ca, tls
+}
+
+func (p *Provisioner) handleAlreadySentCSR(namespace, certName string, certChain []byte, wantedCA []byte) ([]byte, []byte, string, error) {
+	pendingCSR := p.pendingCSRs.Get(namespace, certName)
+	var csrStatusResp *ncmapi.CSRStatusResponse
+	csrStatusPath, _ := ncmapi.GetPathFromCertHref(pendingCSR.href)
+	csrStatusResp, err := p.NCMClient.CheckCSRStatus(csrStatusPath)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("failed checking CSR status in NCM, its href: %s, err: %w", pendingCSR.href, err)
+	}
+
+	switch status := csrStatusResp.Status; status {
+	case CSRStatusAccepted:
+		var leafCertInPEM []byte
+		leafCertURLPath, _ := ncmapi.GetPathFromCertHref(csrStatusResp.Certificate)
+		leafCertInPEM, err = p.NCMClient.DownloadCertificateInPEM(leafCertURLPath)
+		if err != nil {
+			return nil, nil, "", fmt.Errorf("failed to download EE certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
+		}
+		p.pendingCSRs.Delete(namespace, certName)
+		ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
+		crtmetrics.CertificateEnrollmentSuccess.Inc()
+		return ca, tls, csrStatusResp.Certificate, nil
+	case CSRStatusApproved:
+		// CSRStatusApproved means that CSR has been approved (by operator) but NCM
+		// has yet to Sign generated certificate - this means that in the near future
+		// the status of CSR will be CSRStatusAccepted, and we will be able to
+		// download that certificate by using NCMClient. Thus, we need to
+		// return ErrCSRNotAccepted to requeue CertificateRequest and reset
+		// "checked" value in PendingCSR to avoid exceeding SingleCSRCheckLimit.
+		p.pendingCSRs.ResetCheckCounter(namespace, certName)
+		return nil, nil, "", ErrCSRNotAccepted
+	case CSRStatusPending:
+		if pendingCSR.checked <= SingleCSRCheckLimit {
+			p.pendingCSRs.Increment(namespace, certName)
+			err = ErrCSRNotAccepted
+		} else {
+			// If the status of CSR for a long period of time was CSRStatusPending
+			// ncm-issuer will reject PendingCSR returning ErrCSRCheckLimitExceeded
+			// to avoid redundant requeuing CertificateRequest - further actions
+			// should be taken by operator (certificate re-enrollment in k8s cluster).
+			p.pendingCSRs.Delete(namespace, certName)
+			crtmetrics.CertificateEnrollmentFail.Inc()
+			err = ErrCSRCheckLimitExceeded
+		}
+		return nil, nil, "", err
+	case CSRStatusPostponed, CSRStatusRejected:
+		// CSRStatusPostponed means that the previous status of CSR was CSRStatusPending.
+		// CSR in NCM still can be manipulated, but ncm-issuer is rejecting PendingCSR - further
+		// actions should be taken by operator (certificate re-enrollment in k8s cluster).
+		p.pendingCSRs.Delete(namespace, certName)
+		crtmetrics.CertificateEnrollmentFail.Inc()
+		return nil, nil, "", ErrCSRRejected
+	default:
+		return nil, nil, "", fmt.Errorf("got unexpected status: %s", status)
+	}
 }
