@@ -39,7 +39,7 @@ var (
 	// number of succeeded enrollment operations.
 	CertificateEnrollmentSuccess = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Name:      "certificate_enrollment_success",
+		Name:      "certificate_enrollment_success_total",
 		Help:      "The total number of succeeded enrollment operations",
 	})
 
@@ -50,7 +50,7 @@ var (
 	// as not expected ones, which results in the failure of enrollment operation).
 	CertificateEnrollmentFail = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Name:      "certificate_enrollment_fail",
+		Name:      "certificate_enrollment_fail_total",
 		Help:      "The total number of failed enrollment operations",
 	})
 
@@ -68,7 +68,7 @@ var (
 	// of NCM.
 	CertificateRenewalSuccess = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Name:      "certificate_renewal_success",
+		Name:      "certificate_renewal_success_total",
 		Help:      "The total number of succeeded renewal operations",
 	})
 
@@ -78,7 +78,7 @@ var (
 	// in k8s API, a missing certificate details secret or an NCM API error.
 	CertificateRenewalFail = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: namespace,
-		Name:      "certificate_renewal_fail",
+		Name:      "certificate_renewal_fail_total",
 		Help:      "The total number of failed renewal operations",
 	})
 )
