@@ -51,7 +51,7 @@ Prerequisites for building and using ncm-issuer:
 * [Docker](https://docs.docker.com/engine/install/) version 20.10.0 or later,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
-**:warning: Warning:** Install docker-re instead of default if you are using CentOS, RedHat or Fedora!
+**:warning: Warning:** Install docker-ce instead of default if you are using CentOS, RedHat or Fedora!
 
 ### Installing using Helm
 
@@ -87,7 +87,7 @@ mentioned above.
   sed -i "s|docker.io/misiektoja|<your-registry>|g" values.yaml
   ```
 
-**:warning: Warning:** Using this command will also change the registry pointing to the image location of sidecar.
+**:warning: Warning:** Using this command will also change the registry pointing to the image location of troubleshooting sidecar.
 Bear this in mind if you want to use sidecar as well.
 
 However, if you do not know where to get image from, because you cloned the repository
@@ -215,12 +215,12 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 | `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API                                                                                                                                                                 |  1.1.0-1.1.0   |
 | `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM REST API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.1.0-1.1.0   |
 | `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                    |  1.0.1-1.0.0   |
-| `.spec.profileId`                         | Entity profile ID in NCM REST API                                                                                                                                                                                                                                               |  1.0.1-1.0.0   |
+| `.spec.profileId`                         | Entity profile ID in NCM REST API, optional                                                                                                                                                                                                                                               |  1.0.1-1.0.0   |
 | `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                                 |  1.0.1-1.0.0   |
 | `.spec.chainInSigner`                     | Determines whether certificate chain should be included in issued certificate CA field (ca.crt - root CA certificate + intermediate CA certificates + singing CA certificate)                                                                                                          |  1.0.3-1.0.2   |
 | `.spec.onlyEECert`                        | Determines whether only end-entity certificate should be included in issued certificate TLS field (tls.crt)                                                                                                                                                                         |  1.0.3-1.0.2   |
 
-**:x: Deprecated:** The following fields are not recommended to be used!
+**:x: Deprecated:** The following fields are not recommended to be used anymore!
 
 | Field                       | Description                                                                                                 | Supported from |
 |:----------------------------|:------------------------------------------------------------------------------------------------------------|:--------------:|
@@ -365,12 +365,18 @@ you can also check the `ncm-issuer` pod logs:
   $ kubectl -n ncm-issuer logs -f `kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`
   ```
 
-In the case of increasing logging verbosity level change the `logging.logLevel` in `values.yaml` to
-wanted value and update your deployment. To get all possible log messages, simply set the
+If you deployed troubleshooting sidecar as well, you can check the `ncm-issuer` pod logs this way:
+
+  ```bash
+  $ kubectl -n ncm-issuer logs -c ncm-issuer -f `kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`
+  ```
+
+In the case you want to increase logging verbosity level, change the `logging.logLevel` in `values.yaml` to
+the desired value and update your deployment. To get all possible log messages, simply set the
 `logging.logLevel` to **3**, you can also additionally change the `logging.stacktraceLevel` to
 `error`.
 
-There is also the possibility of using sidecar for debugging purposes - just change the value of
+There is also the possibility of using sidecar for troubleshooting purposes - just change the value of
 `sidecar.enabled` to **true** in `values.yaml` and update your deployment.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
