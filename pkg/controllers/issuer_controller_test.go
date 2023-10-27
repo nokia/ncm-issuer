@@ -1,9 +1,32 @@
+/*
+Copyright 2023 Nokia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
 	"context"
-	testr "github.com/go-logr/logr/testing"
-	"github.com/stretchr/testify/assert"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/go-logr/logr/testr"
+	"github.com/google/go-cmp/cmp"
+	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
+	"github.com/nokia/ncm-issuer/pkg/provisioner"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,237 +38,398 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
-	"testing"
-
-	nokiaAPI "github.com/nokia/ncm-issuer/api/v1"
 )
 
 const (
-	ClusterIssuer = "ClusterIssuer"
 	Issuer        = "Issuer"
+	ClusterIssuer = "ClusterIssuer"
+	Unrecognised  = "Unrecognised"
 )
 
 func TestIssuerReconcile(t *testing.T) {
-
 	type testCase struct {
-		kind             string
-		name             types.NamespacedName
-		objects          []client.Object
-		expectedResult   ctrl.Result
-		expectedErrorMsg string
-	}
-
-	tests := map[string]testCase{
-		"successIssuer": {
-			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "issuer"},
-			kind: Issuer,
-			objects: []client.Object{
-				&nokiaAPI.Issuer{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       Issuer,
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer",
-						Namespace: "ncm-issuer",
-					}, Spec: nokiaAPI.IssuerSpec{
-						NCMServer:            "127.0.0.1",
-						NCMServer2:           "",
-						CAsName:              "CA1",
-						CAsHREF:              "kdhu84hrjl",
-						LittleEndian:         true,
-						ReenrollmentOnRenew:  true,
-						UseProfileIDForRenew: true,
-						NoRoot:               true,
-						AuthSecretName:       "secretName1",
-						ProfileId:            "100",
-						TLSSecretName:        "secretName2",
-					},
-					Status: nokiaAPI.IssuerStatus{Conditions: []nokiaAPI.IssuerCondition{
-						{Type: "",
-							Status:             "",
-							LastTransitionTime: nil,
-						},
-					}},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "secretName1",
-						Namespace: "ncm-issuer",
-					},
-					Data: map[string][]byte{
-						"username":    []byte("green_user"),
-						"usrPassword": []byte("green_password"),
-					},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "secretName2",
-						Namespace: "ncm-issuer",
-					},
-					Data: map[string][]byte{
-						"key":    []byte("randomkeyhere"),
-						"cert":   []byte("certpemhere"),
-						"cacert": []byte("cacertpemhere"),
-					},
-				},
-			},
-			expectedErrorMsg: "",
-			expectedResult:   ctrl.Result{},
-		},
-		"successClusterIssuer": {
-			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "clsissuer"},
-			kind: ClusterIssuer,
-			objects: []client.Object{
-				&nokiaAPI.ClusterIssuer{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       ClusterIssuer,
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "clsissuer",
-						Namespace: "ncm-issuer",
-					}, Spec: nokiaAPI.IssuerSpec{
-						NCMServer:            "127.0.0.1",
-						NCMServer2:           "",
-						CAsName:              "CA1",
-						CAsHREF:              "kdhu84hrjl",
-						LittleEndian:         true,
-						ReenrollmentOnRenew:  true,
-						UseProfileIDForRenew: true,
-						NoRoot:               true,
-						AuthSecretName:       "secretName1",
-						ProfileId:            "100",
-						TLSSecretName:        "secretName2",
-						AuthNamespace:        "namespaceAuth",
-					},
-					Status: nokiaAPI.IssuerStatus{Conditions: []nokiaAPI.IssuerCondition{
-						{Type: "",
-							Status:             "",
-							LastTransitionTime: nil,
-						},
-					}},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "secretName1",
-						Namespace: "namespaceAuth",
-					},
-					Data: map[string][]byte{
-						"username":    []byte("green_user"),
-						"usrPassword": []byte("green_password"),
-					},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "secretName2",
-						Namespace: "namespaceAuth",
-					},
-					Data: map[string][]byte{
-						"key":    []byte("randomkeyhere"),
-						"cert":   []byte("certpemhere"),
-						"cacert": []byte("cacertpemhere"),
-					},
-				},
-			},
-			expectedErrorMsg: "",
-			expectedResult:   ctrl.Result{},
-		},
-		"missingServerIssuer": {
-			name: types.NamespacedName{Namespace: "ncm-issuer", Name: "issuer"},
-			kind: Issuer,
-			objects: []client.Object{
-				&nokiaAPI.Issuer{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       Issuer,
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer",
-						Namespace: "ncm-issuer",
-					}, Spec: nokiaAPI.IssuerSpec{
-						NCMServer:            "",
-						NCMServer2:           "",
-						CAsName:              "CA1",
-						CAsHREF:              "kdhu84hrjl",
-						LittleEndian:         true,
-						ReenrollmentOnRenew:  true,
-						UseProfileIDForRenew: true,
-						NoRoot:               true,
-						AuthSecretName:       "secretName1",
-						ProfileId:            "100",
-						TLSSecretName:        "secretName2",
-					},
-					Status: nokiaAPI.IssuerStatus{Conditions: []nokiaAPI.IssuerCondition{
-						{Type: "",
-							Status:             "",
-							LastTransitionTime: nil,
-						},
-					}},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "secretName1",
-						Namespace: "namespaceAuth",
-					},
-					Data: map[string][]byte{
-						"username":    []byte("green_user"),
-						"usrPassword": []byte("green_password"),
-					},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "secretName2",
-						Namespace: "namespaceAuth",
-					},
-					Data: map[string][]byte{
-						"key":    []byte("randomkeyhere"),
-						"cert":   []byte("certpemhere"),
-						"cacert": []byte("cacertpemhere"),
-					},
-				},
-			},
-			expectedErrorMsg: "incorrect setting",
-			expectedResult:   ctrl.Result{},
-		},
+		name           string
+		kind           string
+		namespacedName types.NamespacedName
+		objects        []client.Object
+		err            error
+		expectedResult ctrl.Result
+		expectedStatus *ncmv1.IssuerStatus
 	}
 
 	scheme := runtime.NewScheme()
-	require.NoError(t, nokiaAPI.AddToScheme(scheme))
+	require.NoError(t, ncmv1.AddToScheme(scheme))
 	require.NoError(t, v1.AddToScheme(scheme))
 
-	for name, testCase := range tests {
-		t.Run(name, func(t *testing.T) {
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(testCase.objects...).Build()
-			issuerController := &IssuerReconciler{
-				Client:   fakeClient,
-				Kind:     testCase.kind,
-				Scheme:   scheme,
-				Clock:    clock.RealClock{},
-				Recorder: record.NewFakeRecorder(10),
-				Log:      testr.TestLogger{T: t}}
+	clk := clock.RealClock{}
+	now := metav1.NewTime(clk.Now().Truncate(time.Second))
 
-			ctx := context.TODO()
-			result, err := issuerController.Reconcile(ctx, reconcile.Request{NamespacedName: testCase.name})
-			if testCase.expectedErrorMsg != "" {
-				if !ErrorContains(err, testCase.expectedErrorMsg) {
-					t.Errorf("Unexpected error: %v", err)
-				}
-			} else {
-				assert.NoError(t, err)
+	run := func(t *testing.T, tc testCase) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(tc.objects...).
+			Build()
+
+		p := provisioner.NewProvisionersMap()
+		controller := &IssuerReconciler{
+			Client:       fakeClient,
+			Kind:         tc.kind,
+			Scheme:       scheme,
+			Clock:        clk,
+			Recorder:     record.NewFakeRecorder(10),
+			Provisioners: p,
+			Log:          testr.New(t),
+		}
+
+		_, err := controller.Reconcile(context.TODO(), reconcile.Request{NamespacedName: tc.namespacedName})
+
+		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
+			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
+		}
+
+		if tc.expectedStatus != nil && len(tc.expectedStatus.Conditions) != 0 {
+			issuer, _ := controller.newIssuer()
+			if err := fakeClient.Get(context.TODO(), tc.namespacedName, issuer); err != nil {
+				t.Errorf("%s failed; expected to retrieve issuer err: %s", tc.name, err.Error())
 			}
-			assert.Equal(t, testCase.expectedResult, result, "Unexpected result")
+			_, issuerStatus, _ := GetSpecAndStatus(issuer)
+
+			if diff := cmp.Diff(tc.expectedStatus, issuerStatus); diff != "" {
+				t.Errorf("%s failed; returned and expected issuer status is not the same (-want +got)\n%s", tc.name, diff)
+			}
+
+			if tc.err == nil {
+				if _, ok := controller.Provisioners.Get(tc.namespacedName); !ok {
+					t.Fatalf("%s failed; expected to find ready to use ncm provisioner", tc.name)
+				}
+			}
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name:           "issuer-kind-unrecognised",
+			kind:           Unrecognised,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+		},
+		{
+			name:           "issuer-not-found",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+		},
+		{
+			name:           "issuer-auth-secret-not-found",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						Provisioner: &ncmv1.NCMProvisioner{
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+						},
+					},
+				},
+			},
+			err: errors.New("secrets \"ncm-auth-secret\" not found"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             "NotFound",
+						Message:            "Failed to retrieve auth secret err: secrets \"ncm-auth-secret\" not found",
+					},
+				},
+			},
+		},
+		{
+			name:           "issuer-auth-data-not-useful",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{},
+				},
+			},
+			err: errors.New("incorrect authentication data: missing username or usrpassword"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             "Error",
+						Message:            "Failed to validate config provided in spec: incorrect authentication data: missing username or usrpassword",
+					},
+				},
+			},
+		},
+		{
+			name:           "issuer-tls-secret-not-found",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						Provisioner: &ncmv1.NCMProvisioner{
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							TLSRef: &v1.SecretReference{
+								Name: "ncm-tls-secret",
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{},
+				},
+			},
+			err: errors.New("secrets \"ncm-tls-secret\" not found"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             "NotFound",
+						Message:            "Failed to retrieve tls secret err: secrets \"ncm-tls-secret\" not found",
+					},
+				},
+			},
+		},
+		{
+			name:           "issuer-tls-data-not-useful",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							TLSRef: &v1.SecretReference{
+								Name: "ncm-tls-secret",
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("ncm-user"),
+						"usrPassword": []byte("ncm-user-password"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-tls-secret",
+					},
+					Data: map[string][]byte{},
+				},
+			},
+			err: errors.New("incorrect TLS data: missing cacert, key or cert in TLS secret"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             "Error",
+						Message:            "Failed to validate config provided in spec: incorrect TLS data: missing cacert, key or cert in TLS secret",
+					},
+				},
+			},
+		},
+		{
+			name:           "issuer-cannot-create-new-provisioner",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:-8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("ncm-user"),
+						"usrPassword": []byte("ncm-user-password"),
+					},
+				},
+			},
+			err: errors.New("NCM API Client Error reason: cannot create new API client, err: parse \"https://ncm-server.local:-8081\""),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             "Error",
+						Message:            "Failed to create new provisioner err: NCM API Client Error reason: cannot create new API client, err: parse \"https://ncm-server.local:-8081\": invalid port \":-8081\" after host",
+					},
+				},
+			},
+		},
+		{
+			name:           "issuer-success",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("ncm-user"),
+						"usrPassword": []byte("ncm-user-password"),
+					},
+				},
+			},
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionTrue,
+						LastTransitionTime: &now,
+						Reason:             "Verified",
+						Message:            "Signing CA verified and ready to sign certificates",
+					},
+				},
+			},
+		},
+		{
+			name:           "cluster-issuer-success",
+			kind:           ClusterIssuer,
+			namespacedName: types.NamespacedName{Namespace: v1.NamespaceDefault, Name: "ncm-cluster-issuer"},
+			objects: []client.Object{
+				&ncmv1.ClusterIssuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: v1.NamespaceDefault,
+						Name:      "ncm-cluster-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local",
+							AuthRef: &v1.SecretReference{
+								Namespace: v1.NamespaceDefault,
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: v1.NamespaceDefault,
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("ncm-user"),
+						"usrPassword": []byte("ncm-user-password"),
+					},
+				},
+			},
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionTrue,
+						LastTransitionTime: &now,
+						Reason:             "Verified",
+						Message:            "Signing CA verified and ready to sign certificates",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
 		})
 	}
-}
-
-func ErrorContains(resultErr error, wantedErrMsg string) bool {
-	if resultErr == nil {
-		return wantedErrMsg == ""
-	}
-	if wantedErrMsg == "" {
-		return false
-	}
-	return strings.Contains(resultErr.Error(), wantedErrMsg)
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2023 Nokia
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,48 +17,83 @@ limitations under the License.
 package v1
 
 import (
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// IssuerSpec defines the desired state of Issuer
+// IssuerSpec defines the desired state of Issuer.
 type IssuerSpec struct {
-	// Define external NCM REST API URL here, as of now http/https are supported
-	NCMServer string `json:"ncmSERVER"`
-
+	// !DEPRECATED from build version 1.1.0
 	// +optional
-	// Secondary external NCM REST API URL in case of lack of connection to the main one
-	NCMServer2 string `json:"ncmSERVER2"`
-
-	// The name of the logical CA on the NCM instance.
-	// make sure the names are unique across whole NCM installation
-	CAsName string `json:"CASNAME"`
-
-	CAsHREF              string `json:"CASHREF"`
-	LittleEndian         bool   `json:"littleEndian"`
-	ReenrollmentOnRenew  bool   `json:"reenrollmentOnRenew"`
-	UseProfileIDForRenew bool   `json:"useProfileIDForRenew"`
-	NoRoot               bool   `json:"noRoot"`
-	ChainInSigner        bool   `json:"chainInSigner"`
-	OnlyEECert           bool   `json:"onlyEECert"`
-
-	// The secret which contains REST API username and password
-	AuthSecretName string `json:"secretName"`
-
+	NCMServer string `json:"ncmSERVER,omitempty"`
+	// !DEPRECATED from build version 1.1.0
 	// +optional
-	// ProfileId API parameter
-	ProfileId string `json:"profileId,omitempty"`
+	NCMServer2 string `json:"ncmSERVER2,omitempty"`
 
+	// CAName is a name of an existing CA in the NCM API, which
+	// will be used to issue certificates.
 	// +optional
-	// The secret which contains TLS configuration to external NCM server
-	// the secret must contain 3 fields:
-	// CA certificate for root CA certificate; key, cert for client CA certificate and key pair.
-	//
-	// for https connection,
-	// if the field is empty, InsecureSkipVerify is used.
-	// if the field is with CA certificate only, CA certificate is used.
-	// if the field are with CA certificate, key, cert and mTLS is used.
+	CAName string `json:"caName,omitempty"`
+
+	// CAID is a unique identifier for existing CA in the NCM API,
+	// which will be used to issue certificates.
+	// +kubebuilder:validation:Pattern=[\w=_\-]+$
+	// +optional
+	CAID string `json:"caID,omitempty"`
+
+	// !DEPRECATED from build version 1.1.0
+	// +optional
+	CAsName string `json:"CASNAME,omitempty"`
+	// !DEPRECATED from build version 1.1.0
+	// +optional
+	CAsHREF string `json:"CASHREF,omitempty"`
+
+	// LittleEndian specifies the byte order, setting it to true
+	// will ensure that bytes are stored in LE order otherwise
+	// BE order will be used.
+	// +kubebuilder:default=false
+	LittleEndian bool `json:"littleEndian,omitempty"`
+
+	// !DEPRECATED from build version 1.1.0 (use PK policy in CRT kind instead)
+	// +kubebuilder:default=false
+	ReenrollmentOnRenew bool `json:"reenrollmentOnRenew,omitempty"`
+
+	// UseProfileIDForRenew determines whether the profile ID should be used
+	// during a certificate renewal operation
+	// +kubebuilder:default=false
+	UseProfileIDForRenew bool `json:"useProfileIDForRenew,omitempty"`
+
+	// NoRoot determines whether issuing CA certificate should be included
+	// in issued certificate CA field instead of root CA certificate.
+	// +kubebuilder:default=false
+	NoRoot bool `json:"noRoot,omitempty"`
+
+	// ChainInSigner determines whether certificate chain should be included in
+	// issued certificate CA field (intermediate certificates +
+	// singing CA certificate + root CA certificate).
+	// +kubebuilder:default=false
+	ChainInSigner bool `json:"chainInSigner,omitempty"`
+
+	// OnlyEECert determines whether only end-entity certificate should be included
+	// in issued certificate TLS field.
+	// +kubebuilder:default=false
+	OnlyEECert bool `json:"onlyEECert,omitempty"`
+
+	// ProfileID is an entity profile ID in NCM API.
+	// +optional
+	ProfileID string `json:"profileId,omitempty"`
+
+	// Provisioner contains NCM provisioner configuration.
+	// +optional
+	Provisioner *NCMProvisioner `json:"provisioner,omitempty"`
+
+	// !DEPRECATED from build version 1.1.0
+	// +optional
 	TLSSecretName string `json:"tlsSecretName"`
-
+	// !DEPRECATED from build version 1.1.0
+	// +optional
+	AuthSecretName string `json:"secretName,omitempty"`
+	// !DEPRECATED from build version 1.1.0
 	// +optional
 	AuthNamespace string `json:"authNameSpace,omitempty"`
 }
@@ -69,12 +104,14 @@ type IssuerStatus struct {
 	Conditions []IssuerCondition `json:"conditions,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
 // Issuer is the Schema for the issuers API
-// +kubebuilder:resource:shortName=external-issuer
-// +kubebuilder:printcolumn:name="READY",type=string,JSONPath=`.status.conditions[0].status`
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=ncmissuers
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[0].status`
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[0].reason`
+// +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[0].message`
 type Issuer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -85,11 +122,46 @@ type Issuer struct {
 
 //+kubebuilder:object:root=true
 
-// IssuerList contains a list of Issuer
+// IssuerList contains a list of Issuer.
 type IssuerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Issuer `json:"items"`
+}
+
+const IssuerKind = "Issuer"
+
+type NCMProvisioner struct {
+	// MainAPI is the URL to the main NCM API.
+	MainAPI string `json:"mainAPI"`
+
+	// BackupAPI is the URL to the backup NCM API in case of
+	// the lack of connection to the main one.
+	// +optional
+	BackupAPI string `json:"backupAPI,omitempty"`
+
+	// HTTPClientTimeout is a maximum amount of time that the
+	// HTTP client will wait for a response from NCM API before
+	// aborting the request. By default, timeout is set to 10 seconds.
+	// +kubebuilder:default="10s"
+	HTTPClientTimeout metav1.Duration `json:"httpClientTimeout,omitempty"`
+
+	// HealthCheckerInterval is the time interval between each
+	// NCM API health check. By default, interval is set to 1 minute.
+	// +kubebuilder:default="1m"
+	HealthCheckerInterval metav1.Duration `json:"healthCheckerInterval,omitempty"`
+
+	// AuthRef is a reference to a Secret containing the credentials
+	// (user and password) needed for making requests to NCM API.
+	AuthRef *core.SecretReference `json:"authRef"`
+
+	// TLSRef is a reference to a Secret containing CA bundle used to
+	// verify connections to the NCM API. If the secret reference is not
+	// specified and selected protocol is HTTPS, InsecureSkipVerify
+	// will be used. Otherwise, TLS or mTLS connection will be used,
+	// depending on provided data.
+	// +optional
+	TLSRef *core.SecretReference `json:"tlsRef,omitempty"`
 }
 
 // IssuerCondition contains condition information for an Issuer.
@@ -139,13 +211,13 @@ type ConditionStatus string
 // condition or not. In the future, we could add other intermediate
 // conditions, e.g. ConditionDegraded.
 const (
-	// ConditionTrue represents the fact that a given condition is true
+	// ConditionTrue represents the fact that a given condition is true.
 	ConditionTrue ConditionStatus = "True"
 
-	// ConditionFalse represents the fact that a given condition is false
+	// ConditionFalse represents the fact that a given condition is false.
 	ConditionFalse ConditionStatus = "False"
 
-	// ConditionUnknown represents the fact that a given condition is unknown
+	// ConditionUnknown represents the fact that a given condition is unknown.
 	ConditionUnknown ConditionStatus = "Unknown"
 )
 

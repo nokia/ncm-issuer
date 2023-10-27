@@ -2,22 +2,18 @@
 FROM golang:1.19.6 AS builder
 WORKDIR /
 
-# COPY . ./
-
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
-COPY vendor/ vendor/
+RUN go mod download
 
 # Copy the go source
 COPY main.go main.go
 COPY api/ api/
-COPY pkg/pkiutil pkg/pkiutil/
-COPY pkg/controllers pkg/controllers/
-COPY pkg/ncmapi pkg/ncmapi/
+COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 env GO111MODULE=on go build -mod=vendor -o builds/manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o builds/manager main.go
 
 
 FROM scratch

@@ -1,11 +1,22 @@
-registry: docker.io/misiektoja
 replicaCount: 1
 priorityClassName: ""
-imagePullSecrets: []
-imagePullPolicy: Always
+
+image:
+  repository: docker.io/misiektoja/ncm-issuer
+  tag: 1.1.0
+  pullPolicy: Always
+  pullSecrets: []
+
+sidecar:
+  enabled: false
+  repository: docker.io/misiektoja/ncm-issuer-utils
+  tag: 1.1.0
+  pullPolicy: Always
+  pullSecrets: []
+
 resources:
   # Limits to cap the resource usage in case of unexpected.
-  #   NOTE! exceeding memory limit will cause pod to be killed by kubernetes.
+  # NOTE: exceeding memory limit will cause pod to be killed by kubernetes.
   limits:
     cpu: 400m
     memory: 500Mi
@@ -21,8 +32,8 @@ updateStrategy:
 
 rbac:
   create: true
-# If create is set to false below objects should be created manually. 
-# Only rbac.sa will be used further by this chart.
+  # If create is set to false below objects should be created manually.
+  # Only rbac.sa will be used further by this chart.
   sa: ncm-issuer-sa
   binding: ncm-issuer-role-binding
   role: ncm-issuer-role
@@ -39,7 +50,6 @@ certManagerRbac:
 # prefer edge node
 controller:
   nodeSelector: {}
-
   tolerations:
   #- key: 'is_edge'
   #  operator: 'Equal'
@@ -73,3 +83,18 @@ securityContext:
 
 metrics:
   port: 8080
+
+prometheus:
+  serviceMonitor:
+    enabled: false
+    selectorLabel: stable
+    namespace: default
+
+logging:
+  # Set the verbosity of logging in ncm-issuer. Can be one of 'debug', 'info',
+  # 'error', or any integer value in the range <1; 3> which corresponds to debug
+  # levels of increasing verbosity.
+  logLevel: info
+  # Level at and above which stacktraces are captured (one of 'info', 'error' or
+  # 'panic').
+  stacktraceLevel: panic

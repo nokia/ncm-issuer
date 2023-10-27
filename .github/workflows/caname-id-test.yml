@@ -1,38 +1,35 @@
-name: caname-href tests
-
+name: caname-id tests
 on:
-  push:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron:  '0 2 * * 6'
+  workflow_call:
+    inputs:
+      go-version:
+        type: string
+        description: "Version of Go used to build ncm-issuer image"
+        required: true
 
 jobs:
-  cahref_test:
-    name: "CAHREF Tests"
+  ca-id-test:
+    name: "ca id"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
-
-    - name: "checkout GIT"
-      uses: actions/checkout@v2
-    - uses: actions/setup-go@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
     - run: go version
-
-    - name: "build plugin"
-      run: |
-        go mod vendor
-        make docker_build_img
-        make save
 
     - name: "install microk8s"
       run: |
-        sudo snap install microk8s --classic
+        sudo snap install microk8s --classic --channel=1.27/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
+
+    - name: "build ncm-issuer image"
+      run: |
+        make docker-build
+        docker save ncm-issuer > ncm-issuer.tar
+        sudo microk8s ctr image import ncm-issuer.tar
 
     - name: "install cert-manager charts"
       run: |
@@ -53,14 +50,21 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
- 
+
+    - name: "install yq"
+      run: sudo snap install yq
+
     - name: "prepare environment / create namespace and secret"
       run: |
+        REG_ADDR=${{ env.REG_ADDR }}
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
-        sed -i "s|CASNAME: SubCA|CASHREF: $NCM_CAHREF|g" data/ncm-issuer.yml
-        sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
+        NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
+        sed -i "s|caName: SubCA|caID: $NCM_CAHREF|g" data/ncm-issuer.yml
+        yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
+        yq -i '.image.pullPolicy = "Never"' helm/values.yaml
+        TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
@@ -85,7 +89,7 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
- 
+
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
@@ -129,7 +133,7 @@ jobs:
       continue-on-error: true
       if: ${{ failure() }}
       run: |
-        sudo  microk8s.kubectl get namespaces > data/logs/get_namespaces.log
+        sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
         sudo microk8s.kubectl get po -A > data/logs/get_pods.log
         sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
         sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
@@ -138,7 +142,7 @@ jobs:
         sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer > data/logs/get_csr.log
-        sudo  microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
         sudo microk8s.kubectl describe certificate ncm-cert -n ncm-issuer > data/logs/describe_certificate.log
         mkdir -p ${{ github.workspace }}/artifact/upload
@@ -146,38 +150,34 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artificates"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
         name: logs-cahref.tar.gz
         path: ${{ github.workspace }}/artifact/upload/
 
-  caname_test:
-    name: "CANAME Test"
+  ca-name-test:
+    name: "ca name"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
-
-    - name: "checkout GIT"
-      uses: actions/checkout@v2
-    - uses: actions/setup-go@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
     - run: go version
-
-    - name: "build plugin"
-      run: |
-        go mod vendor
-        make docker_build_img
-        make save
 
     - name: "install microk8s"
       run: |
-        sudo snap install microk8s --classic
+        sudo snap install microk8s --classic --channel=1.27/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
+
+    - name: "build ncm-issuer image"
+      run: |
+        make docker-build
+        docker save ncm-issuer > ncm-issuer.tar
+        sudo microk8s ctr image import ncm-issuer.tar
 
     - name: "install cert-manager charts"
       run: |
@@ -198,13 +198,19 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
-   
+
+    - name: "install yq"
+      run: sudo snap install yq
+
     - name: "prepare environment / create namespace and secret"
       run: |
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
         cp .github/*.yml data/
-        sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
+        NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
+        yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
+        yq -i '.image.pullPolicy = "Never"' helm/values.yaml
+        TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
@@ -228,7 +234,7 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
- 
+
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
@@ -272,7 +278,7 @@ jobs:
       continue-on-error: true
       if: ${{ failure() }}
       run: |
-        sudo  microk8s.kubectl get namespaces > data/logs/get_namespaces.log
+        sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
         sudo microk8s.kubectl get po -A > data/logs/get_pods.log
         sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
         sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
@@ -281,7 +287,7 @@ jobs:
         sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer > data/logs/get_csr.log
-        sudo  microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
         sudo microk8s.kubectl describe certificate ncm-cert -n ncm-issuer > data/logs/describe_certificate.log
         mkdir -p ${{ github.workspace }}/artifact/upload
@@ -289,7 +295,7 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artificates"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
         name: logs-caname.tar.gz

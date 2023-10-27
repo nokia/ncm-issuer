@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: issuers.certmanager.ncm.nokia.com
 spec:
@@ -14,13 +13,22 @@ spec:
     listKind: IssuerList
     plural: issuers
     shortNames:
-    - external-issuer
+    - ncmissuers
     singular: issuer
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - jsonPath: .status.conditions[0].status
-      name: READY
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[0].reason
+      name: Reason
+      type: string
+    - jsonPath: .status.conditions[0].message
+      name: Message
       type: string
     name: v1
     schema:
@@ -40,36 +48,129 @@ spec:
           metadata:
             type: object
           spec:
-            description: IssuerSpec defines the desired state of Issuer
+            description: IssuerSpec defines the desired state of Issuer.
             properties:
+              CASHREF:
+                description: '!DEPRECATED from build version 1.1.0'
+                type: string
               CASNAME:
-                description: the name of the logical CA on the NCM instance. make
-                  sure the names are unique across whole NCM installation
+                description: '!DEPRECATED from build version 1.1.0'
                 type: string
               authNameSpace:
+                description: '!DEPRECATED from build version 1.1.0'
                 type: string
+              caID:
+                description: CAID is a unique identifier for existing CA in the NCM
+                  API, which will be used to issue certificates.
+                pattern: '[\w=_\-]+$'
+                type: string
+              caName:
+                description: CAName is a name of an existing CA in the NCM API, which
+                  will be used to issue certificates.
+                type: string
+              chainInSigner:
+                default: false
+                description: ChainInSigner determines whether certificate chain should
+                  be included in issued certificate CA field (intermediate certificates
+                  + singing CA certificate + root CA certificate).
+                type: boolean
+              littleEndian:
+                default: false
+                description: LittleEndian specifies the byte order, setting it to
+                  true will ensure that bytes are stored in LE order otherwise BE
+                  order will be used.
+                type: boolean
               ncmSERVER:
-                description: Define external NCM REST API URL here, as of now http/https
-                  are supported
+                description: '!DEPRECATED from build version 1.1.0'
                 type: string
+              ncmSERVER2:
+                description: '!DEPRECATED from build version 1.1.0'
+                type: string
+              noRoot:
+                default: false
+                description: NoRoot determines whether issuing CA certificate should
+                  be included in issued certificate CA field instead of root CA certificate.
+                type: boolean
+              onlyEECert:
+                default: false
+                description: OnlyEECert determines whether only end-entity certificate
+                  should be included in issued certificate TLS field.
+                type: boolean
               profileId:
-                description: ProfileId API parameter
+                description: ProfileID is an entity profile ID in NCM API.
                 type: string
+              provisioner:
+                description: Provisioner contains NCM provisioner configuration.
+                properties:
+                  authRef:
+                    description: AuthRef is a reference to a Secret containing the
+                      credentials (user and password) needed for making requests to
+                      NCM API.
+                    properties:
+                      name:
+                        description: name is unique within a namespace to reference
+                          a secret resource.
+                        type: string
+                      namespace:
+                        description: namespace defines the space within which the
+                          secret name must be unique.
+                        type: string
+                    type: object
+                  backupAPI:
+                    description: BackupAPI is the URL to the backup NCM API in case
+                      of the lack of connection to the main one.
+                    type: string
+                  healthCheckerInterval:
+                    default: 1m
+                    description: HealthCheckerInterval is the time interval between
+                      each NCM API health check. By default, interval is set to 1
+                      minute.
+                    type: string
+                  httpClientTimeout:
+                    default: 10s
+                    description: HTTPClientTimeout is a maximum amount of time that
+                      the HTTP client will wait for a response from NCM API before
+                      aborting the request. By default, timeout is set to 10 seconds.
+                    type: string
+                  mainAPI:
+                    description: MainAPI is the URL to the main NCM API.
+                    type: string
+                  tlsRef:
+                    description: TLSRef is a reference to a Secret containing CA bundle
+                      used to verify connections to the NCM API. If the secret reference
+                      is not specified and selected protocol is HTTPS, InsecureSkipVerify
+                      will be used. Otherwise, TLS or mTLS connection will be used,
+                      depending on provided data.
+                    properties:
+                      name:
+                        description: name is unique within a namespace to reference
+                          a secret resource.
+                        type: string
+                      namespace:
+                        description: namespace defines the space within which the
+                          secret name must be unique.
+                        type: string
+                    type: object
+                required:
+                - authRef
+                - mainAPI
+                type: object
+              reenrollmentOnRenew:
+                default: false
+                description: '!DEPRECATED from build version 1.1.0 (use PK policy
+                  in CRT kind instead)'
+                type: boolean
               secretName:
-                description: the secret which contains REST API username and password
+                description: '!DEPRECATED from build version 1.1.0'
                 type: string
               tlsSecretName:
-                description: "the secret which contains TLS configuration to external
-                  NCM server the secret must contain 3 fields:  cacert for root CA;
-                  key, cert for client CA and key pair. \n for https connection, if
-                  the field is absent, InsecureSkipVerify is used. if the field is
-                  with cacert only, cacert is used. if the field are with cacert,
-                  key,cert, mtls is used."
+                description: '!DEPRECATED from build version 1.1.0'
                 type: string
-            required:
-            - CASNAME
-            - ncmSERVER
-            - secretName
+              useProfileIDForRenew:
+                default: false
+                description: UseProfileIDForRenew determines whether the profile ID
+                  should be used during a certificate renewal operation
+                type: boolean
             type: object
           status:
             description: IssuerStatus defines the observed state of Issuer

@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2023 Nokia
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,12 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster,shortName=external-clusterissuer
-
 // ClusterIssuer is the Schema for the clusterissuers API
-//+kubebuilder:printcolumn:name="READY",type=string,JSONPath=`.status.conditions[0].status`
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster,shortName=ncmclusterissuers
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[0].status`
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[0].reason`
+// +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[0].message`
 type ClusterIssuer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -36,12 +38,14 @@ type ClusterIssuer struct {
 
 //+kubebuilder:object:root=true
 
-// ClusterIssuerList contains a list of ClusterIssuer
+// ClusterIssuerList contains a list of ClusterIssuer.
 type ClusterIssuerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterIssuer `json:"items"`
 }
+
+const ClusterIssuerKind = "ClusterIssuer"
 
 func init() {
 	SchemeBuilder.Register(&ClusterIssuer{}, &ClusterIssuerList{})

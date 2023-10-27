@@ -1,0 +1,97 @@
+run:
+  timeout: 5m
+  skip-dirs:
+    - .git
+    - .github
+    - api
+    - config
+    - hack
+    - helm
+
+linters-settings:
+  dupl:
+    threshold: 100
+
+  errcheck:
+    check-type-assertions: true
+
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+      - wrapperFunc
+
+  govet:
+    enable-all: true
+    check-shadowing: true
+    disable:
+      - fieldalignment
+
+  nakedret:
+    max-func-lines: 0
+
+  nolintlint:
+    allow-no-explanation:
+      - gocognit
+    require-explanation: true
+    require-specific: true
+    exhaustive:
+      check:
+        - switch
+        - map
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - dupl
+    - errname
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - gocheckcompilerdirectives
+    - goconst
+    - gocritic
+    - godot
+    - goimports
+    - gomoddirectives
+    - gosec
+    - loggercheck
+    - nakedret
+    - nilerr
+    - nilnil
+    - nolintlint
+    - nonamedreturns
+    - predeclared
+    - promlinter
+    - reassign
+    - stylecheck
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+
+issues:
+  max-same-issues: 50
+  exclude-rules:
+    - source: "(noinspection|TODO)"
+      linters: [ godot ]
+    - source: "//noinspection"
+      linters: [ gocritic ]
+    - path: "_test\\.go"
+      linters:
+        - errcheck
+        - bodyclose
+        - dupl
+        - goconst
+        - gosec
+        - unused

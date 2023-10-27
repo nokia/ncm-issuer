@@ -1,0 +1,99 @@
+name: release ncm-issuer
+on:
+  release:
+    types: [published]
+
+jobs:
+  docker:
+    name: "publish release on Docker Hub"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "get ncm-issuer image version"
+        run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
+
+      - name: "login to Docker Hub"
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "build and publish"
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ncm-issuer:latest,${{ secrets.DOCKER_USERNAME }}/ncm-issuer:${{ env.TAG }}
+
+  pages:
+    name: Build mkdocs and helm charts
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Install Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.x
+
+    - name: Install MkDocs and dependencies
+      run: |
+        pip install mkdocs-material mkdocs-awesome-pages-plugin
+
+    - name: Create release notes file
+      run: |
+        mkdir -p ./docs/release-notes
+        release_file=./docs/release-notes/${{ github.event.release.tag_name }}.md
+        echo -e "---\ntitle: ${{ github.event.release.name }}\n---\n" > $release_file
+        cat << "EOF" >> $release_file
+        ${{ github.event.release.body }}
+        EOF
+        sed -i "s|nav:|nav:\n    - ${{ github.event.release.name }}.md|g" docs/release-notes/.pages
+  
+    - uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: Write release notes to documentation
+        file_pattern: './docs/release-notes'
+        skip_checkout: true
+
+    - name: Build MkDocs Configuration
+      run: |
+        mkdocs build        
+
+    - name: Package charts
+      run: helm package helm/
+
+    - name: Checkout to gh-pages
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        clean: false
+        
+    - name: Move files to the pages gh-pages
+      run: |
+        mkdir -p ./docs && rm -rf ./docs/* && mv ./site/* ./docs
+        mkdir -p ./charts && mv ./*.tgz ./charts
+
+    - name: Index charts
+      run: helm repo index ./charts
+
+    - uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: Update documentation
+        file_pattern: './docs'
+        skip_checkout: true
+
+    - uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: Update helm charts 
+        file_pattern: './charts'
+        skip_checkout: true
+

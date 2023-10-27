@@ -1,47 +1,47 @@
-name: clientauth tests
-
+name: client auth test
 on:
-  push:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron:  '0 2 * * 6'
+  workflow_call:
+    inputs:
+      go-version:
+        type: string
+        description: "Version of Go used to build ncm-issuer image"
+        required: true
 
 jobs:
-  clientauth_test:
-    name: "clientauth test"
+  client-auth-test:
+    name: "tls with client auth"
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        k8sversion: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26', '1.27']
-        certmgrversion: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.2']
+        k8s-version: ['1.21', '1.22', '1.23', '1.24', '1.25', '1.26', '1.27']
+        certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0']
     steps:
-
-    - name: "checkout GIT"
-      uses: actions/checkout@v2
-    - uses: actions/setup-go@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
     - run: go version
-
-    - name: "build plugin"
-      run: |
-        go mod vendor
-        make docker_build_img
-        make save
 
     - name: "install microk8s"
       run: |
-        sudo snap install microk8s --classic --channel=${{ matrix.k8sversion }}/stable
+        sudo snap install microk8s --classic --channel=${{ matrix.k8s-version }}/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
-  
+
+    - name: "build ncm-issuer image"
+      run: |
+        make docker-build
+        docker save ncm-issuer > ncm-issuer.tar
+        sudo microk8s ctr image import ncm-issuer.tar
+
     - name: "install cert-manager charts"
       run: |
         sudo microk8s.kubectl create namespace cert-manager
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
-        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgrversion }} --set installCRDs=true
+        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgr-version }} --set installCRDs=true
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
@@ -58,9 +58,12 @@ jobs:
    
     - name: "install kubectl cert-manager plugin"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgrversion }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
+          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgr-version }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
           tar xzf kubectl-cert-manager.tar.gz
           sudo mv kubectl-cert_manager /usr/local/bin
+
+    - name: "install yq"
+      run: sudo snap install yq
 
     - name: "prepare environment / create namespace and secret"
       run: |
@@ -69,18 +72,21 @@ jobs:
         echo "$CLIENTAUTH_CERT" > data/clientauth_cert.pem
         echo "$CLIENTAUTH_KEY" > data/clientauth_key.pem
         cp .github/*.yml data/
-        sed -i "s|ncmSERVER: NCM_SRV|ncmSERVER: $NCM_HOST|g" data/ncm-issuer.yml
+        CLIENTAUTH_NCM_HOST=$CLIENTAUTH_NCM_HOST yq -i '.spec.provisioner.mainAPI = env(CLIENTAUTH_NCM_HOST)' data/ncm-issuer.yml
+        yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
+        yq -i '.image.pullPolicy = "Never"' helm/values.yaml
+        TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
         sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem --from-file=key=data/clientauth_key.pem --from-file=cert=data/clientauth_cert.pem
 
       env:
-        NCM_HOST: ${{ secrets.CLIENTAUTH_NCM_HOST }}
+        CLIENTAUTH_NCM_HOST: ${{ secrets.CLIENTAUTH_NCM_HOST }}
         NCM_USER: ${{ secrets.NCM_USER }}
         NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
         NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
         CLIENTAUTH_CERT: ${{ secrets.CLIENTAUTH_CERT }}
-        CLIENTAUTH_KEY: ${{ secrets.CLIENTAUTH_KEY }}
+        CLIENTAUTH_KEY: ${{ secrets.CLIENTAUTH_KEY }}.
 
     - name: "install ncm-issuer plugin"
       run: |
@@ -96,6 +102,8 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
+        POD_NAME=$(sudo microk8s.kubectl get pods -A | grep -i ncm-issuer | awk '{ print $2 }')
+        sudo microk8s.kubectl describe pod $POD_NAME -n ncm-issuer
   
     - name: "create issuer"
       run: |
@@ -117,6 +125,7 @@ jobs:
     - name: "create certificate resource"
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
+
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
       with:
@@ -156,7 +165,7 @@ jobs:
       continue-on-error: true
       if: ${{ failure() }}
       run: |
-        sudo  microk8s.kubectl get namespaces > data/logs/get_namespaces.log
+        sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
         sudo microk8s.kubectl get po -A > data/logs/get_pods.log
         sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
         sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
@@ -165,15 +174,16 @@ jobs:
         sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer > data/logs/get_csr.log
-        sudo  microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
         sudo microk8s.kubectl describe certificate ncm-cert -n ncm-issuer > data/logs/describe_certificate.log
         mkdir -p ${{ github.workspace }}/artifact/upload
         sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
+
     - name: "[ * ] uploading artificates"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ failure() }}
       with:
-        name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgrversion }}.tar.gz
+        name: logs-k${{ matrix.k8s-version }}-${{ matrix.certmgr-version }}.tar.gz
         path: ${{ github.workspace }}/artifact/upload/

@@ -1,26 +1,8 @@
-# Add proxy
-export GOFLAGS=-mod=vendor
-export GO111MODULE=on
-
-BUILD_VERSION ?= 1.0.1
-IMG_NAME ?= ncm-issuer
-
-# Image URL to use all building/pushing image targets
-IMG ?= ncm-issuer:${BUILD_VERSION}
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
-
 APP_NAME ?= ncm-issuer
-APP_VERSION ?= 1.0.2
-
-# DevOPS Artifactory Repositories
-ARTIFACTORY_URL ?= repo.lab.pl.alcatel-lucent.com
-
-CSF_DOCKER_CANDIDATES ?= csf-docker-candidates.${ARTIFACTORY_URL}
-CSF_DOCKER_INPROGRESS ?= csf-docker-inprogress.${ARTIFACTORY_URL}
-
-NEO_CANDIDATES_REPO ?= neo-docker-candidates.${ARTIFACTORY_URL}
-
+APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
+BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
+IMG ?= ${APP_NAME}:${BUILD_VERSION}
+ENVTEST_K8S_VERSION ?= 1.27
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -56,28 +38,29 @@ help: ## Display this help.
 ##@ Development
 
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./pkg/controllers/..." paths="./api/..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
 vet: ## Run go vet against code.
-	go vet ./...
+	go vet ./... > govet-report.out
+
+vendor:
+	go mod vendor
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: manifests generate fmt vet ## Run tests.
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	${PROXY} test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	${PROXY} source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
-
+test: manifests generate fmt vet envtest ## Run tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile coverage.out -v
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -json > report.json
 
 ##@ Build
 
-build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+build: vendor generate fmt vet ## Build manager binary.
+	go build -mod=vendor -o bin/manager main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
@@ -85,32 +68,12 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
-# Build the docker image
-docker-build: docker_build_img docker-tag
-
-docker_build_img:
+docker-build:
 	docker build . -t ${IMG}
 
-# docker tag
-docker-tag:
-	> inprogressPushList
-	# tag for both inprogress and candidates so both can be pushed
-	docker tag ${IMG} ${CSF_DOCKER_INPROGRESS}/${IMG}
-	docker tag ${IMG} ${CSF_DOCKER_CANDIDATES}/${IMG}
-	docker tag ${IMG} ${CSF_DOCKER_CANDIDATES}/${IMG_NAME}:latest
-	# save the image name:tag so Jenkins can retrieve it later
-	echo ${CSF_DOCKER_INPROGRESS}/${IMG} >>inprogressPushList
-	echo ${CSF_DOCKER_CANDIDATES}/${IMG} >>inprogressPushList
-	echo ${CSF_DOCKER_CANDIDATES}/${IMG_NAME}:latest  >>inprogressPushList
-	cat inprogressPushList
-	docker images |grep ${IMG_NAME}
-
-# save the built docker image
-#
-#save: docker_build_img
-save:
-	rm -rf builds/$(APP_NAME)-images &&  mkdir -p builds/$(APP_NAME)-images
-	docker save ${IMG}  | gzip > builds/$(APP_NAME)-images/${IMG}.tgz
+docker-save: docker-build
+	rm -rf builds/$(APP_NAME)-images && mkdir -p builds/$(APP_NAME)-images
+	docker save ${IMG} | gzip > builds/$(APP_NAME)-images/${IMG}.tgz
 
 ##@ Deployment
 
@@ -127,52 +90,44 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
+##@ Build dependencies
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	${PROXY} $(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+## Location to install dependecies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
 
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-kustomize: ## Download kustomize locally if necessary.
-	${PROXY} $(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+## Tool Binaries
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+ENVTEST ?= $(LOCALBIN)/setup-envtest
 
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
+## Tool Versions
+KUSTOMIZE_VERSION ?= v3.8.7
+CONTROLLER_TOOLS_VERSION ?= v0.8.0
 
-# create helm package
-helm-create:
-	rm -rf builds/helm && mkdir -p builds/helm
-	cp -r helm builds/helm/$(APP_NAME)
-	cp helm/README.md builds/helm/$(APP_NAME)
-	helmValidationAndPackage.sh --helmtarget builds
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
-# create BCMT APP2.0 package
-#
-# after                  the step:  Build and Publish docker images
-#
-ncmapp-create: save
-	rm -rf builds/$(APP_NAME) &&  mkdir -p builds/$(APP_NAME)
-	cp -rf app2.0/* builds/$(APP_NAME)
-	# some update on the new built
-	sed -i '3s|version: 0.1.0|version: $(BUILD_VERSION)|'  builds/$(APP_NAME)/profile/app_list.yaml
-	mkdir -p builds/$(APP_NAME)/images  builds/$(APP_NAME)/charts
-	cp -rf builds/$(APP_NAME)-images/*.tgz               builds/$(APP_NAME)/images/
-	cp -rf builds/helm/$(APP_NAME)-$(BUILD_VERSION).tgz  builds/$(APP_NAME)/charts/
-	# tar ball
-	cd builds && tar czvf ../${APP_NAME}-${APP_VERSION}.tgz   $(APP_NAME)
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+pack-app: docker-save
+	rm -rf builds/$(APP_NAME) && mkdir -p builds/$(APP_NAME)/
+	mkdir -p builds/$(APP_NAME)/images builds/$(APP_NAME)/charts/$(APP_NAME)/
+	cp -rf builds/$(APP_NAME)-images/*.tgz builds/$(APP_NAME)/images/
+	cp -rf helm/* builds/$(APP_NAME)/charts/$(APP_NAME)/
+	cp -rf release_notes.txt builds/$(APP_NAME)/
+	cd builds && tar czvf ../${APP_NAME}-${APP_VERSION}-${BUILD_VERSION}.tar.gz $(APP_NAME)
 
 clean:
 	rm -rf builds
-	rm -rf ncm-issuer*.tgz
+	rm -rf ncm-issuer*.tar.gz
 
