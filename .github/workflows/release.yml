@@ -36,6 +36,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: main
 
     - name: Install Python
       uses: actions/setup-python@v2
@@ -54,7 +56,7 @@ jobs:
         cat << "EOF" >> $release_file
         ${{ github.event.release.body }}
         EOF
-        sed -i "s|nav:|nav:\n\t- ${release_file}.md|g" docs/release-notes/.pages
+        sed -i "s|nav:|nav:\n    - ${{ github.event.release.name }}.md|g" docs/release-notes/.pages
   
     - uses: stefanzweifel/git-auto-commit-action@v5
       with:
