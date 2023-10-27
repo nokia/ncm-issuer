@@ -44,13 +44,17 @@ jobs:
 
     - name: Install MkDocs and dependencies
       run: |
-        pip install mkdocs-material
+        pip install mkdocs-material mkdocs-awesome-pages-plugin
 
     - name: Create release notes file
       run: |
         mkdir -p ./docs/release-notes
-        echo -e "---\ntitle: ${{ github.event.release.name }}\n---\n" > ./docs/release-notes/${{ github.event.release.tag_name }}.md
-        printf "%s" '${{ github.event.release.body }}' >> ./docs/release-notes/${{ github.event.release.tag_name }}.md 
+        release_file=./docs/release-notes/${{ github.event.release.tag_name }}.md
+        echo -e "---\ntitle: ${{ github.event.release.name }}\n---\n" > $release_file
+        cat << "EOF" >> $release_file
+        ${{ github.event.release.body }}
+        EOF
+        sed -i "s|nav:|nav:\n\t- ${release_file}.md|g" docs/release-notes/.pages
   
     - uses: stefanzweifel/git-auto-commit-action@v5
       with:
