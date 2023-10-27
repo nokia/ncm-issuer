@@ -1,6 +1,6 @@
 # Installation
 
-### Prerequisites
+## Prerequisites
 
 Prerequisites for using ncm-issuer:
 
@@ -13,7 +13,7 @@ Prerequisites for using ncm-issuer:
 !!! note
     Install docker-re instead of default if you are using CentOS, RedHat or Fedora!
 
-### Installing with Helm
+## Installing with Helm
 
 The easiest way to install ncm-issuer in Kubernetes cluster is to use Helm.
 The image will be automatically downloaded from public repository.

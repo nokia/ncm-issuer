@@ -1,7 +1,3 @@
----
-weight: 3
----
-
 # Issuer
 
 The first thing you need to configure and create after installing ncm-issuer is `Issuer` or `ClusterIssuer`. 
@@ -12,33 +8,33 @@ in the NCM that will issue certificates using it.
 
 Below is an example `yaml` file containing `Issuer` definition:
 
-```yaml title="issuer.yaml"
-apiVersion: certmanager.ncm.nokia.com/v1
-kind: Issuer
-metadata:
-  name: example-ncm-issuer
-  namespace: ncm-ns
-spec:
-  caName: ncm-ca
-  caID: e1DefAscx
-  provisioner:
-    mainAPI: https://nokia-ncm.local
-    backupAPI: https://nokia-backup-ncm.local
-    httpClientTimeout: 10s
-    healthCheckerInterval: 1m
-    authRef:
-      name: ncm-rest-auth
-      namespace: ncm-ns
-    tlsRef:
-      name: ncm-tls
-      namespace: ncm-ns
-  profileId: "101"
-  useProfileIDForRenew: true
-  reenrollmentOnRenew: true
-  noRoot: true
-  chainInSigner: false
-  onlyEECert: true
-```
+  ```yaml title="issuer.yaml"
+  apiVersion: certmanager.ncm.nokia.com/v1
+  kind: Issuer
+  metadata:
+    name: example-ncm-issuer
+    namespace: ncm-ns
+  spec:
+    caName: ncm-ca
+    caID: e1DefAscx
+    provisioner:
+      mainAPI: https://nokia-ncm.local
+      backupAPI: https://nokia-backup-ncm.local
+      httpClientTimeout: 10s
+      healthCheckerInterval: 1m
+      authRef:
+        name: ncm-rest-auth
+        namespace: ncm-ns
+      tlsRef:
+        name: ncm-tls
+        namespace: ncm-ns
+    profileId: "101"
+    useProfileIDForRenew: true
+    reenrollmentOnRenew: true
+    noRoot: true
+    chainInSigner: false
+    onlyEECert: true
+  ```
 
 !!! warning
     With release `1.1.0-1.1.0` the name of some fields in `Issuer` has changed, but old names are

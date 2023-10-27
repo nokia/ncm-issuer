@@ -19,12 +19,12 @@ that contains credentials to NCM REST API and optional TLS configuration.
 
 ## TLS without client authentication
 
-    ```bash
-    kubectl create secret generic \
-    <secret-name> \
-    -n <namespace> \
-    --from-file=cacert=<ca-for-tls.pem>
-    ```
+  ```bash
+  kubectl create secret generic \
+  <secret-name> \
+  -n <namespace> \
+  --from-file=cacert=<ca-for-tls.pem>
+  ```
 
 ## TLS with client authentication
 
