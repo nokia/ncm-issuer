@@ -26,14 +26,23 @@ ncm-issuer is a [Kubernetes](https://kubernetes.io) controller (external [cert-m
 PKI system to sign certificate requests. The integration with NCM makes it easy to obtain non-selfsigned certificates for
 applications and to ensure that they are valid and up to date.
 
-## How to open issue?
-xxx
+## How to get started?
 
-## How to request feature?
-xxx
+Simply click the documentation tab in the navigation panel. All the steps required to install the ncm-issuer are
+described there, along with a tutorial on how to issue your first certificate. If you feel that something is missing 
+in the documentation, please report it to one of the maintainers, and it will definitely be added soon!
+
+## Maintainers
+
+> [:material-email-arrow-right:](mailto:dawid.machoczek@nokia.com)
+> Dawid Machoczek ([@raczu](https://github.com/raczu/))
+
+> [:material-email-arrow-right:](mailto:adam.korba@nokia.com)
+> Adam Korba ([@BbqGamer](https://github.com/BbqGamer/))
+
 
 ## License
 
-This project is licensed under the terms of **Apache 2.0 License**.
-
+This project is licensed under the terms of **Apache 2.0 License** and available on
+[GitHub](https://github.com/nokia/ncm-issuer).
 

@@ -28,11 +28,15 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.top
     - search.suggest
     - content.code.copy
 
 extra:
   social:
+    - icon: material/web
+      link: https://www.nokia.com/networks/security-portfolio/netguard/certificate-manager/
+
     - icon: fontawesome/brands/github
       link: https://github.com/nokia
 
@@ -58,3 +62,8 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences
   - md_in_html
+
+plugins:
+  - search
+  - awesome-pages
+  - tags

@@ -1,0 +1,8 @@
+nav:
+    - installation.md
+    - configuration.md
+    - CRDs
+    - certificates
+    - metrics
+    - tutorials
+    - troubleshooting.md

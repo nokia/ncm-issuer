@@ -24,32 +24,32 @@ The image will be automatically downloaded from public repository.
 
 Add the Helm repository:
 
-```bash
-helm repo add nokia https://nokia.github.io/ncm-issuer/charts
-```
+  ```bash
+  helm repo add nokia https://nokia.github.io/ncm-issuer/charts
+  ```
 
 Update your local Helm chart repository cache:
 
-```bash
-helm repo update
-```
+  ```bash
+  helm repo update
+  ```
 
 Install ncm-issuer using the command:
 
-```bash
-helm install \
-ncm-issuer nokia/ncm-issuer \
---create-namespace --namespace ncm-issuer 
-```
+  ```bash
+  helm install \
+  ncm-issuer nokia/ncm-issuer \
+  --create-namespace --namespace ncm-issuer 
+  ```
 
 On the other hand, if you did not add Helm repository, but downloaded the packaged version of ncm-issuer use:
 
-```bash
-helm install \
-ncm-issuer \
---create-namespace --namespace ncm-issuer \
-ncm-issuer/charts/ncm-issuer
-```
+  ```bash
+  helm install \
+  ncm-issuer \
+  --create-namespace --namespace ncm-issuer \
+  ncm-issuer/charts/ncm-issuer
+  ```
 
 ## Using own (local or remote) registry
 
@@ -57,9 +57,9 @@ In case you want to use your own registry, just change the value pointing to a s
 in the `values.yaml` file in directory that contains Helm files. Then just repeat the steps
 mentioned above.
 
-```bash
-sed -i "s|docker.io/misiektoja|<your-registry>|g" values.yaml
-```
+  ```bash
+  sed -i "s|docker.io/misiektoja|<your-registry>|g" values.yaml
+  ```
 
 !!! note
     Using this command will also change the registry pointing to the image location of sidecar.
@@ -68,14 +68,14 @@ sed -i "s|docker.io/misiektoja|<your-registry>|g" values.yaml
 However, if you do not know where to get image from, because you cloned the repository
 just use the command:
 
-```bash
-make docker-build
-```
+  ```bash
+  make docker-build
+  ```
 
 or (if you also want to save image)
 
-```bash
-make docker-save
-```
+  ```bash
+  make docker-save
+  ```
 
 Saved image should appear in the path `./builds/ncm-issuer-images/`.
