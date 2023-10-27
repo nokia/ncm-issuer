@@ -44,7 +44,19 @@ jobs:
 
     - name: Install MkDocs and dependencies
       run: |
-        pip install mkdocs
+        pip install mkdocs-material
+
+    - name: Create release notes file
+      run: |
+        mkdir -p ./docs/release-notes
+        echo -e "---\ntitle: ${{ github.event.release.name }}\n---\n" > ./docs/release-notes/${{ github.event.release.tag_name }}.md
+        printf "%s" '${{ github.event.release.body }}' >> ./docs/release-notes/${{ github.event.release.tag_name }}.md 
+  
+    - uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: Write release notes to documentation
+        file_pattern: './docs/release-notes'
+        skip_checkout: true
 
     - name: Build MkDocs Configuration
       run: |
