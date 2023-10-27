@@ -7,4 +7,4 @@ To start issuing certificates using NCM, you will need to create a ClusterIssuer
 resource and configure connection to NCM API. More information about configuration can be found
 in documentation:
 
-https://github.com/nokia/ncm-issuer/tree/main#ncm-issuer
+https://nokia.github.io/ncm-issuer/docs/
