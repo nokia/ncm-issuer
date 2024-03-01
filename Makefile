@@ -2,7 +2,7 @@ APP_NAME ?= ncm-issuer
 APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
 BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
-ENVTEST_K8S_VERSION ?= 1.27
+ENVTEST_K8S_VERSION ?= 1.29
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))

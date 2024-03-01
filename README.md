@@ -46,7 +46,7 @@ applications and to ensure that they are valid and up to date.
 Prerequisites for building and using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 21 or later,
-* [Kubernetes](https://kubernetes.io) version 1.18 - 1.27,
+* [Kubernetes](https://kubernetes.io) version 1.24 - 1.29,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
 * [Docker](https://docs.docker.com/engine/install/) version 20.10.0 or later,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
@@ -204,33 +204,33 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 
 ### Issuer and ClusterIssuer fields overview
 
-| Field                                     | Description                                                                                                                                                                                                                                                                | Supported from |
-|:------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------:|
+| Field                                     | Description                                                                                                                                                                                                                                                                     | Supported from |
+|:------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------:|
 | `.spec.caName`                            | Name of an existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                            |  1.1.0-1.1.0   |
-| `.spec.caID`                              | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                                 |  1.1.0-1.1.0   |
-| `.spec.provisioner.mainAPI`               | The URL to the main NCM REST API endpoint                                                                                                                                                                                                                                                |  1.1.0-1.1.0   |
-| `.spec.provisioner.backupAPI`             | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                                                                                                                                                                                            |  1.1.0-1.1.0   |
+| `.spec.caID`                              | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                                                                                                                                                                            |  1.1.0-1.1.0   |
+| `.spec.provisioner.mainAPI`               | The URL to the main NCM REST API endpoint                                                                                                                                                                                                                                       |  1.1.0-1.1.0   |
+| `.spec.provisioner.backupAPI`             | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                                                                                                                                                                                   |  1.1.0-1.1.0   |
 | `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM REST API before aborting the request                                                                                                                                                              |  1.1.0-1.1.0   |
 | `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM REST API health check                                                                                                                                                                                                                        |  1.1.0-1.1.0   |
 | `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API                                                                                                                                                                 |  1.1.0-1.1.0   |
 | `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM REST API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.1.0-1.1.0   |
-| `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                    |  1.0.1-1.0.0   |
-| `.spec.profileId`                         | Entity profile ID in NCM REST API, optional                                                                                                                                                                                                                                               |  1.0.1-1.0.0   |
-| `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                                 |  1.0.1-1.0.0   |
-| `.spec.chainInSigner`                     | Determines whether certificate chain should be included in issued certificate CA field (ca.crt - root CA certificate + intermediate CA certificates + singing CA certificate)                                                                                                          |  1.0.3-1.0.2   |
-| `.spec.onlyEECert`                        | Determines whether only end-entity certificate should be included in issued certificate TLS field (tls.crt)                                                                                                                                                                         |  1.0.3-1.0.2   |
+| `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                         |  1.0.1-1.0.0   |
+| `.spec.profileId`                         | Entity profile ID in NCM REST API, optional                                                                                                                                                                                                                                     |  1.0.1-1.0.0   |
+| `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                             |  1.0.1-1.0.0   |
+| `.spec.chainInSigner`                     | Determines whether certificate chain should be included in issued certificate CA field (ca.crt - root CA certificate + intermediate CA certificates + singing CA certificate)                                                                                                   |  1.0.3-1.0.2   |
+| `.spec.onlyEECert`                        | Determines whether only end-entity certificate should be included in issued certificate TLS field (tls.crt)                                                                                                                                                                     |  1.0.3-1.0.2   |
 
 **:x: Deprecated:** The following fields are not recommended to be used anymore!
 
-| Field                       | Description                                                                                                 | Supported from |
-|:----------------------------|:------------------------------------------------------------------------------------------------------------|:--------------:|
-| `.spec.CASNAME`             | Name of an existing CA in the NCM REST API, which will be used to issue certificates                             |  1.0.1-1.0.0   |
-| `.spec.CASHREF`             | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates                  |  1.0.1-1.0.0   |
-| `.spec.ncmSERVER`           | The URL to the main NCM REST API endpoint                                                                                 |  1.0.1-1.0.0   |
-| `.spec.ncmSERVER2`          | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                             |  1.0.3-1.0.2   |
-| `.spec.SecretName`          | The name of Secret which contains the credentials (user and password) needed for making requests to NCM REST API |  1.0.1-1.0.0   |
-| `.spec.authNameSpace`       | The name of namespace in which Secret to NCM REST API credentials can be found                                   |  1.0.1-1.0.0   |
-| `.spec.tlsSecretName`       | The name of Secret which contains CA bundle used to verify connections to the NCM REST API                       |  1.0.1-1.0.0   |
+| Field                 | Description                                                                                                      | Supported from |
+|:----------------------|:-----------------------------------------------------------------------------------------------------------------|:--------------:|
+| `.spec.CASNAME`       | Name of an existing CA in the NCM REST API, which will be used to issue certificates                             |  1.0.1-1.0.0   |
+| `.spec.CASHREF`       | Unique HREF identifier for existing CA in the NCM REST API, which will be used to issue certificates             |  1.0.1-1.0.0   |
+| `.spec.ncmSERVER`     | The URL to the main NCM REST API endpoint                                                                        |  1.0.1-1.0.0   |
+| `.spec.ncmSERVER2`    | The URL to the backup NCM REST API endpoint in case of the lack of connection to the main one                    |  1.0.3-1.0.2   |
+| `.spec.SecretName`    | The name of Secret which contains the credentials (user and password) needed for making requests to NCM REST API |  1.0.1-1.0.0   |
+| `.spec.authNameSpace` | The name of namespace in which Secret to NCM REST API credentials can be found                                   |  1.0.1-1.0.0   |
+| `.spec.tlsSecretName` | The name of Secret which contains CA bundle used to verify connections to the NCM REST API                       |  1.0.1-1.0.0   |
 
 ## Usage
 

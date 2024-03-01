@@ -3,7 +3,7 @@ priorityClassName: ""
 
 image:
   repository: docker.io/misiektoja/ncm-issuer
-  tag: 1.1.0
+  tag: 1.1.1
   pullPolicy: Always
   pullSecrets: []
 
