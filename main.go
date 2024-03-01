@@ -36,8 +36,8 @@ import (
 var (
 	scheme       = runtime.NewScheme()
 	setupLog     = ctrl.Log.WithName("setup")
-	chartVersion = "1.1.0"
-	imageVersion = "1.1.0"
+	chartVersion = "1.1.1"
+	imageVersion = "1.1.1"
 )
 
 const (

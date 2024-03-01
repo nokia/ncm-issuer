@@ -53,3 +53,6 @@ Version 1.1.0 (Build version 1.1.0)
 - Added possibility to configure verbosity of logging
 - Added sidecar for debugging purposes
 - Fixed occasionally encountered data-races when accessing saved Issuer or ClusterIssuer config
+
+Version 1.1.1 (Build version 1.1.1)
+- Changed the list of supported Kubernetes version to 1.24 - 1.29

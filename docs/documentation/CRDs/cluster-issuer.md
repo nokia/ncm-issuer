@@ -14,13 +14,16 @@ Below is an example `yaml` file containing `ClusterIssuer` definition:
   metadata:
     name: example-ncm-clusterissuer
   spec:
+    # caName or caID is always required.
     caName: ncm-ca
     caID: e1DefAscx
     provisioner:
+      # mainAPI is always required.
       mainAPI: https://nokia-ncm.local
       backupAPI: https://nokia-backup-ncm.local
       httpClientTimeout: 10s
       healthCheckerInterval: 1m
+      # authRef is always required.
       authRef:
         name: ncm-rest-auth
         namespace: ncm-ns

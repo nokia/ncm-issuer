@@ -15,13 +15,16 @@ Below is an example `yaml` file containing `Issuer` definition:
     name: example-ncm-issuer
     namespace: ncm-ns
   spec:
+    # caName or caID is always required.
     caName: ncm-ca
     caID: e1DefAscx
     provisioner:
+      # mainAPI is always required.
       mainAPI: https://nokia-ncm.local
       backupAPI: https://nokia-backup-ncm.local
       httpClientTimeout: 10s
       healthCheckerInterval: 1m
+      # authRef is always required.
       authRef:
         name: ncm-rest-auth
         namespace: ncm-ns
@@ -49,13 +52,13 @@ The number next to the label icon indicates from which version the fields are su
 
 | Field                                     | Description                                                                                                                                                                                                                                                                  |
 |:------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `.spec.caName`                            | Name of an existing CA in the NCM, which will be used to issue certificates                                                                                                                                                                                                  |
-| `.spec.caID`                              | Unique href (or ID) identifier for existing CA in the NCM, which will be used to issue certificates                                                                                                                                                                          |
-| `.spec.provisioner.mainAPI`               | The URL to the main NCM API endpoint                                                                                                                                                                                                                                         |
+| `.spec.caName`                            | Name of an existing CA in the NCM, which will be used to issue certificates (required if `.spec.caID` is not specified)                                                                                                                                                      |
+| `.spec.caID`                              | Unique href (or ID) identifier for existing CA in the NCM, which will be used to issue certificates (required if `.spec.caName` is not specified)                                                                                                                            |
+| `.spec.provisioner.mainAPI`               | The URL to the main NCM API endpoint (always required)                                                                                                                                                                                                                       |
 | `.spec.provisioner.backupAPI`             | The URL to the backup NCM API endpoint in case of the lack of connection to the main one                                                                                                                                                                                     |
 | `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM API before aborting the request                                                                                                                                                                |
 | `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM API health check                                                                                                                                                                                                                          |
-| `.spec.provisioner.authRef`               | Reference to a `secret` containing the credentials (user and password) needed for making requests to NCM API                                                                                                                                                                 |
+| `.spec.provisioner.authRef`               | Reference to a `secret` containing the credentials (user and password) needed for making requests to NCM API (always required)                                                                                                                                               |
 | `.spec.provisioner.tlsRef`                | Reference to a `secret` containing CA bundle used to verify connections to the NCM API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |
 
 > :material-tag: [1.0.3-1.0.2](../../release-notes/1.0.3.md)
