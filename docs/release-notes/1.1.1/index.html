@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../1.1.0/">
+        <link rel="prev" href="../../documentation/troubleshooting/">
       
       
-        <link rel="next" href="../1.0.1/">
+        <link rel="next" href="../1.1.0/">
       
       
       <link rel="icon" href="../../assets/ncm-issuer-logo.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>1.0.3 - ncm-issuer</title>
+        <title>1.1.1 - ncm-issuer</title>
       
     
     
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              1.0.3
+              1.1.1
             
           </span>
         </div>
@@ -255,7 +255,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../1.1.1/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link">
           
   
   Release notes
@@ -786,48 +786,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../1.1.1/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    1.1.1
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../1.1.0/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    1.1.0
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -844,7 +802,7 @@
           
   
   <span class="md-ellipsis">
-    1.0.3
+    1.1.1
   </span>
   
 
@@ -855,7 +813,7 @@
         
   
   <span class="md-ellipsis">
-    1.0.3
+    1.1.1
   </span>
   
 
@@ -886,15 +844,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fixes
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#other" class="md-nav__link">
     <span class="md-ellipsis">
       Other
@@ -907,6 +856,48 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.1.0/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    1.1.0
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0.3/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    1.0.3
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -976,15 +967,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fixes
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#other" class="md-nav__link">
     <span class="md-ellipsis">
       Other
@@ -1012,23 +994,15 @@
 
 
 <h1 id="whats-changed">What's changed</h1>
-<p>ncm-issuer <code>1.0.3</code> includes several features and fixes for previously known issues.</p>
+<p>ncm-issuer <code>1.1.1</code> introduces support for newer releases of Kubernetes.</p>
 <h2 id="features">Features</h2>
 <ul>
-<li>Added possibility to specify backup NCM API server in case of lack of connection to the main one</li>
-<li>Added possibility to include certificate chain (without end-entity certificate) in <code>ca.crt</code></li>
-<li>Added possibility to include only end-user certificate in <code>tls.crt</code></li>
-</ul>
-<p>For more detailed view about new features, see the <img alt="README" src="https://github.com/nokia/ncm-issuer/blob/1.0.3/README.md" /> or <img alt="release notes" src="https://github.com/nokia/ncm-issuer/blob/1.0.3/release_notes.txt" />!</p>
-<h2 id="fixes">Fixes</h2>
-<ul>
-<li>Fixed misinterpretation in case of manually triggering rotation of a private key (previously renewal operation was triggered instead of re-enrollment)</li>
-<li>Fixed bug related to certificates with long names</li>
-<li>Fixed several bugs during certificate renewal</li>
+<li>Add support for Kubernetes versions <code>v1.28</code> and <code>v1.29</code></li>
 </ul>
 <h2 id="other">Other</h2>
 <ul>
-<li>Bumped go from 1.17 to 1.19.6</li>
+<li>Versions of Kubernetes less than <code>v1.24</code> have been considered not recommended for use with ncm-issuer</li>
+<li>Add note to required fields in CRDs </li>
 </ul>
 
 
