@@ -6,7 +6,6 @@ jobs:
     name: "lookup go versions"
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.versions.outputs.matrix }}
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
       - uses: actions/checkout@v4
@@ -23,12 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "setup go"
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
 
       - name: "golangci-lint"
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
           version: v1.54
           only-new-issues: true
@@ -38,15 +37,12 @@ jobs:
     name: "unit tests"
     needs: go-versions
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ${{ fromJSON(needs.go-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - name: "setup go"
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
 
       - name: "install dependencies"
         run: go get .
@@ -58,15 +54,12 @@ jobs:
     name: "build ncm-issuer"
     needs: go-versions
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ${{ fromJSON(needs.go-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - name: "setup go"
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
 
       - name: "build ncm-issuer"
         run: make build

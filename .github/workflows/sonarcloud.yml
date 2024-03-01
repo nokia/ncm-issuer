@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 0
 
       - name: "setup go"
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
 
@@ -39,9 +39,9 @@ jobs:
         run: go get .
 
       - name: "golangci-lint"
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
-          version: v1.52.2
+          version: v1.54
           only-new-issues: true
           args: --config=.golangci.yml --out-format checkstyle:golangcli-lint-report.xml
 

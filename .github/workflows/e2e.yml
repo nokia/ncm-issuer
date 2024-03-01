@@ -10,7 +10,6 @@ jobs:
     name: "lookup go versions"
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.versions.outputs.matrix }}
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
       - uses: actions/checkout@v4
