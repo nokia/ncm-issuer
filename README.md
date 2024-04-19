@@ -178,7 +178,7 @@ Below is an example `yaml` file containing `Issuer` definition:
       tlsRef:
         name: ncm-tls
         namespace: ncm-ns
-    profileId: 101
+    profileId: "101"
     useProfileIDForRenew: true
     reenrollmentOnRenew: true
     noRoot: true
@@ -218,7 +218,7 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 | `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API (always required)                                                                                                                                               |  1.1.0-1.1.0   |
 | `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM REST API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.1.0-1.1.0   |
 | `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                         |  1.0.1-1.0.0   |
-| `.spec.profileId`                         | Entity profile ID in NCM, optional                                                                                                                                                                                                                                              |  1.0.1-1.0.0   |
+| `.spec.profileId`                         | Entity profile ID in NCM, optional; needs to be in double quotes                                                                                                                                                                                                                |  1.0.1-1.0.0   |
 | `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                             |  1.0.1-1.0.0   |
 | `.spec.chainInSigner`                     | Determines whether certificate chain should be included in issued certificate CA field (ca.crt - root CA certificate + intermediate CA certificates + singing CA certificate)                                                                                                   |  1.0.3-1.0.2   |
 | `.spec.onlyEECert`                        | Determines whether only end-entity certificate should be included in issued certificate TLS field (tls.crt)                                                                                                                                                                     |  1.0.3-1.0.2   |
