@@ -117,7 +117,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@c7e1dc9
 
 pack-app: docker-save
 	rm -rf builds/$(APP_NAME) && mkdir -p builds/$(APP_NAME)/
