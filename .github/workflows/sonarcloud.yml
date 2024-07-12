@@ -39,7 +39,7 @@ jobs:
         run: go get .
 
       - name: "golangci-lint"
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v5
         with:
           version: v1.54
           only-new-issues: true
