@@ -59,7 +59,7 @@ jobs:
     - name: "install kubectl cert-manager plugin"
       run: |
           OS=$(uname -s | tr A-Z a-z); ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_${OS}_${ARCH}
-          chmod +x cmctl
+          sudo chmod +x cmctl
           sudo mv cmctl /usr/local/bin
 
     - name: "install yq"
