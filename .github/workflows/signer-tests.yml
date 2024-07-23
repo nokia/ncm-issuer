@@ -56,11 +56,11 @@ jobs:
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
         
-    - name: "install kubectl cert-manager plugin"
+    - name: "install cmctl"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgr-version }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
-          tar xzf kubectl-cert-manager.tar.gz
-          sudo mv kubectl-cert_manager /usr/local/bin
+          OS=$(uname -s | tr A-Z a-z); ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_${OS}_${ARCH}
+          sudo chmod +x cmctl
+          sudo mv cmctl /usr/local/bin
 
     - name: "install yq"
       run: sudo snap install yq
@@ -124,7 +124,7 @@ jobs:
 
     - name: "check certificate resource"
       run: |
-        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
+        sudo cmctl status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
@@ -138,7 +138,7 @@ jobs:
 
     - name: "renew certificate"
       run: |
-        sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-issuer
+        sudo cmctl renew ncm-cert -n ncm-issuer
 
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
@@ -148,9 +148,9 @@ jobs:
     - name: "check certificate resource"
       run: |
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer
-        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer
+        sudo cmctl status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
-        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
+        sudo cmctl status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         openssl x509 -in /tmp/cert.der -text -noout
 
@@ -229,11 +229,11 @@ jobs:
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
    
-    - name: "install kubectl cert-manager plugin"
+    - name: "install cmctl"
       run: |
-          OS=$(go env GOOS); ARCH=$(go env GOARCH); curl -sSL -o kubectl-cert-manager.tar.gz "https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.certmgr-version }}/kubectl-cert_manager-$OS-$ARCH.tar.gz"
-          tar xzf kubectl-cert-manager.tar.gz
-          sudo mv kubectl-cert_manager /usr/local/bin
+          OS=$(uname -s | tr A-Z a-z); ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_${OS}_${ARCH}
+          sudo chmod +x cmctl
+          sudo mv cmctl /usr/local/bin
 
     - name: "install yq"
       run: sudo snap install yq
@@ -308,7 +308,7 @@ jobs:
 
     - name: "check certificate resource"
       run: |
-        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert
+        sudo cmctl status certificate ncm-cert -n ncm-cert
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-cert  | grep "The certificate has been successfully issued"
@@ -322,7 +322,7 @@ jobs:
 
     - name: "renew certificate"
       run: |
-        sudo microk8s.kubectl cert-manager renew ncm-cert -n ncm-cert
+        sudo cmctl renew ncm-cert -n ncm-cert
 
     - name: "sleep for 10s"
       uses: juliangruber/sleep-action@v1
@@ -332,9 +332,9 @@ jobs:
     - name: "check certificate resource"
       run: |
         sudo microk8s.kubectl get certificaterequest -n ncm-cert
-        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert
+        sudo cmctl status certificate ncm-cert -n ncm-cert
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
-        sudo microk8s.kubectl cert-manager status certificate ncm-cert -n ncm-cert | grep "No CertificateRequest found for this Certificate"
+        sudo cmctl status certificate ncm-cert -n ncm-cert | grep "No CertificateRequest found for this Certificate"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-cert | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         openssl x509 -in /tmp/cert.der -text -noout
 

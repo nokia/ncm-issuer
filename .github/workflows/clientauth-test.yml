@@ -56,7 +56,7 @@ jobs:
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
    
-    - name: "install kubectl cert-manager plugin"
+    - name: "install cmctl"
       run: |
           OS=$(uname -s | tr A-Z a-z); ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_${OS}_${ARCH}
           sudo chmod +x cmctl
