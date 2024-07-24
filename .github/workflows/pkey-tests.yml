@@ -6,6 +6,10 @@ on:
         type: string
         description: "Version of Go used to build ncm-issuer image"
         required: true
+      image-artifact-name:
+        type: string
+        description: "Name of the ncm-issuer image artifact"
+        required: true
 
 jobs:
   ecdsa-test:
@@ -31,11 +35,14 @@ jobs:
     - name: Set KUBECONFIG for MicroK8s
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
 
-    - name: "build ncm-issuer image"
-      run: |
-        make docker-build
-        docker save ncm-issuer > ncm-issuer.tar
-        sudo microk8s ctr image import ncm-issuer.tar
+    - name: "Download ncm-issuer image"
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.image-artifact-name }}
+        path: .
+
+    - name: "Load ncm-issuer image"
+      run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
 
     - name: "install cert-manager charts"
       run: |
@@ -107,10 +114,13 @@ jobs:
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
 
-    - name: "sleep for 15s"
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 15s
+    - name: "wait for ncm-issuer readiness"
+      run: |
+        while [[ $(sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer -o jsonpath="{.items[0].status.conditions[?(@.type=='Ready')].status}") != "True" ]]; do
+          echo "Waiting for ncm-issuer to be ready..."
+          sleep 1
+        done
+        echo "ncm-issuer is ready"
 
     - name: "check issuer status"
       run: |
@@ -123,10 +133,13 @@ jobs:
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
-    - name: "sleep for 15s"
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 15s
+    - name: "wait for certificate readiness"
+      run: |
+        while [[ $(sudo microk8s.kubectl get certificate.cert-manager.io/ncm-cert -n ncm-issuer -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}") != "True" ]]; do
+          echo "Waiting for certificate to be ready..."
+          sleep 1
+        done
+        echo "Certificate is ready"
 
     - name: "check certificate resource"
       run: |
@@ -212,11 +225,14 @@ jobs:
     - name: Set KUBECONFIG for MicroK8s
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
 
-    - name: "build ncm-issuer image"
-      run: |
-        make docker-build
-        docker save ncm-issuer > ncm-issuer.tar
-        sudo microk8s ctr image import ncm-issuer.tar
+    - name: "Download ncm-issuer image"
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.image-artifact-name }}
+        path: .
+
+    - name: "Load ncm-issuer image"
+      run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
 
     - name: "install cert-manager charts"
       run: |
@@ -287,10 +303,13 @@ jobs:
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
 
-    - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 10s
+    - name: "wait for ncm-issuer readiness"
+      run: |
+        while [[ $(sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer -o jsonpath="{.items[0].status.conditions[?(@.type=='Ready')].status}") != "True" ]]; do
+          echo "Waiting for ncm-issuer to be ready..."
+          sleep 1
+        done
+        echo "ncm-issuer is ready"
 
     - name: "check issuer status"
       run: |
@@ -303,10 +322,13 @@ jobs:
       run: |
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
-    - name: "sleep for 15s"
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 15s
+    - name: "wait for certificate readiness"
+      run: |
+        while [[ $(sudo microk8s.kubectl get certificate.cert-manager.io/ncm-cert -n ncm-issuer -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}") != "True" ]]; do
+          echo "Waiting for certificate to be ready..."
+          sleep 1
+        done
+        echo "Certificate is ready"
 
     - name: "check certificate resource"
       run: |
