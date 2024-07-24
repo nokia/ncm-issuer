@@ -41,6 +41,9 @@ jobs:
         echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
     - run: echo "k8s ${{ env.K8S_VERSION }}"
 
+    - name: Set KUBECONFIG for MicroK8s
+      run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
+
     - name: "build ncm-issuer image"
       run: |
         make docker-build
