@@ -54,9 +54,7 @@ jobs:
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 10s
+      run: sleep 10
 
     - name: "cert-manager status"
       run: |
@@ -99,9 +97,7 @@ jobs:
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
         
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 10s
+      run: sleep 10
 
     - name: "ncm-issuer plugin status"
       run: |
@@ -162,9 +158,7 @@ jobs:
         sudo -E cmctl renew ncm-cert -n ncm-issuer
 
     - name: "sleep for 15s"
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 15s
+      run: sleep 15
 
     - name: "check certificate resource"
       run: |
@@ -244,9 +238,7 @@ jobs:
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 10s
+      run: sleep 10
 
     - name: "cert-manager status"
       run: |
@@ -288,9 +280,7 @@ jobs:
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
 
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 10s
+      run: sleep 10
 
     - name: "ncm-issuer plugin status"
       run: |
@@ -351,9 +341,7 @@ jobs:
         sudo -E cmctl renew ncm-cert -n ncm-issuer
 
     - name: "sleep for 15s"
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 15s
+      run: sleep 15
 
     - name: "check certificate resource"
       run: |
