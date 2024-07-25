@@ -47,7 +47,7 @@ jobs:
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
     - name: "Download ncm-issuer image"
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-artifact-name }}
         path: .
@@ -93,7 +93,7 @@ jobs:
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
 
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
+      uses: juliangruber/sleep-action@v2.0.0
       with:
         time: 10s
 
@@ -153,7 +153,7 @@ jobs:
         sudo -E cmctl renew ncm-cert -n ncm-issuer
 
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
+      uses: juliangruber/sleep-action@v2.0.0
       with:
         time: 10s
 
@@ -187,7 +187,7 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artificates"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       if: ${{ failure() }}
       with:
         name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgr-version }}.tar.gz
@@ -219,7 +219,7 @@ jobs:
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
 
     - name: "Download ncm-issuer image"
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-artifact-name }}
         path: .
@@ -237,7 +237,7 @@ jobs:
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
+      uses: juliangruber/sleep-action@v2.0.0
       with:
         time: 10s
 
@@ -287,7 +287,7 @@ jobs:
         sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
         
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
+      uses: juliangruber/sleep-action@v2.0.0
       with:
         time: 10s
 
@@ -349,7 +349,7 @@ jobs:
         sudo -E cmctl renew ncm-cert -n ncm-cert
 
     - name: "sleep for 10s"
-      uses: juliangruber/sleep-action@v1
+      uses: juliangruber/sleep-action@v2.0.0
       with:
         time: 10s
 
@@ -385,7 +385,7 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artifacts"
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: ${{ failure() }}
       with:
         name: logs-k${{ matrix.k8sversion }}-${{ matrix.certmgr-version }}.tar.gz
