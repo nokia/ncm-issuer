@@ -33,6 +33,7 @@ jobs:
         with:
           name: ncm-issuer-image
           path: ncm-issuer-image.tar
+          retention-days: 1
 
   clientauth:
     name: "clientauth test"
