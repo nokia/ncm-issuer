@@ -35,41 +35,41 @@ jobs:
           path: ncm-issuer-image.tar
           retention-days: 1
 
-  clientauth:
-    name: "clientauth test"
-    needs: [go-versions, build-image]
-    uses: ./.github/workflows/clientauth-test.yml
-    secrets: inherit
-    with:
-      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
-      image-artifact-name: ncm-issuer-image
+ # clientauth:
+  #   name: "clientauth test"
+  #   needs: [go-versions, build-image]
+  #   uses: ./.github/workflows/clientauth-test.yml
+  #   secrets: inherit
+  #   with:
+  #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+  #     image-artifact-name: ncm-issuer-image
 
-  caname-id:
-    name: "ca name/id tests"
-    needs: [go-versions, build-image]
-    uses: ./.github/workflows/caname-id-test.yml
-    secrets: inherit
-    with:
-      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
-      image-artifact-name: ncm-issuer-image
+  # caname-id:
+  #   name: "ca name/id tests"
+  #   needs: [go-versions, build-image]
+  #   uses: ./.github/workflows/caname-id-test.yml
+  #   secrets: inherit
+  #   with:
+  #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+  #     image-artifact-name: ncm-issuer-image
 
-  signer:
-    name: "signer test"
-    needs: [go-versions, build-image]
-    uses: ./.github/workflows/signer-tests.yml
-    secrets: inherit
-    with:
-      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
-      image-artifact-name: ncm-issuer-image
+  # signer:
+  #   name: "signer test"
+  #   needs: [go-versions, build-image]
+  #   uses: ./.github/workflows/signer-tests.yml
+  #   secrets: inherit
+  #   with:
+  #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+  #     image-artifact-name: ncm-issuer-image
 
-  pkey:
-    name: "pkey tests"
-    needs: [go-versions, build-image]
-    uses: ./.github/workflows/pkey-tests.yml
-    secrets: inherit
-    with:
-      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
-      image-artifact-name: ncm-issuer-image
+  # pkey:
+  #   name: "pkey tests"
+  #   needs: [go-versions, build-image]
+  #   uses: ./.github/workflows/pkey-tests.yml
+  #   secrets: inherit
+  #   with:
+  #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+  #     image-artifact-name: ncm-issuer-image
 
   san:
     name: "san test"

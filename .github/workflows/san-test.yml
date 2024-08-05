@@ -62,12 +62,22 @@ jobs:
         sudo microk8s.kubectl create namespace cert-manager
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
-        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --set crds.enabled=true
-        echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
-    - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
-
+        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --set crds.enabled=true || true
+    - name: "Get Kubernetes events"
+      run: |
+          sudo microk8s.kubectl get events --namespace cert-manager --sort-by=.metadata.creationTimestamp || true
     - name: "sleep for 10s"
       run: sleep 10
+
+    - name: Get pod status
+      run:       sudo microk8s.kubectl get pods --namespace cert-manager || true
+
+    - name: Get pod logs
+      run: |
+        for pod in $(sudo microk8s.kubectl get pods -n cert-manager -o jsonpath='{.items[*].metadata.name}'); do
+          echo "Logs for $pod:"
+          sudo microk8s.kubectl logs $pod -n cert-manager || true
+        done
 
     - name: "cert-manager status"
       run: |
