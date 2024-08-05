@@ -13,6 +13,7 @@
 
 # builds directory
 builds/
+bin/
 
 # Intelij setting
 .idea/
@@ -22,3 +23,11 @@ vendor/
 
 # Go workspace file
 go.work
+
+
+#Intelij setting folder
+.idea/
+
+#test reports and coverage
+report.json
+coverage.out
