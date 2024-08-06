@@ -35,7 +35,7 @@ jobs:
           path: ncm-issuer-image.tar
           retention-days: 1
 
- # clientauth:
+  # clientauth:
   #   name: "clientauth test"
   #   needs: [go-versions, build-image]
   #   uses: ./.github/workflows/clientauth-test.yml
@@ -53,14 +53,14 @@ jobs:
   #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
   #     image-artifact-name: ncm-issuer-image
 
-  # signer:
-  #   name: "signer test"
-  #   needs: [go-versions, build-image]
-  #   uses: ./.github/workflows/signer-tests.yml
-  #   secrets: inherit
-  #   with:
-  #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
-  #     image-artifact-name: ncm-issuer-image
+  signer:
+    name: "signer test"
+    needs: [go-versions, build-image]
+    uses: ./.github/workflows/signer-tests.yml
+    secrets: inherit
+    with:
+      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+      image-artifact-name: ncm-issuer-image
 
   # pkey:
   #   name: "pkey tests"
@@ -71,11 +71,11 @@ jobs:
   #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
   #     image-artifact-name: ncm-issuer-image
 
-  san:
-    name: "san test"
-    needs: [go-versions, build-image]
-    uses: ./.github/workflows/san-test.yml
-    secrets: inherit
-    with:
-      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
-      image-artifact-name: ncm-issuer-image
+  # san:
+  #   name: "san test"
+  #   needs: [go-versions, build-image]
+  #   uses: ./.github/workflows/san-test.yml
+  #   secrets: inherit
+  #   with:
+  #     go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+  #     image-artifact-name: ncm-issuer-image
