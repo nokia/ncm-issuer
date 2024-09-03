@@ -125,7 +125,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
-	if err := NCMCfg.Validate(); err != nil {
+	if err = NCMCfg.Validate(); err != nil {
 		// if the resource contidion has not changed, stop reconciling until updated
 		if IssuerHasConditionAndReasonAndMessage(*issuerStatus, ncmv1.IssuerCondition{
 			Type:    ncmv1.IssuerConditionReady,
@@ -135,7 +135,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}) {
 			return ctrl.Result{}, nil
 		}
-		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, ncmv1.ReasonError, err.Error())
+		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, ncmv1.ReasonError, "%s", err.Error())
 		return ctrl.Result{}, err
 	}
 

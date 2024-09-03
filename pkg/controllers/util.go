@@ -71,7 +71,7 @@ func IssuerHasCondition(status ncmv1.IssuerStatus, c ncmv1.IssuerCondition) bool
 
 // IssuerHasCondition will return true if the given issuer has a
 // condition matching the provided IssuerCondition.
-// The Status, Reason and Message will be used for comparison
+// The Status, Reason and Message will be used for comparison.
 func IssuerHasConditionAndReasonAndMessage(status ncmv1.IssuerStatus, c ncmv1.IssuerCondition) bool {
 	existingConditions := status.Conditions
 	for _, cond := range existingConditions {
