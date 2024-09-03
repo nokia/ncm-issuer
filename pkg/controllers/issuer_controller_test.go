@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/clock"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -53,7 +52,6 @@ func TestIssuerReconcile(t *testing.T) {
 		namespacedName types.NamespacedName
 		objects        []client.Object
 		err            error
-		expectedResult ctrl.Result
 		expectedStatus *ncmv1.IssuerStatus
 	}
 
@@ -63,7 +61,6 @@ func TestIssuerReconcile(t *testing.T) {
 
 	clk := clock.RealClock{}
 	now := metav1.NewTime(clk.Now().Truncate(time.Second))
-
 	run := func(t *testing.T, tc testCase) {
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
@@ -144,7 +141,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Type:               ncmv1.IssuerConditionReady,
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
-						Reason:             "NotFound",
+						Reason:             ncmv1.ReasonNotFound,
 						Message:            "Failed to retrieve auth secret err: secrets \"ncm-auth-secret\" not found",
 					},
 				},
@@ -185,8 +182,92 @@ func TestIssuerReconcile(t *testing.T) {
 						Type:               ncmv1.IssuerConditionReady,
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
-						Reason:             "Error",
+						Reason:             ncmv1.ReasonError,
 						Message:            "Failed to validate config provided in spec: incorrect authentication data: missing username or usrpassword",
+					},
+				},
+			},
+		},
+		{
+			name:           "issuer-ca-in-incorrect-format-full-rest-url",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAID: "https://ncm-server.local:8081/v1/cas/someID",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{},
+				},
+			},
+			err: errors.New("incorrect caID \"https://ncm-server.local:8081/v1/cas/someID\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             ncmv1.ReasonError,
+						Message:            "Failed to validate config provided in spec: incorrect caID \"https://ncm-server.local:8081/v1/cas/someID\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint",
+					},
+				},
+			},
+		},
+		{
+			name:           "issuer-ca-in-incorrect-format-rest-path-url",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAID: "/v1/cas/someID",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{},
+				},
+			},
+			err: errors.New("incorrect caID \"/v1/cas/someID\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             ncmv1.ReasonError,
+						Message:            "Failed to validate config provided in spec: incorrect caID \"/v1/cas/someID\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint",
 					},
 				},
 			},
@@ -228,7 +309,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Type:               ncmv1.IssuerConditionReady,
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
-						Reason:             "NotFound",
+						Reason:             ncmv1.ReasonNotFound,
 						Message:            "Failed to retrieve tls secret err: secrets \"ncm-tls-secret\" not found",
 					},
 				},
@@ -283,7 +364,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Type:               ncmv1.IssuerConditionReady,
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
-						Reason:             "Error",
+						Reason:             ncmv1.ReasonError,
 						Message:            "Failed to validate config provided in spec: incorrect TLS data: missing cacert, key or cert in TLS secret",
 					},
 				},
@@ -328,7 +409,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Type:               ncmv1.IssuerConditionReady,
 						Status:             ncmv1.ConditionFalse,
 						LastTransitionTime: &now,
-						Reason:             "Error",
+						Reason:             ncmv1.ReasonError,
 						Message:            "Failed to create new provisioner err: NCM API Client Error reason: cannot create new API client, err: parse \"https://ncm-server.local:-8081\": invalid port \":-8081\" after host",
 					},
 				},
@@ -373,8 +454,63 @@ func TestIssuerReconcile(t *testing.T) {
 						Type:               ncmv1.IssuerConditionReady,
 						Status:             ncmv1.ConditionTrue,
 						LastTransitionTime: &now,
-						Reason:             "Verified",
+						Reason:             ncmv1.ReasonVerified,
 						Message:            "Signing CA verified and ready to sign certificates",
+					},
+				},
+			},
+		},
+		{
+			name:           "cluster-issuer-reconcile-abandoned-bacause-stil-invalid",
+			kind:           ClusterIssuer,
+			namespacedName: types.NamespacedName{Namespace: v1.NamespaceDefault, Name: "ncm-cluster-issuer"},
+			objects: []client.Object{
+				&ncmv1.ClusterIssuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: v1.NamespaceDefault,
+						Name:      "ncm-cluster-issuer",
+					},
+					Status: ncmv1.IssuerStatus{
+						Conditions: []ncmv1.IssuerCondition{
+							{
+								Type:               ncmv1.IssuerConditionReady,
+								Status:             ncmv1.ConditionFalse,
+								LastTransitionTime: &now,
+								Reason:             ncmv1.ReasonError,
+								Message:            "Failed to validate config provided in spec: incorrect caID \"https://ncm-server.local:8081/v1/cas/someID\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint",
+							},
+						},
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAID:   "https://ncm-server.local:8081/v1/cas/someID",
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local",
+							AuthRef: &v1.SecretReference{
+								Namespace: v1.NamespaceDefault,
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: v1.NamespaceDefault,
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{},
+				},
+			},
+			err: errors.New("incorrect caID \"https://ncm-server.local:8081/v1/cas/someID\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             ncmv1.ReasonError,
+						Message:            "Failed to validate config provided in spec: incorrect caID \"https://ncm-server.local:8081/v1/cas/someID\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint",
 					},
 				},
 			},
@@ -418,7 +554,7 @@ func TestIssuerReconcile(t *testing.T) {
 						Type:               ncmv1.IssuerConditionReady,
 						Status:             ncmv1.ConditionTrue,
 						LastTransitionTime: &now,
-						Reason:             "Verified",
+						Reason:             ncmv1.ReasonVerified,
 						Message:            "Signing CA verified and ready to sign certificates",
 					},
 				},

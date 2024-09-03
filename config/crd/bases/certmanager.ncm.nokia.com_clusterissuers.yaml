@@ -192,6 +192,10 @@ spec:
                     reason:
                       description: Reason is a brief machine-readable explanation
                         for the condition's last transition.
+                      enum:
+                      - SecretNotFound
+                      - Verified
+                      - Error
                       type: string
                     status:
                       allOf:

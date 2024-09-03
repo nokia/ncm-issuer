@@ -87,7 +87,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		log.Info("Issuer resource not found, ignoring...")
 		return ctrl.Result{}, nil
 	}
-	issuerSpec, _, err := GetSpecAndStatus(issuer)
+	issuerSpec, issuerStatus, err := GetSpecAndStatus(issuer)
 	if err != nil {
 		log.Error(err, "Unexpected error while getting issuer spec and status. Not retrying.")
 		return ctrl.Result{}, nil
@@ -98,9 +98,9 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	authSecret := &core.Secret{}
 	if err = r.Get(ctx, NCMCfg.AuthNamespacedName, authSecret); err != nil {
 		log.Error(err, "Failed to retrieve auth secret from namespace", "namespacedName", NCMCfg.AuthNamespacedName)
-		reason := "Error"
+		reason := ncmv1.ReasonError
 		if apierrors.IsNotFound(err) {
-			reason = "NotFound"
+			reason = ncmv1.ReasonNotFound
 		}
 		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, reason, "Failed to retrieve auth secret err: %v", err)
 		return ctrl.Result{}, err
@@ -111,35 +111,43 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tlsSecret := &core.Secret{}
 		if err = r.Get(ctx, NCMCfg.TLSNamespacedName, tlsSecret); err != nil {
 			log.Error(err, "Failed to retrieve TLS secret from namespace", "namespacedName", NCMCfg.TLSNamespacedName)
-			reason := "Error"
+			reason := ncmv1.ReasonError
 			if apierrors.IsNotFound(err) {
-				reason = "NotFound"
+				reason = ncmv1.ReasonNotFound
 			}
 
 			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, reason, "Failed to retrieve tls secret err: %v", err)
 			return ctrl.Result{}, err
 		}
 		if err = NCMCfg.AddTLSData(tlsSecret); err != nil {
-			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to add TLS secret data to config err: %v", err)
+			_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, ncmv1.ReasonError, "Failed to add TLS secret data to config err: %v", err)
 			return ctrl.Result{}, err
 		}
 	}
 
-	if err = NCMCfg.Validate(); err != nil {
-		log.Error(err, "Failed to validate config provided in spec")
-		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to validate config provided in spec: %v", err)
+	if err := NCMCfg.Validate(); err != nil {
+		// if the resource contidion has not changed, stop reconciling until updated
+		if IssuerHasConditionAndReasonAndMessage(*issuerStatus, ncmv1.IssuerCondition{
+			Type:    ncmv1.IssuerConditionReady,
+			Status:  ncmv1.ConditionFalse,
+			Reason:  ncmv1.ReasonError,
+			Message: err.Error(),
+		}) {
+			return ctrl.Result{}, nil
+		}
+		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, ncmv1.ReasonError, err.Error())
 		return ctrl.Result{}, err
 	}
 
 	p, err := provisioner.NewProvisioner(NCMCfg, log.WithName("provisioner"))
 	if err != nil {
 		log.Error(err, "Failed to create new provisioner")
-		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, "Error", "Failed to create new provisioner err: %v", err)
+		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, ncmv1.ReasonError, "Failed to create new provisioner err: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	r.Provisioners.AddOrReplace(req.NamespacedName, p)
-	return ctrl.Result{}, r.SetStatus(ctx, issuer, ncmv1.ConditionTrue, "Verified", "Signing CA verified and ready to sign certificates")
+	return ctrl.Result{}, r.SetStatus(ctx, issuer, ncmv1.ConditionTrue, ncmv1.ReasonVerified, "Signing CA verified and ready to sign certificates")
 }
 
 // SetCondition will set a 'condition' on the given issuer.
@@ -150,7 +158,7 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 //   - If a condition of the same type and different state already exists, the
 //     condition will be updated and the LastTransitionTime set to the current
 //     time.
-func (r *IssuerReconciler) SetCondition(issuerStatus *ncmv1.IssuerStatus, status ncmv1.ConditionStatus, reason, message string) {
+func (r *IssuerReconciler) SetCondition(issuerStatus *ncmv1.IssuerStatus, status ncmv1.ConditionStatus, reason ncmv1.ReasonType, message string) {
 	newCondition := &ncmv1.IssuerCondition{
 		Type:    ncmv1.IssuerConditionReady,
 		Status:  status,
@@ -185,7 +193,7 @@ func (r *IssuerReconciler) SetCondition(issuerStatus *ncmv1.IssuerStatus, status
 	r.Log.V(2).Info("setting lastTransitionTime for issuer condition", "condition", ncmv1.IssuerConditionReady, "time", nowTime.Time)
 }
 
-func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, conditionStatus ncmv1.ConditionStatus, reason, message string, args ...interface{}) error {
+func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, conditionStatus ncmv1.ConditionStatus, reason ncmv1.ReasonType, message string, args ...interface{}) error {
 	// Format the message and update the issuer variable with the new Condition
 	var issuerStatus *ncmv1.IssuerStatus
 	switch t := issuer.(type) {
@@ -205,7 +213,7 @@ func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, 
 	if conditionStatus == ncmv1.ConditionFalse {
 		eventType = core.EventTypeWarning
 	}
-	r.Recorder.Event(issuer, eventType, reason, completeMessage)
+	r.Recorder.Event(issuer, eventType, string(reason), completeMessage)
 
 	// Actually update the issuer resource
 	var err error
