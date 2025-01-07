@@ -143,7 +143,7 @@ func (p *Provisioner) Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string
 		return p.handleAlreadySentCSR(cr.Namespace, cr.Annotations[cmapi.CertificateNameKey], certChain, wantedCA)
 	}
 
-	csrResp, err := p.NCMClient.SendCSR(cr.Spec.Request, signingCA, p.NCMConfig.ProfileID)
+	csrResp, err := p.NCMClient.SendCSR(cr.Spec.Request, signingCA, cr.Spec.Duration, p.NCMConfig.ProfileID)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("failed to send CSR, err: %w", err)
 	}
