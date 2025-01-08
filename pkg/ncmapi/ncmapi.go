@@ -403,15 +403,24 @@ func (c *Client) GetCA(path string) (*CAResponse, error) {
 	return &ca, nil
 }
 
-func (c *Client) SendCSR(pem []byte, CA *CAResponse, profileID string) (*CSRResponse, error) {
+func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, profileID string) (*CSRResponse, error) {
 	filePath, err := ncmutil.WritePEMToTempFile(pem)
 	c.log.V(2).Info("Wrote certificate to temp PEM file", "path", filePath)
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot write PEM to file", ErrorMessage: err}
 	}
 
+	certDuration := cmapi.DefaultCertificateDuration
+	if duration != nil {
+		certDuration = duration.Duration
+	}
+	notBefore := time.Now()
+	notAfter := notBefore.Add(certDuration)
+
 	params := map[string]string{
-		"ca": CA.Href,
+		"ca":        CA.Href,
+		"notBefore": notBefore.Format(time.RFC3339),
+		"notAfter":  notAfter.Format(time.RFC3339),	
 	}
 
 	if profileID != "" {

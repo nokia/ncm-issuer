@@ -202,7 +202,7 @@ func (fc *FakeClient) GetCA(path string) (*ncmapi.CAResponse, error) {
 	return fc.GetCAFn(path)
 }
 
-func (fc *FakeClient) SendCSR([]byte, *ncmapi.CAResponse, string) (*ncmapi.CSRResponse, error) {
+func (fc *FakeClient) SendCSR([]byte, *ncmapi.CAResponse, *metav1.Duration, string) (*ncmapi.CSRResponse, error) {
 	return fc.SendCSRFn()
 }
 
