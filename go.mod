@@ -1,6 +1,6 @@
 module github.com/nokia/ncm-issuer
 
-go 1.19
+go 1.23
 
 require (
 	github.com/go-logr/logr v1.2.4

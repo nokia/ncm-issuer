@@ -420,7 +420,7 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 	params := map[string]string{
 		"ca":        CA.Href,
 		"notBefore": notBefore.Format(time.RFC3339),
-		"notAfter":  notAfter.Format(time.RFC3339),	
+		"notAfter":  notAfter.Format(time.RFC3339),
 	}
 
 	if profileID != "" {
