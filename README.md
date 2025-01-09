@@ -18,7 +18,7 @@
 
 ncm-issuer is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
 [Nokia NetGuard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
-PKI system to sign certificate requests. The integration with NCM makes it easy to obtain non-selfsigned certificates for
+PKI system to sign certificate requests. The integration with NCM makes it easy to obtain non self-signed certificates for
 applications and to ensure that they are valid and up to date.
 
 ## Table of contents
@@ -286,6 +286,7 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
     name: example-ncm-certificate
     namespace: example-ncm-ns
   spec:
+    duration: 4382h
     commonName: example-ncm-certificate-nokia-ncm.local
     dnsNames:
     - example-ncm-certificate-nokia-ncm.local
@@ -307,6 +308,8 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
   EOF
   ```
 
+NOTE: Duration parameter is ignored, unless NCM release >= `24.11` (with REST API >= `1.13`) is used and CA's `set-validity-period` policy module's `Overwrite Old` parameter is set to false
+
 Then we can check the status of our newly issued certificate:
 
   ```bash
@@ -327,9 +330,9 @@ and whether it has corresponding Secret referenced:
 
 Additionally, in NCM GUI we can also find our newly issued certificate.
 
-### Renewing or reenrolling certificate
+### Renewing or re-enrolling certificate
 
-When it comes to renewing or reenrolling certificates, ncm-issuer will take care of this and
+When it comes to renewing or re-enrolling certificates, ncm-issuer will take care of this and
 do it before the certificate expires (the renewal grace period
 depends on the defined values in `Certificate` resource).
 
@@ -338,14 +341,14 @@ setting certain PK rotation policy in `Certificate` resource.
 
 |               Field               |  Operation   |             Value             |
 |:---------------------------------:|:------------:|:-----------------------------:|
-| `.spec.privateKey.rotationPolicy` | Reenrollment |           "Always"            |
+| `.spec.privateKey.rotationPolicy` | Re-enrollment |           "Always"            |
 | `.spec.privateKey.rotationPolicy` |   Renewal    | "Never" or not even specified |
 
-**:loudspeaker: Attention:** There is also an option for enforcing the reenrollment on
+**:loudspeaker: Attention:** There is also an option for enforcing the re-enrollment on
 renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
 to **true** in `Issuer` or `ClusterIssuer` definition.
 
-However, you can also trigger renewal or reenrolling operation manually using one of the commands below.
+However, you can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
 In case you have cert-manager kubectl plugin:
 
