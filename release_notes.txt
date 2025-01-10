@@ -58,5 +58,8 @@ Version 1.1.1 (Build version 1.1.1)
 - Changed the list of supported Kubernetes version to 1.24 - 1.29
 
 Version 1.1.2 (Build version 1.1.2)
-- Support for setting notBefore and notAfter parameters in NCM certificate requests corresponding to suggested Duration parameter in cert-manager.io/v1 Certificate object kind. notBefore is set to the current time when cert is being enrolled. Feature is available for NCM >= 24.11, in older release new parameters are ignored
-- Added issuer .spec.caID/CASHREF validation, so there is an error presented if the user specifies wrongly formatted value
+- Support for setting notBefore and notAfter parameters in NCM certificate requests corresponding to suggested Duration
+  parameter in cert-manager.io/v1 Certificate object kind. notBefore is set to the current time when cert is being 
+  enrolled. Feature is available for NCM >= 24.11, in older release new parameters are ignored
+- Added issuer .spec.caID/CASHREF validation, so there is an error presented if the user specifies wrongly 
+  formatted value
