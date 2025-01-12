@@ -17,7 +17,7 @@ limitations under the License.
 package cfg
 
 import (
-	"fmt"
+	"errors"
 	"reflect"
 	"strings"
 	"time"
@@ -213,22 +213,30 @@ func (cfg *NCMConfig) InjectNamespace(namespace string) {
 
 func (cfg *NCMConfig) Validate() error {
 	if cfg.MainAPI == "" {
-		return fmt.Errorf("incorrect NCM API data: missing main API url")
+		return cfg.getError("incorrect NCM API data: missing main API url")
+	}
+
+	if caIDInUnsupportedFormat(cfg.CAID) {
+		return cfg.getError("incorrect caID \"" + cfg.CAID + "\". Please provide only ID of the https://ncm.domain.example/v1/cas/{ID} endpoint")
 	}
 
 	if cfg.Username == "" || cfg.Password == "" {
-		return fmt.Errorf("incorrect authentication data: missing username or usrpassword")
+		return cfg.getError("incorrect authentication data: missing username or usrpassword")
 	}
 
 	if cfg.CAName == "" && cfg.CAID == "" {
-		return fmt.Errorf("incorrect signing CA certificate data: missing CANAME or CAHREF")
+		return cfg.getError("incorrect signing CA certificate data: missing CANAME or CAHREF")
 	}
 
 	if !reflect.DeepEqual(cfg.TLSNamespacedName, types.NamespacedName{}) && cfg.CACert == "" && cfg.Key == "" && cfg.Cert == "" {
-		return fmt.Errorf("incorrect TLS data: missing cacert, key or cert in TLS secret")
+		return cfg.getError("incorrect TLS data: missing cacert, key or cert in TLS secret")
 	}
 
 	return nil
+}
+
+func (cfg *NCMConfig) getError(message string) error {
+	return errors.New("Failed to validate config provided in spec: " + message)
 }
 
 func (cfg *NCMConfig) handleDeprecatedFields(issuerSpec *ncmv1.IssuerSpec) {

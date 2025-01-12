@@ -181,7 +181,7 @@ type IssuerCondition struct {
 	// Reason is a brief machine-readable explanation for the condition's last
 	// transition.
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	Reason ReasonType `json:"reason,omitempty"`
 
 	// Message is a human-readable description of the details of the last
 	// transition, complementing reason.
@@ -219,6 +219,21 @@ const (
 
 	// ConditionUnknown represents the fact that a given condition is unknown.
 	ConditionUnknown ConditionStatus = "Unknown"
+)
+
+// ConditionStatus represents a condition's status.
+// +kubebuilder:validation:Enum=SecretNotFound;Verified;Error
+type ReasonType string
+
+const (
+	// ReasonNotFound represents the fact that secrets needed to authenticate to the NCM API do not exist in cluster
+	ReasonNotFound ReasonType = "SecretNotFound"
+
+	// ReasonVerified represents the fact that the NCM Issuer(ClusterIssuer) are configured correctly
+	ReasonVerified ReasonType = "Verified"
+
+	// ReasonError represents the fact that the NCM Issuer(ClusterIssuer) are configured not correctly and require user interaction
+	ReasonError ReasonType = "Error"
 )
 
 func init() {

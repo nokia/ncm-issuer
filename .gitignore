@@ -15,8 +15,7 @@
 builds/
 bin/
 
-# Intelij setting
-.idea/
+
 
 # Dependency directories
 vendor/
@@ -24,8 +23,10 @@ vendor/
 # Go workspace file
 go.work
 
+#VSCode settings folder
+.vscode/
 
-#Intelij setting folder
+#Intelij settings folder
 .idea/
 
 #test reports and coverage

@@ -69,6 +69,19 @@ func IssuerHasCondition(status ncmv1.IssuerStatus, c ncmv1.IssuerCondition) bool
 	return false
 }
 
+// IssuerHasCondition will return true if the given issuer has a
+// condition matching the provided IssuerCondition.
+// The Status, Reason and Message will be used for comparison.
+func IssuerHasConditionAndReasonAndMessage(status ncmv1.IssuerStatus, c ncmv1.IssuerCondition) bool {
+	existingConditions := status.Conditions
+	for _, cond := range existingConditions {
+		if c.Type == cond.Type && c.Status == cond.Status && c.Reason == cond.Reason && c.Message == cond.Message {
+			return true
+		}
+	}
+	return false
+}
+
 func GetCertIDSecret(namespace string, name string, certID string) *v1.Secret {
 	secret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

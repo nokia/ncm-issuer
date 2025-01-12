@@ -1,7 +1,7 @@
 apiVersion: v1
 name: ncm-issuer
-appVersion: 1.1.1
-version: 1.1.1
+appVersion: 1.1.2
+version: 1.1.2
 kubeVersion: ">= 1.24.0-0 < 1.30.0-0"
 description: A Helm chart for cert-manager external issuer with NCM (NetGuard Certificate Manager)
 home: https://github.com/nokia/ncm-issuer
@@ -14,9 +14,5 @@ keywords:
   - com.nokia.ncm.certifier
   - tls
 maintainers:
-- email: sara.ryfczynska@nokia.com
-  name: Sara Ryfczynska
-- email: dawid.machoczek@nokia.com
-  name: Dawid Machoczek
-- email: adam.korba@nokia.com
-  name: Adam Korba
+- name: Michal Szymanski
+  email: misiektoja-github@rm-rf.ninja
