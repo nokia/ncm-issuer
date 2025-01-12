@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: clusterissuers.certmanager.ncm.nokia.com
 spec:
   group: certmanager.ncm.nokia.com
@@ -36,14 +35,19 @@ spec:
         description: ClusterIssuer is the Schema for the clusterissuers API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -60,25 +64,29 @@ spec:
                 description: '!DEPRECATED from build version 1.1.0'
                 type: string
               caID:
-                description: CAID is a unique identifier for existing CA in the NCM
-                  API, which will be used to issue certificates.
+                description: |-
+                  CAID is a unique identifier for existing CA in the NCM API,
+                  which will be used to issue certificates.
                 pattern: '[\w=_\-]+$'
                 type: string
               caName:
-                description: CAName is a name of an existing CA in the NCM API, which
+                description: |-
+                  CAName is a name of an existing CA in the NCM API, which
                   will be used to issue certificates.
                 type: string
               chainInSigner:
                 default: false
-                description: ChainInSigner determines whether certificate chain should
-                  be included in issued certificate CA field (intermediate certificates
-                  + singing CA certificate + root CA certificate).
+                description: |-
+                  ChainInSigner determines whether certificate chain should be included in
+                  issued certificate CA field (intermediate certificates +
+                  singing CA certificate + root CA certificate).
                 type: boolean
               littleEndian:
                 default: false
-                description: LittleEndian specifies the byte order, setting it to
-                  true will ensure that bytes are stored in LE order otherwise BE
-                  order will be used.
+                description: |-
+                  LittleEndian specifies the byte order, setting it to true
+                  will ensure that bytes are stored in LE order otherwise
+                  BE order will be used.
                 type: boolean
               ncmSERVER:
                 description: '!DEPRECATED from build version 1.1.0'
@@ -88,13 +96,15 @@ spec:
                 type: string
               noRoot:
                 default: false
-                description: NoRoot determines whether issuing CA certificate should
-                  be included in issued certificate CA field instead of root CA certificate.
+                description: |-
+                  NoRoot determines whether issuing CA certificate should be included
+                  in issued certificate CA field instead of root CA certificate.
                 type: boolean
               onlyEECert:
                 default: false
-                description: OnlyEECert determines whether only end-entity certificate
-                  should be included in issued certificate TLS field.
+                description: |-
+                  OnlyEECert determines whether only end-entity certificate should be included
+                  in issued certificate TLS field.
                 type: boolean
               profileId:
                 description: ProfileID is an entity profile ID in NCM API.
@@ -103,9 +113,9 @@ spec:
                 description: Provisioner contains NCM provisioner configuration.
                 properties:
                   authRef:
-                    description: AuthRef is a reference to a Secret containing the
-                      credentials (user and password) needed for making requests to
-                      NCM API.
+                    description: |-
+                      AuthRef is a reference to a Secret containing the credentials
+                      (user and password) needed for making requests to NCM API.
                     properties:
                       name:
                         description: name is unique within a namespace to reference
@@ -116,29 +126,33 @@ spec:
                           secret name must be unique.
                         type: string
                     type: object
+                    x-kubernetes-map-type: atomic
                   backupAPI:
-                    description: BackupAPI is the URL to the backup NCM API in case
-                      of the lack of connection to the main one.
+                    description: |-
+                      BackupAPI is the URL to the backup NCM API in case of
+                      the lack of connection to the main one.
                     type: string
                   healthCheckerInterval:
                     default: 1m
-                    description: HealthCheckerInterval is the time interval between
-                      each NCM API health check. By default, interval is set to 1
-                      minute.
+                    description: |-
+                      HealthCheckerInterval is the time interval between each
+                      NCM API health check. By default, interval is set to 1 minute.
                     type: string
                   httpClientTimeout:
                     default: 10s
-                    description: HTTPClientTimeout is a maximum amount of time that
-                      the HTTP client will wait for a response from NCM API before
+                    description: |-
+                      HTTPClientTimeout is a maximum amount of time that the
+                      HTTP client will wait for a response from NCM API before
                       aborting the request. By default, timeout is set to 10 seconds.
                     type: string
                   mainAPI:
                     description: MainAPI is the URL to the main NCM API.
                     type: string
                   tlsRef:
-                    description: TLSRef is a reference to a Secret containing CA bundle
-                      used to verify connections to the NCM API. If the secret reference
-                      is not specified and selected protocol is HTTPS, InsecureSkipVerify
+                    description: |-
+                      TLSRef is a reference to a Secret containing CA bundle used to
+                      verify connections to the NCM API. If the secret reference is not
+                      specified and selected protocol is HTTPS, InsecureSkipVerify
                       will be used. Otherwise, TLS or mTLS connection will be used,
                       depending on provided data.
                     properties:
@@ -151,6 +165,7 @@ spec:
                           secret name must be unique.
                         type: string
                     type: object
+                    x-kubernetes-map-type: atomic
                 required:
                 - authRef
                 - mainAPI
@@ -168,8 +183,9 @@ spec:
                 type: string
               useProfileIDForRenew:
                 default: false
-                description: UseProfileIDForRenew determines whether the profile ID
-                  should be used during a certificate renewal operation
+                description: |-
+                  UseProfileIDForRenew determines whether the profile ID should be used
+                  during a certificate renewal operation
                 type: boolean
             type: object
           status:
@@ -181,17 +197,20 @@ spec:
                     an Issuer.
                   properties:
                     lastTransitionTime:
-                      description: LastTransitionTime is the timestamp corresponding
-                        to the last status change of this condition.
+                      description: |-
+                        LastTransitionTime is the timestamp corresponding to the last status
+                        change of this condition.
                       format: date-time
                       type: string
                     message:
-                      description: Message is a human-readable description of the
-                        details of the last transition, complementing reason.
+                      description: |-
+                        Message is a human-readable description of the details of the last
+                        transition, complementing reason.
                       type: string
                     reason:
-                      description: Reason is a brief machine-readable explanation
-                        for the condition's last transition.
+                      description: |-
+                        Reason is a brief machine-readable explanation for the condition's last
+                        transition.
                       type: string
                     status:
                       allOf:
@@ -222,9 +241,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

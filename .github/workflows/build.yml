@@ -29,7 +29,7 @@ jobs:
       - name: "golangci-lint"
         uses: golangci/golangci-lint-action@v5
         with:
-          version: v1.54
+          version: v1.57.2
           only-new-issues: true
           args: --config=.golangci.yml
 
