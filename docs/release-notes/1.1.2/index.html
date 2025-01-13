@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="./">
+        <link rel="prev" href="../../documentation/troubleshooting/">
       
       
         <link rel="next" href="../1.1.1/">
@@ -865,85 +865,6 @@
                 
   
   
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    1.1.2
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  <span class="md-ellipsis">
-    1.1.2
-  </span>
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    <span class="md-ellipsis">
-      Features
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#other" class="md-nav__link">
-    <span class="md-ellipsis">
-      Other
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
   
   
     <li class="md-nav__item">
@@ -1097,7 +1018,7 @@
 <p>ncm-issuer <code>1.1.2</code> introduces two new features and includes some small improvements.</p>
 <h2 id="features">Features</h2>
 <ul>
-<li>Support for setting notBefore and notAfter parameters in NCM certificate requests corresponding to suggested Duration parameter in cert-manager.io/v1 Certificate object kind. notBefore is set to the current time when cert is being enrolled. Feature is available for NCM &gt;= <code>24.11</code>, in older release new parameters are ignored</li>
+<li>Support for setting notBefore and notAfter parameters in NCM certificate requests corresponding to suggested Duration parameter in cert-manager.io/v1 Certificate object kind. notBefore is set to the current time when cert is being enrolled. Feature is available for NCM &gt;= <code>24.11</code>, in older releases new parameters are ignored</li>
 <li>Added issuer <code>.spec.caID/CASHREF</code> validation, so there is an error presented if the user specifies wrongly formatted value</li>
 </ul>
 <h2 id="other">Other</h2>
