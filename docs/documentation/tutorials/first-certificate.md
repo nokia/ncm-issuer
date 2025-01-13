@@ -54,6 +54,7 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
     name: example-ncm-certificate
     namespace: example-ncm-ns
   spec:
+    duration: 4382h
     commonName: example-ncm-certificate-nokia-ncm.local
     dnsNames:
     - example-ncm-certificate-nokia-ncm.local
@@ -74,6 +75,8 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
       name: example-ncm-issuer
   EOF
   ```
+
+NOTE: Duration parameter is ignored, unless NCM release >= `24.11` (with REST API >= `1.13`) is used and CA's `set-validity-period` policy module's `Overwrite Old` parameter is set to false
 
 Then we can check the status of our newly issued certificate:
 
