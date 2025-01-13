@@ -1,6 +1,6 @@
 module github.com/nokia/ncm-issuer
 
-go 1.19
+go 1.22
 
 require (
 	github.com/go-logr/logr v1.2.4
@@ -49,7 +49,6 @@ require (
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect

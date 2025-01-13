@@ -25,7 +25,7 @@ import (
 type ExternalClient interface {
 	GetCAs() (*CAsResponse, error)
 	GetCA(path string) (*CAResponse, error)
-	SendCSR(pem []byte, CA *CAResponse,duration *metav1.Duration, profileID string) (*CSRResponse, error)
+	SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, profileID string) (*CSRResponse, error)
 	CheckCSRStatus(path string) (*CSRStatusResponse, error)
 	DownloadCertificate(path string) (*CertificateDownloadResponse, error)
 	DownloadCertificateInPEM(path string) ([]byte, error)
