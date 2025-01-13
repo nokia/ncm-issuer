@@ -63,3 +63,4 @@ Version 1.1.2 (Build version 1.1.2)
   enrolled. Feature is available for NCM >= 24.11, in older release new parameters are ignored
 - Added issuer .spec.caID/CASHREF validation, so there is an error presented if the user specifies wrongly 
   formatted value
+- Bumped Go version to 1.22.10
