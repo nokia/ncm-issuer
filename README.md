@@ -18,8 +18,9 @@
 
 ncm-issuer is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
 [Nokia NetGuard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
-PKI system to sign certificate requests. The integration with NCM makes it easy to obtain non self-signed certificates for
-applications and to ensure that they are valid and up to date.
+PKI system to sign certificate requests. 
+
+The integration with NCM makes it easy to obtain non-self-signed certificates for applications and to ensure that they are valid and up-to-date.
 
 ## Table of contents
 
@@ -46,12 +47,10 @@ applications and to ensure that they are valid and up to date.
 Prerequisites for building and using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 23 or later,
-* [Kubernetes](https://kubernetes.io) version 1.24 - 1.29,
+* [Kubernetes](https://kubernetes.io) version 1.24 - 1.32,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
-* [Docker](https://docs.docker.com/engine/install/) version 20.10.0 or later,
+* Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
-
-**:warning: Warning:** Install docker-ce instead of default if you are using CentOS, RedHat or Fedora!
 
 ### Installing using Helm
 
@@ -308,7 +307,7 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
   EOF
   ```
 
-NOTE: Duration parameter is ignored, unless NCM release >= `24.11` (with REST API >= `1.13`) is used and CA's `set-validity-period` policy module's `Overwrite Old` parameter is set to false
+NOTE: Duration parameter is ignored, unless NCM release >= `24.11` (with REST API >= `1.13`) is used and CA's `set-validity-period` policy module's `Overwrite Old` parameter is set to false (in such case the duration parameter is taken into consideration for new enrollments, re-enrollments and renewals).
 
 Then we can check the status of our newly issued certificate:
 
