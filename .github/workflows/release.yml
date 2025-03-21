@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: "set up Docker Buildx"
+      - name: "set up Docker Build"
         uses: docker/setup-buildx-action@v3
 
       - name: "build and publish"
