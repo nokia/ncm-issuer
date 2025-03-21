@@ -23,8 +23,9 @@ title: Home
 
 ncm-issuer is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
 [Nokia NetGuard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
-PKI system to sign certificate requests. The integration with NCM makes it easy to obtain non self-signed certificates for
-applications and to ensure that they are valid and up to date.
+PKI system to sign certificate requests. 
+
+The integration with NCM makes it easy to obtain non-self-signed certificates for applications and to ensure that they are valid and up-to-date.
 
 ## How to get started?
 

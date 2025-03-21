@@ -76,7 +76,7 @@ Once the `Issuer` was successfully created, it is now time to sign the first cer
   EOF
   ```
 
-NOTE: Duration parameter is ignored, unless NCM release >= `24.11` (with REST API >= `1.13`) is used and CA's `set-validity-period` policy module's `Overwrite Old` parameter is set to false
+NOTE: Duration parameter is ignored, unless NCM release >= `24.11` (with REST API >= `1.13`) is used and CA's `set-validity-period` policy module's `Overwrite Old` parameter is set to false (in such case the duration parameter is taken into consideration for new enrollments, re-enrollments and renewals).
 
 Then we can check the status of our newly issued certificate:
 

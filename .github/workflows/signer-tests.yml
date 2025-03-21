@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: ['1.24', '1.25', '1.26', '1.27', '1.28', '1.29']
-        certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0', '1.14.0']
+        k8s-version: ['1.28', '1.29', '1.30', '1.31', '1.32']
+        certmgr-version: ['1.9.2', '1.11.0', '1.14.0', '1.17.1']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
@@ -195,8 +195,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: ['1.24', '1.25', '1.26', '1.27', '1.28', '1.29']
-        certmgr-version: ['1.5.5', '1.6.2', '1.8.2', '1.9.2', '1.11.0', '1.14.0']
+        k8s-version: ['1.28', '1.29', '1.30', '1.31', '1.32']
+        certmgr-version: ['1.9.2', '1.11.0', '1.14.0', '1.17.1']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
