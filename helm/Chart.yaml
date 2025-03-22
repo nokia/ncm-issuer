@@ -1,6 +1,6 @@
 apiVersion: v1
 name: ncm-issuer
-appVersion: 1.1.2
+appVersion: 1.1.3
 version: 1.1.3
 kubeVersion: ">= 1.24.0-0 < 1.33.0-0"
 description: A Helm chart for cert-manager external issuer for integration with the Nokia NetGuard Certificate Manager (NCM) PKI system
