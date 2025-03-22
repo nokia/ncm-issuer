@@ -2,8 +2,31 @@ apiVersion: v1
 entries:
   ncm-issuer:
   - apiVersion: v1
+    appVersion: 1.1.3
+    created: "2025-03-22T00:23:54.909058105Z"
+    description: A Helm chart for cert-manager external issuer for integration with
+      the Nokia NetGuard Certificate Manager (NCM) PKI system
+    digest: c568ec2a12c92a3806d6dc905f98f763efbd068ffa99164fb2dfe3061d60bd98
+    home: https://github.com/nokia/ncm-issuer
+    icon: https://i.imgur.com/G2p0BwS.png
+    keywords:
+    - ncm-issuer
+    - cert-manager
+    - com.nokia.ncm.certifier
+    - tls
+    kubeVersion: '>= 1.24.0-0 < 1.33.0-0'
+    maintainers:
+    - email: misiektoja-github@rm-rf.ninja
+      name: Michal Szymanski
+    name: ncm-issuer
+    sources:
+    - https://github.com/nokia/ncm-issuer
+    urls:
+    - ncm-issuer-1.1.3.tgz
+    version: 1.1.3
+  - apiVersion: v1
     appVersion: 1.1.2
-    created: "2025-01-13T19:02:20.387351064Z"
+    created: "2025-03-22T00:23:54.908590832Z"
     description: A Helm chart for cert-manager external issuer with NCM (NetGuard
       Certificate Manager)
     digest: 911fac3daa011958b88443571f759f2af2a37ff9990466beccbc6f89b9c4381a
@@ -26,7 +49,7 @@ entries:
     version: 1.1.2
   - apiVersion: v1
     appVersion: 1.1.1
-    created: "2025-01-13T19:02:20.386851066Z"
+    created: "2025-03-22T00:23:54.908068294Z"
     description: A Helm chart for cert-manager external issuer with NCM (NetGuard
       Certificate Manager)
     digest: 51775eca38ca2d9dffc9e4072641c23a4e2b34b863d16262255886b6048d9f57
@@ -53,7 +76,7 @@ entries:
     version: 1.1.1
   - apiVersion: v1
     appVersion: 1.1.0
-    created: "2025-01-13T19:02:20.38630367Z"
+    created: "2025-03-22T00:23:54.907506544Z"
     description: A Helm chart for cert-manager external issuer with NCM (NetGuard
       Certificate Manager)
     digest: d18f42a44a3614a60a315821fce62b76cadada9e0af1d58a6bc2522d4888e877
@@ -78,4 +101,4 @@ entries:
     urls:
     - ncm-issuer-1.1.0.tgz
     version: 1.1.0
-generated: "2025-01-13T19:02:20.385629054Z"
+generated: "2025-03-22T00:23:54.905979679Z"
