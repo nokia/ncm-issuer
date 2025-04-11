@@ -21,5 +21,5 @@ FROM scratch
 WORKDIR /
 COPY --from=builder /builds/manager .
 USER 65532:65532
-
+WORKDIR /
 ENTRYPOINT ["/manager"]
