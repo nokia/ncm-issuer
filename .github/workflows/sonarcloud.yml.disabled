@@ -33,12 +33,12 @@ jobs:
           fetch-depth: 0
 
       - name: "patch go.mod for tool compatibility"
-        run: sed -i 's/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?$/go 1.22/' go.mod
+        run: sed -i 's/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?$/go 1.23/' go.mod
 
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22
+          go-version: 1.23
 
       - name: "install dependencies"
         run: go get .
