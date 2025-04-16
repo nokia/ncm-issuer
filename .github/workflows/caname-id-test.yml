@@ -32,13 +32,13 @@ jobs:
     - name: Set KUBECONFIG for MicroK8s
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
 
-    - name: "Download ncm-issuer image"
+    - name: "download ncm-issuer image"
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-artifact-name }}
         path: .
 
-    - name: "Load ncm-issuer image"
+    - name: "load ncm-issuer image"
       run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
 
     - name: "install cert-manager charts"
@@ -161,7 +161,7 @@ jobs:
         sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
-    - name: "[ * ] uploading artificates"
+    - name: "[ * ] uploading artifacts"
       uses: actions/upload-artifact@v4
       if: ${{ failure() }}
       with:
@@ -188,13 +188,13 @@ jobs:
     - name: Set KUBECONFIG for MicroK8s
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
 
-    - name: "Download ncm-issuer image"
+    - name: "download ncm-issuer image"
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-artifact-name }}
         path: .
 
-    - name: "Load ncm-issuer image"
+    - name: "load ncm-issuer image"
       run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
 
     - name: "install cert-manager charts"
@@ -314,7 +314,7 @@ jobs:
         sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
-    - name: "[ * ] uploading artificates"
+    - name: "[ * ] uploading artifacts"
       uses: actions/upload-artifact@v4
       if: ${{ failure() }}
       with:
