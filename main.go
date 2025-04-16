@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Nokia
+Copyright 2025 Nokia
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"flag"
 	"os"
 
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
 	"github.com/nokia/ncm-issuer/pkg/controllers"
 	"github.com/nokia/ncm-issuer/pkg/provisioner"

@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Nokia
+Copyright 2025 Nokia
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
+	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr/testr"
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/nokia/ncm-issuer/pkg/cfg"
 	"github.com/nokia/ncm-issuer/pkg/ncmapi"
 	"github.com/nokia/ncm-issuer/test/unit/gen"
