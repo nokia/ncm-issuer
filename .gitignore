@@ -15,20 +15,22 @@
 builds/
 bin/
 
-
-
 # Dependency directories
 vendor/
 
-# Go workspace file
+# Go workspace files
 go.work
+go.work.sum
 
-#VSCode settings folder
+# VSCode settings folder
 .vscode/
 
-#Intelij settings folder
+# Intelij settings folder
 .idea/
 
-#test reports and coverage
+# Test reports and coverage
 report.json
 coverage.out
+
+# diagnostic messages from go vet
+govet-report.out
