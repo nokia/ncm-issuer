@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Nokia
+Copyright 2025 Nokia
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -126,13 +126,13 @@ func TestNewClientCreation(t *testing.T) {
 	dir := t.TempDir()
 	certFile, err := os.CreateTemp(dir, "ncm-testing-cert.pem")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("unexpected error: %v", err)
 	}
 	certFile.Write([]byte(certPEM))
 
 	certKey, err := os.CreateTemp(dir, "ncm-testing-cert-key.pem")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("unexpected error: %v", err)
 	}
 	certKey.Write([]byte(keyPEM))
 
