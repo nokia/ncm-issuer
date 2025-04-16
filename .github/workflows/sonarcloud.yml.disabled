@@ -33,7 +33,7 @@ jobs:
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "install dependencies"
         run: go get .

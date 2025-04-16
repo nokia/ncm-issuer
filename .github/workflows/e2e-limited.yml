@@ -42,5 +42,5 @@ jobs:
     uses: ./.github/workflows/clientauth-test-limited.yml
     secrets: inherit
     with:
-      go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+      go-version: ${{ needs.go-versions.outputs.go-mod-version }}
       image-artifact-name: ncm-issuer-image

@@ -24,7 +24,7 @@ jobs:
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "golangci-lint"
         uses: golangci/golangci-lint-action@v5
@@ -42,7 +42,7 @@ jobs:
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "install dependencies"
         run: go get .
@@ -59,7 +59,7 @@ jobs:
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "build ncm-issuer"
         run: make build
