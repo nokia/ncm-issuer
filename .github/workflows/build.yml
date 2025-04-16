@@ -19,6 +19,8 @@ jobs:
       contents: read
       pull-requests: read
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local  # prevent Go from downloading version from go.mod
     steps:
       - uses: actions/checkout@v4
       - name: "setup go"
@@ -38,6 +40,8 @@ jobs:
     name: "unit tests"
     needs: go-versions
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local  # prevent Go from downloading version from go.mod
     steps:
       - uses: actions/checkout@v4
       - name: "setup go"
