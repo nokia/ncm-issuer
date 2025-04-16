@@ -50,7 +50,7 @@ vet: ## Run go vet against code.
 	go vet ./... > govet-report.out
 
 vendor:
-	go mod vendor
+	GOWORK=off go mod vendor
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet envtest ## Run tests.
@@ -110,10 +110,10 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.3.0
-CONTROLLER_TOOLS_VERSION ?= v0.14.0
-ENVTEST_VERSION ?= release-0.17
-GOLANGCI_LINT_VERSION ?= v1.57.2
+KUSTOMIZE_VERSION ?= v5.4.1
+CONTROLLER_TOOLS_VERSION ?= v0.15.0
+ENVTEST_VERSION ?= v0.20.4
+GOLANGCI_LINT_VERSION ?= v1.58.1
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
