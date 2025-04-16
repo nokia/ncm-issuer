@@ -24,7 +24,8 @@ jobs:
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
+          # golangci-lint v1.58.1 doesn't support Go 1.24.x export data format yet
+          go-version: 1.22
 
       - name: "golangci-lint"
         uses: golangci/golangci-lint-action@v5
@@ -42,7 +43,8 @@ jobs:
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
+          # controller-gen has troubles with Go 1.24.x for now
+          go-version: 1.22
 
       - name: "install dependencies"
         run: go get .
