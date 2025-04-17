@@ -56,7 +56,11 @@ func (r *IssuerReconciler) newIssuer() (client.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ro.(client.Object), nil
+	obj, ok := ro.(client.Object)
+	if !ok {
+		return nil, fmt.Errorf("expected client.Object, got %T", ro)
+	}
+	return obj, nil
 }
 
 //+kubebuilder:rbac:groups=certmanager.ncm.nokia.com,resources=issuers;clusterissuers,verbs=get;list;watch;create;update;patch;delete
