@@ -189,7 +189,7 @@ spec:
                 type: boolean
             type: object
           status:
-            description: IssuerStatus defines the observed state of Issuer
+            description: IssuerStatus defines the observed state of Issuer.
             properties:
               conditions:
                 items:
