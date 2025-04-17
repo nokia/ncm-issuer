@@ -19,24 +19,17 @@ jobs:
       contents: read
       pull-requests: read
     runs-on: ubuntu-latest
-    env:
-      GOTOOLCHAIN: local  # prevent Go from downloading version from go.mod
     steps:
       - uses: actions/checkout@v4
-
-      - name: "patch go.mod for tool compatibility"
-        run: sed -i 's/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?$/go 1.23/' go.mod
-
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          # golangci-lint v1.58.1 doesn't support Go 1.24.x export data format yet
-          go-version: 1.23
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "golangci-lint"
         uses: golangci/golangci-lint-action@v5
         with:
-          version: v1.58.1
+          version: v1.64.8
           only-new-issues: ${{ github.ref == 'refs/heads/main' }}
           args: --config=.golangci.yml
 
@@ -44,19 +37,12 @@ jobs:
     name: "unit tests"
     needs: go-versions
     runs-on: ubuntu-latest
-    env:
-      GOTOOLCHAIN: local  # prevent Go from downloading version from go.mod
     steps:
       - uses: actions/checkout@v4
-
-      - name: "patch go.mod for tool compatibility"
-        run: sed -i 's/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?$/go 1.23/' go.mod
-
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          # controller-gen has troubles with Go 1.24.x for now
-          go-version: 1.23
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "install dependencies"
         run: go get .
