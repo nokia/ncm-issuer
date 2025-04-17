@@ -40,7 +40,7 @@ vendor:
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet envtest ## Run tests
-	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile coverage.out -v
+	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile coverage.out -v > coverage_report.out
 	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -json > report.json
 
 lint: golangci-lint ## Run golangci-lint & yamllint
@@ -99,7 +99,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.6.0
 CONTROLLER_TOOLS_VERSION ?= v0.14.0
-ENVTEST_VERSION ?= release-0.17
+ENVTEST_VERSION ?= release-0.14
 GOLANGCI_LINT_VERSION ?= v1.64.8
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
