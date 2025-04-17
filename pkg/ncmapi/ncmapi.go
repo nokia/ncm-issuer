@@ -301,7 +301,6 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
 		}
 		return resp, nil
-
 	} else if c.backupAPI != nil && c.backupAPI.isHealthy() {
 		parsedURL, _ := url.Parse(c.backupAPI.url)
 		req.URL.Host = parsedURL.Host
@@ -345,7 +344,7 @@ func (c *Client) isAPIHealthy(apiUrl string) bool {
 	req, _ := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
 	c.setHeaders(req)
 	resp, err := c.client.Do(req)
-	return !(err != nil || resp.StatusCode >= 500 && resp.StatusCode < 600)
+	return err == nil && (resp.StatusCode < 500 || resp.StatusCode >= 600)
 }
 
 func (c *Client) StopHealthChecker() {
