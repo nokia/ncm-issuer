@@ -28,6 +28,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           args:
+            - "--metrics-bind-address=:{{ .Values.metrics.port }}"
             {{- if and .Values.enableLeaderElection (gt (.Values.replicaCount | int64) 1) }}
             - "--leader-elect"
             {{- end }}
