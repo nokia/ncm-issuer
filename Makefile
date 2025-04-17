@@ -85,7 +85,8 @@ undeploy: ## Undeploy controller
 ##@ Build dependencies
 
 ## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
+# LOCALBIN ?= $(shell pwd)/bin
+LOCALBIN ?= bin
 $(LOCALBIN):
 	mkdir -p "$(LOCALBIN)"
 
@@ -105,24 +106,24 @@ KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/k
 kustomize: $(KUSTOMIZE)
 $(KUSTOMIZE): $(LOCALBIN)
 	echo "Installing kustomize into $(LOCALBIN)"
-	GOBIN="$(LOCALBIN)" go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
+	GOBIN="$(abspath $(LOCALBIN))" go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
 
 controller-gen: $(CONTROLLER_GEN)
 $(CONTROLLER_GEN): $(LOCALBIN)
 	echo "Installing controller-gen into $(LOCALBIN)"
-	GOBIN="$(LOCALBIN)" go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOBIN="$(abspath $(LOCALBIN))" go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 envtest: $(ENVTEST)
 $(ENVTEST): $(LOCALBIN)
 	echo "Installing envtest into $(LOCALBIN)"
-	GOBIN="$(LOCALBIN)" go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION)
+	GOBIN="$(abspath $(LOCALBIN))" go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION)
 
 golangci-lint: $(GOLANGCI_LINT)
 $(GOLANGCI_LINT): $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
 	if [ ! -f "$(GOLANGCI_LINT)" ]; then \
 		echo "Installing golangci-lint into $(LOCALBIN)"; \
-		GOBIN="$(LOCALBIN)" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}; \
+		GOBIN="$(abspath $(LOCALBIN))" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}; \
 	fi
 
 pack-app: docker-save
