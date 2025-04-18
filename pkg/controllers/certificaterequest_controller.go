@@ -33,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -298,9 +297,7 @@ func (r *CertificateRequestReconciler) setStatus(ctx context.Context, cr *cmapi.
 	r.Recorder.Event(cr, eventType, reason, completeMessage)
 
 	// Updates the status
-	var err error
-	if updateErr := r.Status().Update(ctx, cr); updateErr != nil {
-		err = utilerrors.NewAggregate([]error{err, updateErr})
+	if err := r.Update(ctx, cr); err != nil {
 		return err
 	}
 	return nil
