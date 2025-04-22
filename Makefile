@@ -98,8 +98,8 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
-CONTROLLER_TOOLS_VERSION    ?= v0.16.3
-ENVTEST_VERSION             ?= release-0.17
+CONTROLLER_TOOLS_VERSION    ?= v0.17.2
+ENVTEST_VERSION             ?= release-0.20
 GOLANGCI_LINT_VERSION       ?= v1.64.8
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
