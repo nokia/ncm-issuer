@@ -97,10 +97,10 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.6.0
-CONTROLLER_TOOLS_VERSION ?= v0.15.0
-ENVTEST_VERSION ?= release-0.15
-GOLANGCI_LINT_VERSION ?= v1.64.8
+KUSTOMIZE_VERSION           ?= v5.6.0
+CONTROLLER_TOOLS_VERSION    ?= v0.16.3
+ENVTEST_VERSION             ?= release-0.17
+GOLANGCI_LINT_VERSION       ?= v1.64.8
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 kustomize: $(KUSTOMIZE)
