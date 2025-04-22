@@ -34,3 +34,6 @@ coverage.out
 
 # diagnostic messages from go vet
 govet-report.out
+
+# macOS Finder metadata files
+.DS_Store
