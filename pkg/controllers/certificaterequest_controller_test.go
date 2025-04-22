@@ -100,6 +100,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(tc.objects...).
+			WithStatusSubresource(&cmapi.CertificateRequest{}).
 			Build()
 
 		controller := &CertificateRequestReconciler{
