@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -219,7 +220,9 @@ func (r *IssuerReconciler) SetStatus(ctx context.Context, issuer client.Object, 
 	r.Recorder.Event(issuer, eventType, string(reason), completeMessage)
 
 	// Actually update the issuer resource
-	if err := r.Update(ctx, issuer); err != nil {
+	var err error
+	if updateErr := r.Status().Update(ctx, issuer); updateErr != nil {
+		err = utilerrors.NewAggregate([]error{err, updateErr})
 		return err
 	}
 	return nil
