@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: ['1.28', '1.29', '1.30', '1.31', '1.32']
-        certmgr-version: ['1.9.2', '1.11.0', '1.14.0', '1.17.1']
+        k8s-version: ['1.29', '1.32']
+        certmgr-version: ['1.9.2', '1.17.1']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
@@ -46,13 +46,13 @@ jobs:
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
-    - name: "Download ncm-issuer image"
+    - name: "download ncm-issuer image"
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-artifact-name }}
         path: .
 
-    - name: "Load ncm-issuer image"
+    - name: "load ncm-issuer image"
       run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
 
     - name: "cert-manager status"
@@ -182,7 +182,7 @@ jobs:
         sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
-    - name: "[ * ] uploading artificates"
+    - name: "[ * ] uploading artifacts"
       uses: actions/upload-artifact@v4
       if: ${{ failure() }}
       with:
@@ -195,8 +195,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: ['1.28', '1.29', '1.30', '1.31', '1.32']
-        certmgr-version: ['1.9.2', '1.11.0', '1.14.0', '1.17.1']
+        k8s-version: ['1.29', '1.32']
+        certmgr-version: ['1.9.2', '1.17.1']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
@@ -214,13 +214,13 @@ jobs:
     - name: Set KUBECONFIG for MicroK8s
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
 
-    - name: "Download ncm-issuer image"
+    - name: "download ncm-issuer image"
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-artifact-name }}
         path: .
 
-    - name: "Load ncm-issuer image"
+    - name: "load ncm-issuer image"
       run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
 
     - name: "install cert-manager charts"

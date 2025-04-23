@@ -98,7 +98,7 @@ type IssuerSpec struct {
 	AuthNamespace string `json:"authNameSpace,omitempty"`
 }
 
-// IssuerStatus defines the observed state of Issuer
+// IssuerStatus defines the observed state of Issuer.
 type IssuerStatus struct {
 	// +optional
 	Conditions []IssuerCondition `json:"conditions,omitempty"`
@@ -226,13 +226,13 @@ const (
 type ReasonType string
 
 const (
-	// ReasonNotFound represents the fact that secrets needed to authenticate to the NCM API do not exist in cluster
+	// ReasonNotFound represents the fact that secrets needed to authenticate to the NCM API do not exist in cluster.
 	ReasonNotFound ReasonType = "SecretNotFound"
 
-	// ReasonVerified represents the fact that the NCM Issuer(ClusterIssuer) are configured correctly
+	// ReasonVerified represents the fact that the NCM Issuer(ClusterIssuer) are configured correctly.
 	ReasonVerified ReasonType = "Verified"
 
-	// ReasonError represents the fact that the NCM Issuer(ClusterIssuer) are configured not correctly and require user interaction
+	// ReasonError represents the fact that the NCM Issuer(ClusterIssuer) are configured not correctly and require user interaction.
 	ReasonError ReasonType = "Error"
 )
 

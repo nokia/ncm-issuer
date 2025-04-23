@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.22.10 AS builder
+FROM golang:1.24.2 AS builder
 WORKDIR /
 
 # Copy the Go Modules manifests
@@ -21,5 +21,5 @@ FROM scratch
 WORKDIR /
 COPY --from=builder /builds/manager .
 USER 65532:65532
-
-ENTRYPOINT ["/manager"]
+WORKDIR /
+ENTRYPOINT ["./manager"]

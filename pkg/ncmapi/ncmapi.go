@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Nokia
+Copyright 2025 Nokia
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ import (
 	"sync"
 	"time"
 
+	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/nokia/ncm-issuer/pkg/cfg"
 	ncmutil "github.com/nokia/ncm-issuer/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -301,7 +301,6 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
 		}
 		return resp, nil
-
 	} else if c.backupAPI != nil && c.backupAPI.isHealthy() {
 		parsedURL, _ := url.Parse(c.backupAPI.url)
 		req.URL.Host = parsedURL.Host
@@ -345,7 +344,7 @@ func (c *Client) isAPIHealthy(apiUrl string) bool {
 	req, _ := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
 	c.setHeaders(req)
 	resp, err := c.client.Do(req)
-	return !(err != nil || resp.StatusCode >= 500 && resp.StatusCode < 600)
+	return err == nil && (resp.StatusCode < 500 || resp.StatusCode >= 600)
 }
 
 func (c *Client) StopHealthChecker() {

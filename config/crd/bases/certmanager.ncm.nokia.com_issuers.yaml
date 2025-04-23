@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.17.2
   name: issuers.certmanager.ncm.nokia.com
 spec:
   group: certmanager.ncm.nokia.com
@@ -189,7 +189,7 @@ spec:
                 type: boolean
             type: object
           status:
-            description: IssuerStatus defines the observed state of Issuer
+            description: IssuerStatus defines the observed state of Issuer.
             properties:
               conditions:
                 items:

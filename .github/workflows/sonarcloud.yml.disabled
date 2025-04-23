@@ -33,7 +33,7 @@ jobs:
       - name: "setup go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ fromJSON(needs.go-versions.outputs.go-mod-version) }}
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "install dependencies"
         run: go get .
@@ -41,8 +41,8 @@ jobs:
       - name: "golangci-lint"
         uses: golangci/golangci-lint-action@v5
         with:
-          version: v1.54
-          only-new-issues: true
+          version: v1.64.8
+          only-new-issues: ${{ github.ref == 'refs/heads/main' }}
           args: --config=.golangci.yml --out-format checkstyle:golangcli-lint-report.xml
 
       - name: "test with go"

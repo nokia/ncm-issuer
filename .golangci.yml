@@ -1,12 +1,5 @@
 run:
   timeout: 5m
-  skip-dirs:
-    - .git
-    - .github
-    - api
-    - config
-    - hack
-    - helm
 
 linters-settings:
   dupl:
@@ -21,10 +14,10 @@ linters-settings:
       - wrapperFunc
 
   govet:
-    enable-all: true
-    check-shadowing: true
     disable:
       - fieldalignment
+    enable:
+      - shadow
 
   nakedret:
     max-func-lines: 0
@@ -81,6 +74,13 @@ linters:
     - whitespace
 
 issues:
+  exclude-dirs:
+    - .git
+    - .github
+    - api
+    - config
+    - hack
+    - helm
   max-same-issues: 50
   exclude-rules:
     - source: "(noinspection|TODO)"

@@ -65,6 +65,7 @@ func TestIssuerReconcile(t *testing.T) {
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(tc.objects...).
+			WithStatusSubresource(&ncmv1.Issuer{}, &ncmv1.ClusterIssuer{}).
 			Build()
 
 		p := provisioner.NewProvisionersMap()

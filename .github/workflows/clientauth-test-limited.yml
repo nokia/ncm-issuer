@@ -1,4 +1,4 @@
-name: san test
+name: client auth test limited
 on:
   workflow_call:
     inputs:
@@ -12,33 +12,22 @@ on:
         required: true
 
 jobs:
-  san-test:
-    name: "san"
+  client-auth-test:
+    name: "tls with client auth limited"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        k8s-version: ['1.32']
+        certmgr-version: ['1.17.1']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
     - run: go version
 
-    - name: "get runner ip"
-      run: |
-        echo RUNNER_IP=$(ip addr show eth0 | grep -i "inet " | cut -d ' ' -f 6 | cut -d '/' -f 1) >> $GITHUB_ENV
-        echo RUNNER_PATH=$(pwd | sed 's_/_\\/_g') >> $GITHUB_ENV
-    - run: echo "runner IP is ${{ env.RUNNER_IP }}"
-
-    - name: "get runner name"
-      run: |
-        echo RUNNER_NAME=$(hostname) >> $GITHUB_ENV
-    - run: echo "runner NAMME is ${{ env.RUNNER_NAME }}"
-
-    - name: "get unix timestamp"
-      run: |
-        echo RUNNER_UTS=$(date +%s) >> $GITHUB_ENV
-    - run: echo "unix timestamp is ${{ env.RUNNER_UTS }}"
-
     - name: "install microk8s"
       run: |
-        sudo snap install microk8s --classic --channel=1.32/stable
+        sudo snap install microk8s --classic --channel=${{ matrix.k8s-version }}/stable
         sudo microk8s status --wait-ready
         sudo microk8s enable helm3
         sudo microk8s enable dns
@@ -62,7 +51,7 @@ jobs:
         sudo microk8s.kubectl create namespace cert-manager
         sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
         sudo microk8s.helm3 repo update
-        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --set installCRDs=true
+        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --version v${{ matrix.certmgr-version }} --set installCRDs=true
         echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
     - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
 
@@ -74,6 +63,12 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
+   
+    - name: "install cmctl"
+      run: |
+          OS=$(uname -s | tr A-Z a-z); ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_${OS}_${ARCH}
+          sudo chmod +x cmctl
+          sudo mv cmctl /usr/local/bin
 
     - name: "install yq"
       run: sudo snap install yq
@@ -82,23 +77,24 @@ jobs:
       run: |
         mkdir -p data/logs
         echo "$NCM_CA_BUNDLE" > data/ca_bundle.pem
+        echo "$CLIENTAUTH_CERT" > data/clientauth_cert.pem
+        echo "$CLIENTAUTH_KEY" > data/clientauth_key.pem
         cp .github/*.yml data/
-        NCM_HOST=$NCM_HOST yq -i '.spec.provisioner.mainAPI = env(NCM_HOST)' data/ncm-issuer.yml
+        CLIENTAUTH_NCM_HOST=$CLIENTAUTH_NCM_HOST yq -i '.spec.provisioner.mainAPI = env(CLIENTAUTH_NCM_HOST)' data/ncm-issuer.yml
         yq -i '.image.repository = "ncm-issuer"' helm/values.yaml
         yq -i '.image.pullPolicy = "Never"' helm/values.yaml
         TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) yq -i '.image.tag = env(TAG)' helm/values.yaml
-        DNS=$(printf "%s-%s.bar.local" ${{ env.RUNNER_NAME }} ${{ env.RUNNER_UTS }}) yq -i '.spec.dnsNames += [env(DNS)]' data/cert-resource.yml
-        RUNNER_IP=${{ env.RUNNER_IP }} yq -i '.spec.ipAddresses = ["192.168.1.1", env(RUNNER_IP), "fc00:bad:a55:3468::443"]' data/cert-resource.yml
-        yq -i '.spec.uris = ["spiffe://cluster.local/ns/spiffe/sa/example"]' data/cert-resource.yml
         sudo microk8s.kubectl create namespace ncm-issuer
         sudo microk8s.kubectl create secret generic ncm-issuer -n ncm-issuer --from-literal=username=$NCM_USER --from-literal=usrPassword=$NCM_PASSWORD
-        sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem
+        sudo microk8s.kubectl create secret generic ncm-issuer-bundle -n ncm-issuer --from-file=cacert=data/ca_bundle.pem --from-file=key=data/clientauth_key.pem --from-file=cert=data/clientauth_cert.pem
 
       env:
-        NCM_HOST: ${{ secrets.NCM_HOST }}
+        CLIENTAUTH_NCM_HOST: ${{ secrets.CLIENTAUTH_NCM_HOST }}
         NCM_USER: ${{ secrets.NCM_USER }}
         NCM_PASSWORD: ${{ secrets.NCM_PASSWORD }}
         NCM_CA_BUNDLE: ${{ secrets.NCM_CA_BUNDLE }}
+        CLIENTAUTH_CERT: ${{ secrets.CLIENTAUTH_CERT }}
+        CLIENTAUTH_KEY: ${{ secrets.CLIENTAUTH_KEY }}.
 
     - name: "install ncm-issuer plugin"
       run: |
@@ -112,7 +108,9 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
-
+        POD_NAME=$(sudo microk8s.kubectl get pods -A | grep -i ncm-issuer | awk '{ print $2 }')
+        sudo microk8s.kubectl describe pod $POD_NAME -n ncm-issuer
+  
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml
@@ -147,6 +145,7 @@ jobs:
 
     - name: "check certificate resource"
       run: |
+        sudo -E cmctl status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
@@ -154,15 +153,23 @@ jobs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Approved"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Issued"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
-        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Ca:" | awk '{print $2}' | base64 -d > /tmp/ca.pem
         openssl x509 -in /tmp/cert.der -text -noout
-        openssl x509 -in /tmp/cert.der -noout -ext subjectAltName | grep -i "DNS:foo.bar.local"
-        openssl x509 -in /tmp/cert.der -noout -ext subjectAltName | grep -i "DNS:${{ env.RUNNER_NAME }}-${{ env.RUNNER_UTS }}.bar.local"
-        openssl x509 -in /tmp/cert.der -noout -ext subjectAltName | grep -i "IP Address:192.168.1.1"
-        openssl x509 -in /tmp/cert.der -noout -ext subjectAltName | grep -i "IP Address:${{ env.RUNNER_IP }}"
-        openssl x509 -in /tmp/cert.der -noout -ext subjectAltName | grep -i "IP Address:FC00:BAD:A55:3468:0:0:0:443"
-        openssl x509 -in /tmp/cert.der -noout -ext subjectAltName | grep -i "URI:spiffe://cluster.local/ns/spiffe/sa/example"
-        openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
+
+    - name: "renew certificate"
+      run: |
+        sudo -E cmctl renew ncm-cert -n ncm-issuer
+
+    - name: "sleep for 15s"
+      run: sleep 15
+
+    - name: "check certificate resource"
+      run: |
+        sudo microk8s.kubectl get certificaterequest -n ncm-issuer
+        sudo -E cmctl status certificate ncm-cert -n ncm-issuer
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
+        sudo -E cmctl status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
+        openssl x509 -in /tmp/cert.der -text -noout
 
     - name: "[ * ] collecting test logs"
       continue-on-error: true
@@ -175,6 +182,7 @@ jobs:
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
         sudo microk8s.kubectl describe issuer.certmanager.ncm.nokia.com  -n ncm-issuer > data/logs/describe_issuer.log
         sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer > data/logs/get_csr.log
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
@@ -187,5 +195,5 @@ jobs:
       uses: actions/upload-artifact@v4
       if: ${{ failure() }}
       with:
-        name: logs-ecdsa${{ matrix.keysize }}.tar.gz
+        name: logs-k${{ matrix.k8s-version }}-${{ matrix.certmgr-version }}.tar.gz
         path: ${{ github.workspace }}/artifact/upload/
