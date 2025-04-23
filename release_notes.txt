@@ -1,26 +1,26 @@
-Version 0.6.8 (Build Version 0.1.140)
+Version 0.6.8-0.1.140 (Chart: 0.6.8, Image: 0.1.140)
 - Changed secret name generation method
 - Added release_notes.txt file
 - Fixed bug connected to illegal characters in secret names
 
-Version 0.6.9 (Build Version 0.1.141)
+Version 0.6.9-0.1.141 (Chart: 0.6.9, Image: 0.1.141)
 - Renewal process will not be started without certificate details
 
-Version 1.0.0 (Build Version 0.1.149)
+Version 1.0.0-0.1.149 (Chart: 1.0.0, Image: 0.1.149)
 - Changed name of project
 - Added support for private key rotation policy set to "always"
 - Changed CRD version to v1
-- Upgrade golang version to 1.16.15
+- Upgrade Go version to 1.16.15
 - Added CSR approve check
 - Support for cert-manager using API v1
 
-Version 1.0.1 (Build Version 1.0.0)
+Version 1.0.1-1.0.0 (Chart: 1.0.1, Image: 1.0.0)
 - Added NCM Issuer version to logging
 
-Version 1.0.2 (Build Version 1.0.1)
-- Update go version to 1.17
+Version 1.0.2-1.0.1 (Chart: 1.0.2, Image: 1.0.1)
+- Update Go version to 1.17
 
-Version 1.0.3 (Build Version 1.0.2)
+Version 1.0.3-1.0.2 (Chart: 1.0.3, Image: 1.0.2)
 - Added possibility to specify secondary NCM EXTERNAL API server in case of lack of connection to the main one,
   server is specified as a parameter "ncmSERVER2" in issuer or cluster issuer yaml file
 - Fixed misinterpretation in case of manually triggering rotation of a private key
@@ -29,13 +29,13 @@ Version 1.0.3 (Build Version 1.0.2)
   yaml file to "true"
 - Added possibility to include only end-entity certificate in tls.crt by setting "onlyEECert" in issuer or cluster
   issuer yaml file to "true"
-- Bumped go from 1.17 to 1.19.6
+- Bumped Go from 1.17 to 1.19.6
 - Fixed bugs during certificate renewal
 
-Version 1.0.3 (Build Version 1.0.3)
+Version 1.0.3-1.0.3 (Chart: 1.0.3, Image: 1.0.3)
 - Fixed misinterpretation when PK rotation policy is set to "Always"
 
-Version 1.1.0 (Build version 1.1.0)
+Version 1.1.0-1.1.0 (Chart: 1.1.0, Image: 1.1.0)
 - The Issuer and ClusterIssuer definitions are improved to use more user-friendly names and grouped into appropriate
   sections
 - Improved NCM API selection mechanism
@@ -54,10 +54,10 @@ Version 1.1.0 (Build version 1.1.0)
 - Added sidecar for debugging purposes
 - Fixed occasionally encountered data-races when accessing saved Issuer or ClusterIssuer config
 
-Version 1.1.1 (Build version 1.1.1)
+Version 1.1.1-1.1.1 (Chart: 1.1.1, Image: 1.1.1)
 - Changed the list of supported Kubernetes version to 1.24 - 1.29
 
-Version 1.1.2 (Build version 1.1.2)
+Version 1.1.2-1.1.2 (Chart: 1.1.2, Image: 1.1.2)
 - Support for setting notBefore and notAfter parameters in NCM certificate requests corresponding to suggested Duration
   parameter in cert-manager.io/v1 Certificate object kind. notBefore is set to the current time when cert is being 
   enrolled. Feature is available for NCM >= 24.11, in older release new parameters are ignored
@@ -65,5 +65,19 @@ Version 1.1.2 (Build version 1.1.2)
   formatted value
 - Bumped Go version to 1.22.10
 
-Version 1.1.3 (Build version 1.1.3)
+Version 1.1.3-1.1.3 (Chart: 1.1.3, Image: 1.1.3)
 - Changed the list of supported Kubernetes versions to 1.24 - 1.32
+
+Version 1.1.4-1.1.4 (Chart: 1.1.4, Image: 1.1.4)
+- Optimizations to resolve potential startup issues under various Kubernetes orchestrators
+- Fixed container startup error under NCS 24.11
+- Upgraded Go version used for building the binary and Docker image from 1.22.10 to 1.24.2
+- Updated go.mod dependencies (Kubernetes API to 0.32, controller-runtime to 0.20.4, cert-manager to 1.17.1)
+- Corrected cert-manager import paths throughout the codebase
+- Resolved Fatalf non-constant format string warnings
+- Switched to the new metrics server setup via the Metrics field
+- Updated golangci-lint to v1.64.8
+- Fixed Makefile quoting issues to support paths with spaces
+- Improved error handling across Go code
+- Enabled status subresource in the fake client for unit tests
+ 
