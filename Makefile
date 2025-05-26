@@ -2,7 +2,7 @@ APP_NAME ?= ncm-issuer
 APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
 BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
-ENVTEST_K8S_VERSION ?= 1.29
+ENVTEST_K8S_VERSION ?= 1.33.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -98,8 +98,8 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
-CONTROLLER_TOOLS_VERSION    ?= v0.17.2
-ENVTEST_VERSION             ?= release-0.20
+CONTROLLER_TOOLS_VERSION    ?= v0.18.0
+ENVTEST_VERSION             ?= release-0.21
 GOLANGCI_LINT_VERSION       ?= v1.64.8
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
