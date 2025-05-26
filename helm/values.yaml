@@ -1,12 +1,17 @@
+# Number of ncm-issuer replicas to run
 replicaCount: 1
+
+# Pod priority class (if you have any configured)
 priorityClassName: ""
 
+# Container image for the ncm-issuer controller
 image:
   repository: docker.io/misiektoja/ncm-issuer
   tag: 1.1.4
   pullPolicy: Always
   pullSecrets: []
 
+# Optionally run a troubleshooting sidecar
 sidecar:
   enabled: false
   repository: docker.io/misiektoja/ncm-issuer-utils
@@ -14,9 +19,9 @@ sidecar:
   pullPolicy: Always
   pullSecrets: []
 
+# Limits to cap the resource usage of ncm-issuer pods
+# NOTE: exceeding memory limit will cause the pod to be killed by Kubernetes
 resources:
-  # Limits to cap the resource usage in case of unexpected.
-  # NOTE: exceeding memory limit will cause pod to be killed by kubernetes.
   limits:
     cpu: 400m
     memory: 500Mi
@@ -25,19 +30,22 @@ resources:
     cpu: 400m
     memory: 500Mi
 
+# Deployment update strategy
 updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
-    type: RollingUpdate
+    type: RollingUpdate  # Allow up to 1 pod unavailable during updates
 
+# Whether to create ServiceAccount, Role and RoleBinding for ncm-issuer
 rbac:
   create: true
-  # If create is set to false below objects should be created manually.
-  # Only rbac.sa will be used further by this chart.
+  # If create is set to false below objects should be created manually
+  # Only rbac.sa will be used further by this chart
   sa: ncm-issuer-sa
   binding: ncm-issuer-role-binding
   role: ncm-issuer-role
 
+# Whether to create the ClusterRole/Binding for cert-manager approver
 certManagerRbac:
   create: true
   namespace: cert-manager
@@ -45,12 +53,11 @@ certManagerRbac:
   binding: cert-manager-controller-approve:ncm-certmanager-nokia-com
   role: cert-manager-controller-approve:ncm-certmanager-nokia-comv
 
-  operatorWorkaround:
+  operatorWorkaround:  # Only enable when cert-manager is installed via the OLM/operator
     enable: false
 
-# since NCM is outside k8s cluster, so need external connection with NCM.
-# edge control is generally used to connect external network.
-# prefer edge node
+# NodeSelector/tolerations to pin ncm-issuer onto edge/external-capable nodes
+# (as NCM is typically outside k8s cluster)
 controller:
   nodeSelector: {}
   tolerations:
@@ -59,6 +66,7 @@ controller:
   #  value: 'true'
   #  effect: 'NoExecute'
 
+# Internal service name for chatting with the ncm-issuer pod
 service:
   name: ncm-issuer-svc
   type: ClusterIP
@@ -66,16 +74,17 @@ service:
   http:
     port: 80
 
-# enabled crd : e.g. Certifier.certmanager.ncm.nokia.com
+# Whether to install the CRD for your custom Issuer, e.g. certmanager.ncm.nokia.com
 crdEnabled: true
 
-# enable readinessProbe, livenessProbe
+# Health probes (liveness / readiness)
 livenessProbe: false
 readinessProbe: false
 
-# enable leader election
+# Enable leader election for HA setups
 enableLeaderElection: true
 
+# Security context when running the container
 securityContext:
   runAsNonRoot: true
   runAsUser: 65532
@@ -84,15 +93,18 @@ securityContext:
   #   - ALL
   # readOnlyRootFilesystem: true
 
+# How metrics are exposed
 metrics:
   port: 8080
 
+# Prometheus operator configuration
 prometheus:
   serviceMonitor:
     enabled: false
     selectorLabel: stable
     namespace: default
 
+# Logging level configuration
 logging:
   # Set the verbosity of logging in ncm-issuer. Can be one of 'debug', 'info',
   # 'error', or any integer value in the range <1; 3> which corresponds to debug
