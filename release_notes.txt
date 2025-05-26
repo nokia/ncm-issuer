@@ -78,4 +78,9 @@ Version 1.1.4 (Chart: 1.1.4, Image: 1.1.4)
 - Fixed Makefile quoting issues to support paths with spaces
 - Improved error handling across Go code
 - Enabled status subresource in the fake client for unit tests
- 
+
+Version 1.1.5 (Chart: 1.1.5, Image: 1.1.5)
+- Implemented optional RBAC workaround which might be needed when cert-manager is installed via the OLM/operator (see certManagerRbac.operatorWorkaround.enable in values.yaml)
+- Added support for Kubernetes 1.33 (supported versions: 1.24 - 1.33)
+- Upgraded Go version used for building the binary and Docker image from 1.24.2 to 1.24.3
+- Updated go.mod dependencies (Kubernetes API to 0.33, controller-runtime to 0.21, cert-manager to 1.17.2)
