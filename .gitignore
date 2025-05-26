@@ -37,3 +37,9 @@ govet-report.out
 
 # macOS Finder metadata files
 .DS_Store
+
+# dotenv files
+.env*
+
+# Config files
+*.conf
