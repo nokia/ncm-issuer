@@ -2,6 +2,7 @@ APP_NAME ?= ncm-issuer
 APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
 BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
+PLATFORM ?= linux/amd64
 ENVTEST_K8S_VERSION ?= 1.33.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -60,8 +61,47 @@ run: manifests generate fmt vet ## Run controller locally
 docker-push: ## Push docker image
 	docker push "${IMG}"
 
-docker-build:
-	docker build . -t "${IMG}"
+define DOCKER_ERROR_MESSAGE
+Docker CLI not found. Please install Docker for your system.
+Official website: https://docs.docker.com/get-docker/
+endef
+
+define BUILDX_ERROR_MESSAGE
+ERROR: Docker Buildx plugin not found or not working.
+
+Please ensure Docker Buildx is installed and configured for your environment:
+  - For Docker Desktop (Mac/Windows/Linux): Buildx is usually included, ensure your Docker Desktop is up to date.
+  - For manual Docker Engine installs on Linux (e.g. Rocky, Ubuntu): you might need to install the 'docker-buildx-plugin'.
+    Examples: 'sudo apt-get install docker-buildx-plugin' (Debian/Ubuntu)
+              'sudo dnf install docker-buildx-plugin' (Fedora/Rocky)
+  - For Colima/Lima on macOS with Docker CLI installed via Homebrew: install with: 'brew install docker-buildx'
+  - For GitHub Actions CI: use 'docker/setup-buildx-action@v3' in your workflow YAML.
+
+After installation or configuration changes, you might need to:
+  - Restart your terminal session.
+  - Restart the Docker daemon or Colima.
+
+You can verify your Buildx setup by running: 'docker buildx version'
+If issues persist, consult the Docker and Buildx documentation.
+endef
+
+HAS_DOCKER := $(shell command -v docker 2> /dev/null)
+ifeq ($(HAS_DOCKER),)
+HAS_BUILDX := false
+else
+HAS_BUILDX := $(shell docker buildx version > /dev/null 2>&1 && echo true || echo false)
+endif
+
+check-buildx:
+ifeq ($(HAS_DOCKER),)
+	$(error $(DOCKER_ERROR_MESSAGE))
+endif
+ifeq ($(HAS_BUILDX),false)
+	$(error $(BUILDX_ERROR_MESSAGE))
+endif
+
+docker-build: check-buildx
+	docker buildx build --platform ${PLATFORM} . -t "${IMG}" --load --progress=plain
 
 docker-save: docker-build
 	rm -rf "builds/$(APP_NAME)-images" && mkdir -p "builds/$(APP_NAME)-images"

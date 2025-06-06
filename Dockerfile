@@ -1,5 +1,8 @@
+ARG BUILDPLATFORM
+
 # Build the manager binary
-FROM golang:1.24.3 AS builder
+FROM --platform=${BUILDPLATFORM} golang:1.24.3 AS builder
+ARG BUILDPLATFORM
 WORKDIR /
 
 # Copy the Go Modules manifests
@@ -13,10 +16,9 @@ COPY api/ api/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o builds/manager main.go
+RUN echo "Building on ${BUILDPLATFORM}, target GOOS=linux GOARCH=amd64" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /builds/manager main.go
 
-
-FROM scratch
+FROM alpine:latest
 
 WORKDIR /
 COPY --from=builder /builds/manager .
