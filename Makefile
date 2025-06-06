@@ -2,6 +2,7 @@ APP_NAME ?= ncm-issuer
 APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
 BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
+PLATFORM ?= linux/amd64
 ENVTEST_K8S_VERSION ?= 1.33.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -60,8 +61,31 @@ run: manifests generate fmt vet ## Run controller locally
 docker-push: ## Push docker image
 	docker push "${IMG}"
 
-docker-build:
-	docker build . -t "${IMG}"
+define DOCKER_ERROR_MESSAGE
+Docker CLI not found.
+endef
+
+define BUILDX_ERROR_MESSAGE
+ERROR: Docker Buildx plugin not found or not working.
+endef
+
+HAS_DOCKER := $(shell command -v docker 2> /dev/null)
+ifeq ($(HAS_DOCKER),)
+HAS_BUILDX := false
+else
+HAS_BUILDX := $(shell docker buildx version > /dev/null 2>&1 && echo true || echo false)
+endif
+
+check-buildx:
+ifeq ($(HAS_DOCKER),)
+	$(error $(DOCKER_ERROR_MESSAGE))
+endif
+ifeq ($(HAS_BUILDX),false)
+	$(error $(BUILDX_ERROR_MESSAGE))
+endif
+
+docker-build: check-buildx
+	docker buildx build --platform ${PLATFORM} . -t "${IMG}" --load --progress=plain
 
 docker-save: docker-build
 	rm -rf "builds/$(APP_NAME)-images" && mkdir -p "builds/$(APP_NAME)-images"
