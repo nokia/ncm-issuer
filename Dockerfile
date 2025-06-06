@@ -16,9 +16,9 @@ COPY api/ api/
 COPY pkg/ pkg/
 
 # Build
-RUN echo "Building on ${BUILDPLATFORM}, target GOOS=linux GOARCH=amd64" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /builds/manager main.go
+RUN echo "Building on ${BUILDPLATFORM}, target GOOS=linux GOARCH=amd64" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /builds/manager main.go
 
-FROM alpine
+FROM alpine:latest
 
 WORKDIR /
 COPY --from=builder /builds/manager .
