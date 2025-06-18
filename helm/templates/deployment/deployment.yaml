@@ -35,7 +35,7 @@ spec:
             {{- end }}
             - "--zap-log-level={{ .Values.logging.logLevel }}"
             - "--zap-stacktrace-level={{ .Values.logging.stacktraceLevel }}"
-          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
