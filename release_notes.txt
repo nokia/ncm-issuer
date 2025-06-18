@@ -93,3 +93,9 @@ Version 1.1.6 (Chart: 1.1.6, Image: 1.1.6)
 - Added new troubleshooting tools to ncm-issuer-utils: procps-ng, lsof, vim-minimal, less, strace
 - Stripped symbol and DWARF debug info to reduce Docker image binary size
 - Upgraded Go version used for building the binary and Docker image from 1.24.3 to 1.24.4
+
+Version 1.1.7 (Chart: 1.1.7, Image: 1.1.7)
+- Separated chart version from image tag to avoid Harbor OCI overwrite
+- Fixed Makefile to save both remote and local tags in Docker archive, improving compatibility with various Kubernetes orchestrators
+- Fully qualify golang base image as docker.io/golang to avoid short-name resolution error in some dev envs
+- Updated go.mod dependencies to bump cert-manager to 1.18.1
