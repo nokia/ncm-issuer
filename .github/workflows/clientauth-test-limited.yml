@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         k8s-version: ['1.33']
-        certmgr-version: ['1.17.2']
+        certmgr-version: ['1.18.1']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
