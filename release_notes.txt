@@ -84,3 +84,12 @@ Version 1.1.5 (Chart: 1.1.5, Image: 1.1.5)
 - Added support for Kubernetes 1.33 (supported versions: 1.24 - 1.33)
 - Upgraded Go version used for building the binary and Docker image from 1.24.2 to 1.24.3
 - Updated go.mod dependencies (Kubernetes API to 0.33, controller-runtime to 0.21, cert-manager to 1.17.2)
+
+Version 1.1.6 (Chart: 1.1.6, Image: 1.1.6)
+- Switched to Docker Buildx for reliable cross-platform image builds
+- Switched from Scratch to Alpine image to play more nicely with different Kubernetes orchestrators (and to finally have a shell!)
+- Added explicit command to start ncm-issuer binary in Helm's deployment.yaml to ensure consistent container startup across Kubernetes environments
+- Updated ncm-issuer-utils troubleshooting container to 1.1.6 - it is still hanging around even though the regular one has a shell now, mainly due to better security posture and clear separation
+- Added new troubleshooting tools to ncm-issuer-utils: procps-ng, lsof, vim-minimal, less, strace
+- Stripped symbol and DWARF debug info to reduce Docker image binary size
+- Upgraded Go version used for building the binary and Docker image from 1.24.3 to 1.24.4
