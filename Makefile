@@ -2,6 +2,8 @@ APP_NAME ?= ncm-issuer
 APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
 BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
+REGISTRY ?= docker.io/misiektoja
+REMOTE_IMG := ${REGISTRY}/${APP_NAME}:${BUILD_VERSION}
 PLATFORM ?= linux/amd64
 ENVTEST_K8S_VERSION ?= 1.33.0
 
@@ -101,11 +103,12 @@ ifeq ($(HAS_BUILDX),false)
 endif
 
 docker-build: check-buildx
-	docker buildx build --platform ${PLATFORM} . -t "${IMG}" --load --progress=plain
+	docker buildx build --platform ${PLATFORM} . -t "${REMOTE_IMG}" --load --progress=plain
+	docker tag ${REMOTE_IMG} ${IMG}
 
 docker-save: docker-build
 	rm -rf "builds/$(APP_NAME)-images" && mkdir -p "builds/$(APP_NAME)-images"
-	docker save "${IMG}" | gzip > "builds/$(APP_NAME)-images/${IMG}.tgz"
+	docker save "${REMOTE_IMG}" "${IMG}" | gzip > "builds/$(APP_NAME)-images/${APP_NAME}-${BUILD_VERSION}.tgz"
 
 ##@ Deployment
 
