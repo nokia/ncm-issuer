@@ -311,6 +311,12 @@ func (p *Provisioner) handleAlreadySentCSR(namespace, certName string, certChain
 		if err != nil {
 			return nil, nil, "", fmt.Errorf("failed to download EE certificate in PEM, its href: %s, err: %w", csrStatusResp.Certificate, err)
 		}
+		p.log.Info("CSR accepted after retries",
+			"namespace", namespace,
+			"certificateName", certName,
+			"href", pendingCSR.href,
+			"checks", pendingCSR.checked,
+		)
 		p.pendingCSRs.Delete(namespace, certName)
 		ca, tls := p.prepareCAAndTLS(wantedCA, leafCertInPEM, certChain)
 		crtmetrics.CertificateEnrollmentSuccess.Inc()
@@ -322,6 +328,12 @@ func (p *Provisioner) handleAlreadySentCSR(namespace, certName string, certChain
 		// download that certificate by using NCMClient. Thus, we need to
 		// return ErrCSRNotAccepted to requeue CertificateRequest and reset
 		// "checked" value in PendingCSR to avoid exceeding SingleCSRCheckLimit.
+		p.log.V(1).Info("CSR approved in NCM but certificate not ready yet",
+			"namespace", namespace,
+			"certificateName", certName,
+			"href", pendingCSR.href,
+			"checks", pendingCSR.checked,
+		)
 		p.pendingCSRs.ResetCheckCounter(namespace, certName)
 		return nil, nil, "", ErrCSRNotAccepted
 	case CSRStatusPending:
@@ -333,6 +345,12 @@ func (p *Provisioner) handleAlreadySentCSR(namespace, certName string, certChain
 			// ncm-issuer will reject PendingCSR returning ErrCSRCheckLimitExceeded
 			// to avoid redundant requeuing CertificateRequest - further actions
 			// should be taken by operator (certificate re-enrollment in k8s cluster).
+			p.log.Info("CSR remained pending in NCM for too long, giving up",
+				"namespace", namespace,
+				"certificateName", certName,
+				"href", pendingCSR.href,
+				"checks", pendingCSR.checked,
+			)
 			p.pendingCSRs.Delete(namespace, certName)
 			crtmetrics.CertificateEnrollmentFail.Inc()
 			err = ErrCSRCheckLimitExceeded
@@ -342,6 +360,13 @@ func (p *Provisioner) handleAlreadySentCSR(namespace, certName string, certChain
 		// CSRStatusPostponed means that the previous status of CSR was CSRStatusPending.
 		// CSR in NCM still can be manipulated, but ncm-issuer is rejecting PendingCSR - further
 		// actions should be taken by operator (certificate re-enrollment in k8s cluster).
+		p.log.Info("CSR was postponed or rejected in NCM",
+			"namespace", namespace,
+			"certificateName", certName,
+			"href", pendingCSR.href,
+			"status", status,
+			"checks", pendingCSR.checked,
+		)
 		p.pendingCSRs.Delete(namespace, certName)
 		crtmetrics.CertificateEnrollmentFail.Inc()
 		return nil, nil, "", ErrCSRRejected
