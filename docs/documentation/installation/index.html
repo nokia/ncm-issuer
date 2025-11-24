@@ -1419,7 +1419,7 @@
 <p>Prerequisites for using ncm-issuer:</p>
 <ul>
 <li><a href="https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/">NCM</a> release 23 or later,</li>
-<li><a href="https://kubernetes.io">Kubernetes</a> version 1.24 - 1.33,</li>
+<li><a href="https://kubernetes.io">Kubernetes</a> version 1.24 - 1.34,</li>
 <li><a href="https://cert-manager.io/">cert-manager</a> version 1.0.0 or later,</li>
 <li>Kubernetes container runtime like Docker, containerd or CRI-O,</li>
 <li><a href="https://helm.sh/docs/intro/install/">Helm</a> v3.</li>
@@ -1439,7 +1439,7 @@ The image will be automatically downloaded from public repository.</p>
 <p>Install ncm-issuer using the command:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>helm<span class="w"> </span>install<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>ncm-issuer<span class="w"> </span>nokia/ncm-issuer<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>--create-namespace<span class="w"> </span>--namespace<span class="w"> </span>ncm-issuer<span class="w"> </span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>--create-namespace<span class="w"> </span>--namespace<span class="w"> </span>ncm-issuer
 </span></code></pre></div>
 <p>On the other hand, if you did not add Helm repository, but downloaded the packaged version of ncm-issuer use:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>helm<span class="w"> </span>install<span class="w"> </span><span class="se">\</span>

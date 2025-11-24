@@ -1310,7 +1310,7 @@
 do it before the certificate expires (the renewal grace period
 depends on the defined values in <code>Certificate</code> resource).</p>
 <p>You can define what operation ncm-issuer should perform in such a case by
-setting certain PK rotation policy in <code>Certificate</code> resource.</p>
+setting certain PK rotation policy in the <code>Certificate</code> resource.</p>
 <table>
 <thead>
 <tr>
@@ -1322,18 +1322,25 @@ setting certain PK rotation policy in <code>Certificate</code> resource.</p>
 <tbody>
 <tr>
 <td style="text-align: center;"><code>.spec.privateKey.rotationPolicy</code></td>
-<td style="text-align: center;">re-enrollment</td>
-<td style="text-align: center;">"Always"</td>
+<td style="text-align: center;">Re-enrollment</td>
+<td style="text-align: center;"><code>Always</code> or <strong>field omitted</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;"><code>.spec.privateKey.rotationPolicy</code></td>
-<td style="text-align: center;">renewal</td>
-<td style="text-align: center;">"Never" or not even specified</td>
+<td style="text-align: center;">Renewal</td>
+<td style="text-align: center;"><code>Never</code> (<strong>must be set explicitly</strong>)</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>From <strong>ncm-issuer 1.1.8</strong> onwards, omitting <code>.spec.privateKey.rotationPolicy</code>
+means <strong>re-enrollment</strong> (private key rotation) instead of renewal. This aligns ncm-issuer behaviour with
+cert-manager <strong>v1.18.0+</strong>, where the default rotation policy changed from <code>Never</code> to <code>Always</code>.
+If you require a true renew-with-same-key flow, set <code>.spec.privateKey.rotationPolicy</code> to <code>Never</code> explicitly.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>There is also an option for enforcing the re-enrollment on
 renewal in the definition of <code>Issuer</code> or <code>ClusterIssuer</code> resource. To do this simply set <code>.spec.reenrollmentOnRenew</code>
 to <strong>true</strong> in <code>Issuer</code> or <code>ClusterIssuer</code> definition.</p>
