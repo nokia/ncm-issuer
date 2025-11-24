@@ -1645,6 +1645,9 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
 						},
+						PrivateKey: &cmapi.CertificatePrivateKey{
+							RotationPolicy: cmapi.RotationPolicyNever,
+						},
 						SecretName: "ncm-cert-tls",
 					},
 					Status: cmapi.CertificateStatus{
@@ -1873,6 +1876,9 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
 						},
+						PrivateKey: &cmapi.CertificatePrivateKey{
+							RotationPolicy: cmapi.RotationPolicyNever,
+						},
 						SecretName: "ncm-cert-tls",
 					},
 					Status: cmapi.CertificateStatus{
@@ -1995,6 +2001,9 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
 						},
+						PrivateKey: &cmapi.CertificatePrivateKey{
+							RotationPolicy: cmapi.RotationPolicyNever,
+						},
 						SecretName: "ncm-cert-tls",
 					},
 					Status: cmapi.CertificateStatus{
@@ -2112,6 +2121,9 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:  "ncm-issuer",
 							Kind:  ClusterIssuer,
 							Group: ncmv1.GroupVersion.Group,
+						},
+						PrivateKey: &cmapi.CertificatePrivateKey{
+							RotationPolicy: cmapi.RotationPolicyNever,
 						},
 						SecretName: "ncm-cert-tls",
 					},
