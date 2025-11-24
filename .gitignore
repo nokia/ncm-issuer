@@ -35,11 +35,42 @@ coverage.out
 # diagnostic messages from go vet
 govet-report.out
 
-# macOS Finder metadata files
-.DS_Store
-
 # dotenv files
 .env*
 
 # Config files
 *.conf
+
+# Local development and temporary files
+local/
+tmp/
+
+# IDE & editor metadata
+.cursor/
+.cursorignore
+.cursorindexingignore
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+.abstra/
+*.swp
+*.swo
+
+# Credentials, certs, pkeys and config snapshots
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+*.der
+*.token
+*.secret
+*.auth
+*.bak
+*.old
+*.orig
+
+# macOS metadata
+.DS_Store
+*.DS_Store
