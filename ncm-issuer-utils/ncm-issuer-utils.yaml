@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ncm-issuer-utils
+  labels:
+    app: ncm-issuer-utils
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ncm-issuer-utils
+  template:
+    metadata:
+      labels:
+        app: ncm-issuer-utils
+    spec:
+      containers:
+         - name: "ncm-issuer-utils"
+           command: ["/usr/sbin/init"]
+           image: k8s-master:5000/ncm-issuer-utils:1.1.8
+           imagePullPolicy: Always
+           securityContext:
+                runAsNonRoot: true
+                runAsUser: 998

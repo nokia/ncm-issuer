@@ -15,7 +15,7 @@ image:
 sidecar:
   enabled: false
   repository: docker.io/misiektoja/ncm-issuer-utils
-  tag: 1.1.6
+  tag: 1.1.8
   pullPolicy: Always
   pullSecrets: []
 
