@@ -131,7 +131,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	issuer, _ := issuerRO.(client.Object)
+	issuer, ok := issuerRO.(client.Object)
+	if !ok {
+		log.Error(nil, "Failed to convert issuer to client.Object", "type", fmt.Sprintf("%T", issuerRO))
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Failed to convert issuer to client.Object")
+		return ctrl.Result{}, nil
+	}
 	issuerName := types.NamespacedName{
 		Name: cr.Spec.IssuerRef.Name,
 	}
