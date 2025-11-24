@@ -88,8 +88,10 @@ func (pm *ProvisionersMap) AddOrReplace(namespacedName types.NamespacedName, pro
 func (pm *ProvisionersMap) Delete(namespacedName types.NamespacedName) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
-	pm.Provisioners[namespacedName].Retire()
-	delete(pm.Provisioners, namespacedName)
+	if p, ok := pm.Provisioners[namespacedName]; ok {
+		p.Retire()
+		delete(pm.Provisioners, namespacedName)
+	}
 }
 
 // Provisioner allows Sign or Renew certificate using NCMClient.
