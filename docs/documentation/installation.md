@@ -5,7 +5,7 @@
 Prerequisites for using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 23 or later,
-* [Kubernetes](https://kubernetes.io) version 1.24 - 1.33,
+* [Kubernetes](https://kubernetes.io) version 1.24 - 1.34,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
@@ -36,7 +36,7 @@ Install ncm-issuer using the command:
   ```bash
   helm install \
   ncm-issuer nokia/ncm-issuer \
-  --create-namespace --namespace ncm-issuer 
+  --create-namespace --namespace ncm-issuer
   ```
 
 On the other hand, if you did not add Helm repository, but downloaded the packaged version of ncm-issuer use:

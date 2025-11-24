@@ -5,14 +5,20 @@ do it before the certificate expires (the renewal grace period
 depends on the defined values in `Certificate` resource).
 
 You can define what operation ncm-issuer should perform in such a case by
-setting certain PK rotation policy in `Certificate` resource.
+setting certain PK rotation policy in the `Certificate` resource.
 
-|               Field               |   Operation   |             Value             |
-|:---------------------------------:|:-------------:|:-----------------------------:|
-| `.spec.privateKey.rotationPolicy` | re-enrollment |           "Always"            |
-| `.spec.privateKey.rotationPolicy` |    renewal    | "Never" or not even specified |
+|               Field               |  Operation   |                        Value                        |
+|:---------------------------------:|:------------:|:---------------------------------------------------:|
+| `.spec.privateKey.rotationPolicy` | Re-enrollment | `Always` or **field omitted**                     |
+| `.spec.privateKey.rotationPolicy` |   Renewal    | `Never` (**must be set explicitly**)              |
 
-!!! tip
+!!! attention
+    From **ncm-issuer 1.1.8** onwards, omitting `.spec.privateKey.rotationPolicy`
+    means **re-enrollment** (private key rotation) instead of renewal. This aligns ncm-issuer behaviour with
+    cert-manager **v1.18.0+**, where the default rotation policy changed from `Never` to `Always`.
+    If you require a true renew-with-same-key flow, set `.spec.privateKey.rotationPolicy` to `Never` explicitly.
+
+!!! note
     There is also an option for enforcing the re-enrollment on
     renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
     to **true** in `Issuer` or `ClusterIssuer` definition.
