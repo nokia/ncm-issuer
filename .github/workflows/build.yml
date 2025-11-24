@@ -26,12 +26,14 @@ jobs:
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
-      - name: "golangci-lint"
-        uses: golangci/golangci-lint-action@v5
-        with:
-          version: v1.64.8
-          only-new-issues: ${{ github.ref == 'refs/heads/main' }}
-          args: --config=.golangci.yml
+      - name: "install golangci-lint"
+        run: |
+          mkdir -p ${{ github.workspace }}/bin
+          GOBIN=${{ github.workspace }}/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+
+      - name: "run golangci-lint"
+        run: |
+          ${{ github.workspace }}/bin/golangci-lint run --out-format=colored-line-number --config=.golangci.yml
 
   unit:
     name: "unit tests"

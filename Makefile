@@ -5,7 +5,7 @@ IMG ?= ${APP_NAME}:${BUILD_VERSION}
 REGISTRY ?= docker.io/misiektoja
 REMOTE_IMG := ${REGISTRY}/${APP_NAME}:${BUILD_VERSION}
 PLATFORM ?= linux/amd64
-ENVTEST_K8S_VERSION ?= 1.33.0
+ENVTEST_K8S_VERSION ?= 1.34.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -141,8 +141,8 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
-CONTROLLER_TOOLS_VERSION    ?= v0.18.0
-ENVTEST_VERSION             ?= release-0.21
+CONTROLLER_TOOLS_VERSION    ?= v0.19.0
+ENVTEST_VERSION             ?= release-0.22
 GOLANGCI_LINT_VERSION       ?= v1.64.8
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -173,7 +173,7 @@ pack-app: docker-save
 	rm -rf "builds/$(APP_NAME)" && mkdir -p "builds/$(APP_NAME)/images" "builds/$(APP_NAME)/charts/$(APP_NAME)/"
 	cp -rf builds/$(APP_NAME)-images/*.tgz "builds/$(APP_NAME)/images/"
 	cp -rf helm/* "builds/$(APP_NAME)/charts/$(APP_NAME)/"
-	cp -rf release_notes.txt "builds/$(APP_NAME)/"
+	cp -rf RELEASE_NOTES.md "builds/$(APP_NAME)/"
 	cd builds && tar czvf "../${APP_NAME}-${APP_VERSION}-${BUILD_VERSION}.tar.gz" "$(APP_NAME)"
 
 clean:

@@ -18,6 +18,9 @@ package controllers
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"time"
@@ -28,6 +31,7 @@ import (
 	"github.com/go-logr/logr"
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
 	"github.com/nokia/ncm-issuer/pkg/provisioner"
+	ncmutil "github.com/nokia/ncm-issuer/pkg/util"
 	core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -131,7 +135,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	issuer, _ := issuerRO.(client.Object)
+	issuer, ok := issuerRO.(client.Object)
+	if !ok {
+		log.Error(nil, "Failed to convert issuer to client.Object", "type", fmt.Sprintf("%T", issuerRO))
+		_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, "Failed to convert issuer to client.Object")
+		return ctrl.Result{}, nil
+	}
 	issuerName := types.NamespacedName{
 		Name: cr.Spec.IssuerRef.Name,
 	}
@@ -197,16 +206,49 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	var ca, tls []byte
 	var certID string
+
+	// Determine operation metadata early so that we can log it consistently for
+	// both success and failure paths.
+	operation := "sign"
+	operationType := "initial-enrollment"
+	if crt.Status.Revision != nil && *crt.Status.Revision >= 1 {
+		operationType = "reenrollment"
+		if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
+			operation = "renew"
+			operationType = "renewal"
+		}
+	}
+
 	if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
-		log.V(1).Info("Renewing certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
+		log.V(1).Info("Renewing certificate",
+			"certificateName", cr.Annotations[cmapi.CertificateNameKey],
+			"operation", operation,
+			"operationType", operationType,
+			"issuerRefKind", cr.Spec.IssuerRef.Kind,
+			"issuerRefName", cr.Spec.IssuerRef.Name,
+			"issuerRefNamespace", issuerName.Namespace,
+		)
 		ca, tls, certID, err = p.Renew(cr, string(crtIDSecret.Data["cert-id"]))
 		if err != nil {
 			if errorContains(err, "not reachable NCM API") {
-				log.Error(err, "Could not established connection to any NCM API")
+				log.Error(err, "Could not established connection to any NCM API",
+					"operation", operation,
+					"operationType", operationType,
+					"issuerRefKind", cr.Spec.IssuerRef.Kind,
+					"issuerRefName", cr.Spec.IssuerRef.Name,
+					"issuerRefNamespace", issuerName.Namespace,
+				)
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection to any NCM API err: %v", err)
 				return ctrl.Result{RequeueAfter: APIErrorRequeueTime}, nil
 			}
-			log.Error(err, "Failed to renew certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
+			log.Error(err, "Failed to renew certificate",
+				"certificateName", cr.Annotations[cmapi.CertificateNameKey],
+				"operation", operation,
+				"operationType", operationType,
+				"issuerRefKind", cr.Spec.IssuerRef.Kind,
+				"issuerRefName", cr.Spec.IssuerRef.Name,
+				"issuerRefNamespace", issuerName.Namespace,
+			)
 			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to renew certificate err: %v", err)
 			return ctrl.Result{}, err
 		}
@@ -217,28 +259,68 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 	} else {
-		log.V(1).Info("Signing certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
+		log.V(1).Info("Signing certificate",
+			"certificateName", cr.Annotations[cmapi.CertificateNameKey],
+			"operation", operation,
+			"operationType", operationType,
+			"issuerRefKind", cr.Spec.IssuerRef.Kind,
+			"issuerRefName", cr.Spec.IssuerRef.Name,
+			"issuerRefNamespace", issuerName.Namespace,
+		)
 		ca, tls, certID, err = p.Sign(cr)
 		if err != nil {
 			switch {
 			case errorContains(err, "not reachable NCM API"):
-				log.Error(err, "Could not established connection to any NCM API")
+				log.Error(err, "Could not established connection to any NCM API",
+					"operation", operation,
+					"operationType", operationType,
+					"issuerRefKind", cr.Spec.IssuerRef.Kind,
+					"issuerRefName", cr.Spec.IssuerRef.Name,
+					"issuerRefNamespace", issuerName.Namespace,
+				)
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to establish connection to any NCM API err: %v", err)
 				return ctrl.Result{RequeueAfter: APIErrorRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRNotAccepted):
-				log.Error(err, "CSR status in NCM is not yet expected one")
+				log.Error(err, "CSR status in NCM is not yet expected one",
+					"operation", operation,
+					"operationType", operationType,
+					"issuerRefKind", cr.Spec.IssuerRef.Kind,
+					"issuerRefName", cr.Spec.IssuerRef.Name,
+					"issuerRefNamespace", issuerName.Namespace,
+					"ncmCSRStatus", "pending-or-approved",
+				)
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "CSR in NCM has not yet been approved")
 				return ctrl.Result{RequeueAfter: CSRRequeueTime}, nil
 			case errors.Is(err, provisioner.ErrCSRRejected):
-				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually")
+				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually",
+					"operation", operation,
+					"operationType", operationType,
+					"issuerRefKind", cr.Spec.IssuerRef.Kind,
+					"issuerRefName", cr.Spec.IssuerRef.Name,
+					"issuerRefNamespace", issuerName.Namespace,
+					"ncmCSRStatus", "rejected",
+				)
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "CSR has been rejected by NCM")
 				return ctrl.Result{}, nil
 			case errors.Is(err, provisioner.ErrCSRCheckLimitExceeded):
-				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually")
+				log.Error(err, "CSR status in NCM is not expected one, further actions should be taken manually",
+					"operation", operation,
+					"operationType", operationType,
+					"issuerRefKind", cr.Spec.IssuerRef.Kind,
+					"issuerRefName", cr.Spec.IssuerRef.Name,
+					"issuerRefNamespace", issuerName.Namespace,
+					"ncmCSRStatus", "pending-timeout",
+				)
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, "CSR has not been accepted for too long time")
 				return ctrl.Result{}, nil
 			default:
-				log.Error(err, "Unexpected error during certificate signing")
+				log.Error(err, "Unexpected error during certificate signing",
+					"operation", operation,
+					"operationType", operationType,
+					"issuerRefKind", cr.Spec.IssuerRef.Kind,
+					"issuerRefName", cr.Spec.IssuerRef.Name,
+					"issuerRefNamespace", issuerName.Namespace,
+				)
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to sign certificate err: %v", err)
 				return ctrl.Result{}, nil
 			}
@@ -259,8 +341,117 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	cr.Status.CA = ca
 	cr.Status.Certificate = tls
-	log.Info("Successfully issued certificate", "certificateName", cr.Annotations[cmapi.CertificateNameKey])
+
+	// Extract certificate details for logging.
+	leaf, issuerCert, err := extractLeafAndIssuerCerts(tls, ca)
+	if err != nil {
+		log.V(1).Info("Failed to decode issued certificate for logging", "error", err)
+	}
+
+	// Compute human readable timing information relative to the CertificateRequest creation time.
+	issueDuration := r.Clock.Since(cr.CreationTimestamp.Time)
+
+	// Derive key type and size, if we successfully parsed the leaf certificate.
+	var keyType string
+	var keySize int
+	var signatureAlgorithm string
+	var subjectDN, issuerSubjectDN, serialHex, issuerSerialHex string
+	var notBefore, notAfter time.Time
+	var sanDNS []string
+	var sanIP []string
+
+	if leaf != nil {
+		subjectDN = leaf.Subject.String()
+		issuerSubjectDN = leaf.Issuer.String()
+		serialHex = leaf.SerialNumber.Text(16)
+		notBefore = leaf.NotBefore
+		notAfter = leaf.NotAfter
+		sanDNS = leaf.DNSNames
+		for _, ip := range leaf.IPAddresses {
+			sanIP = append(sanIP, ip.String())
+		}
+
+		switch pub := leaf.PublicKey.(type) {
+		case *rsa.PublicKey:
+			keyType = "RSA"
+			keySize = pub.Size() * 8
+		case *ecdsa.PublicKey:
+			keyType = "ECDSA"
+			keySize = pub.Params().BitSize
+		default:
+			keyType = leaf.PublicKeyAlgorithm.String()
+		}
+		signatureAlgorithm = leaf.SignatureAlgorithm.String()
+	}
+
+	if issuerCert != nil {
+		issuerSubjectDN = issuerCert.Subject.String()
+		issuerSerialHex = issuerCert.SerialNumber.Text(16)
+	}
+
+	log.Info("Successfully issued certificate",
+		"certificateName", cr.Annotations[cmapi.CertificateNameKey],
+		"operation", operation,
+		"operationType", operationType,
+		"issuerRefKind", cr.Spec.IssuerRef.Kind,
+		"issuerRefName", cr.Spec.IssuerRef.Name,
+		"issuerRefNamespace", issuerName.Namespace,
+		"certID", certID,
+		"subjectDN", subjectDN,
+		"serialNumber", serialHex,
+		"notBefore", notBefore,
+		"notAfter", notAfter,
+		"sanDNS", sanDNS,
+		"sanIP", sanIP,
+		"keyType", keyType,
+		"keySize", keySize,
+		"signatureAlgorithm", signatureAlgorithm,
+		"issuerSubjectDN", issuerSubjectDN,
+		"issuerSerialNumber", issuerSerialHex,
+		"issueDuration", issueDuration,
+	)
+
 	return ctrl.Result{}, r.setStatus(ctx, cr, cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Successfully issued certificate")
+}
+
+// extractLeafAndIssuerCerts attempts to decode the returned TLS and CA PEM data and
+// determine the leaf (end-entity) certificate and its issuer certificate.
+// It returns nils if decoding fails so that callers can degrade logging gracefully.
+func extractLeafAndIssuerCerts(tlsPEM, caPEM []byte) (*x509.Certificate, *x509.Certificate, error) {
+	allPEM := append([]byte{}, tlsPEM...)
+	allPEM = append(allPEM, caPEM...)
+
+	certs, err := ncmutil.DecodeX509CertificateBytes(allPEM)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var leaf *x509.Certificate
+	for _, c := range certs {
+		// Prefer non-CA as leaf if present, otherwise fall back to the first cert.
+		if !c.IsCA {
+			leaf = c
+			break
+		}
+	}
+	if leaf == nil {
+		leaf = certs[0]
+	}
+
+	// Attempt to find issuer certificate by matching the leaf's Issuer to the Subject of
+	// another certificate in the chain.
+	var issuer *x509.Certificate
+	for _, c := range certs {
+		if c == leaf {
+			continue
+		}
+		if c.Subject.String() == leaf.Issuer.String() {
+			issuer = c
+			break
+		}
+	}
+
+	return leaf, issuer, nil
 }
 
 func (r *CertificateRequestReconciler) isQualifiedForRenewal(ctx context.Context, req ctrl.Request, crt *cmapi.Certificate) (bool, error) {
@@ -269,7 +460,18 @@ func (r *CertificateRequestReconciler) isQualifiedForRenewal(ctx context.Context
 	if crt.Status.Revision == nil || (crt.Status.Revision != nil && *crt.Status.Revision < 1) {
 		return false, nil
 	}
-	if crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy == cmapi.RotationPolicyAlways {
+
+	// From cert-manager v1.18.0 onwards, the default behaviour for an unset
+	// .spec.privateKey.rotationPolicy changed from effectively "Never" to
+	// "Always" (private key rotation on renewal). To align with this and avoid
+	// ambiguous behaviour between cert-manager versions, ncm-issuer will:
+	//   - Only perform an NCM Renew (same key) when rotationPolicy is explicitly "Never".
+	//   - Treat unset (""), "Always" and any other value as reenrollment, using Sign.
+	//
+	// This means that omitting rotationPolicy now results in reenrollment and
+	// users who require a true renew-with-same-key flow must set "Never"
+	// explicitly in the Certificate spec.
+	if crt.Spec.PrivateKey == nil || crt.Spec.PrivateKey.RotationPolicy != cmapi.RotationPolicyNever {
 		return false, nil
 	}
 

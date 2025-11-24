@@ -224,8 +224,8 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 		CACertPool.AppendCertsFromPEM([]byte(cfg.CACert))
 
 		if cfg.MTLS {
-			// Reads the key pair for client certificate
-			clientCert, err := tls.LoadX509KeyPair(cfg.Cert, cfg.Key)
+			// Loads the key pair for client certificate from PEM data in memory
+			clientCert, err := tls.X509KeyPair(cfg.Cert, cfg.Key)
 			if err != nil {
 				return nil, err
 			}
@@ -271,6 +271,7 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 }
 
 func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
+	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	c.log.V(2).Info("Validating response from NCM API", "bytes", len(body))
 	if err != nil {
@@ -285,9 +286,6 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 	err = json.Unmarshal(body, &apiError)
 	if err != nil {
 		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
-	}
-	if err = resp.Body.Close(); err != nil {
-		return nil, &ClientError{Reason: "cannot close response body", ErrorMessage: err}
 	}
 	return nil, &apiError
 }
@@ -341,10 +339,17 @@ func (c *Client) StartHealthChecker(interval time.Duration) {
 // NCM API is responding or not.
 func (c *Client) isAPIHealthy(apiUrl string) bool {
 	parsedURL, _ := url.Parse(apiUrl)
-	req, _ := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
+	req, err := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
+	if err != nil {
+		return false
+	}
 	c.setHeaders(req)
 	resp, err := c.client.Do(req)
-	return err == nil && (resp.StatusCode < 500 || resp.StatusCode >= 600)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode < 500 || resp.StatusCode >= 600
 }
 
 func (c *Client) StopHealthChecker() {
@@ -408,6 +413,11 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot write PEM to file", ErrorMessage: err}
 	}
+	defer func() {
+		if removeErr := os.Remove(filePath); removeErr != nil {
+			c.log.V(1).Info("Failed to remove temporary CSR file", "path", filePath, "error", removeErr)
+		}
+	}()
 
 	certDuration := cmapi.DefaultCertificateDuration
 	if duration != nil {
@@ -458,10 +468,6 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	err = os.Remove(filePath)
-	if err != nil {
-		return nil, &ClientError{Reason: "cannot remove file", ErrorMessage: err}
-	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {

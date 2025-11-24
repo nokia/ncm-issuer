@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: ['1.33']
-        certmgr-version: ['1.18.1']
+        k8s-version: ['1.34']
+        certmgr-version: ['1.19.1']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
@@ -63,7 +63,7 @@ jobs:
         sudo microk8s.helm3 list -A
         sudo microk8s.kubectl get pods -A
         sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
-   
+
     - name: "install cmctl"
       run: |
           OS=$(uname -s | tr A-Z a-z); ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_${OS}_${ARCH}
@@ -110,7 +110,7 @@ jobs:
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         POD_NAME=$(sudo microk8s.kubectl get pods -A | grep -i ncm-issuer | awk '{ print $2 }')
         sudo microk8s.kubectl describe pod $POD_NAME -n ncm-issuer
-  
+
     - name: "create issuer"
       run: |
         sudo microk8s.kubectl apply -f data/ncm-issuer.yml

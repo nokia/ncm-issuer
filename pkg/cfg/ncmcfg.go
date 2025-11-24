@@ -23,7 +23,6 @@ import (
 	"time"
 
 	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
-	ncmutil "github.com/nokia/ncm-issuer/pkg/util"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -102,11 +101,11 @@ type NCMConfig struct {
 	// CACert is a TLS CA certificate.
 	CACert string
 
-	// Key is a TLS client key.
-	Key string
+	// Key is a TLS client key (PEM encoded).
+	Key []byte
 
-	// Cert is a TLS client certificate.
-	Cert string
+	// Cert is a TLS client certificate (PEM encoded).
+	Cert []byte
 
 	// InsecureSkipVerify determines whether SSL certificate verification between client
 	// instance and NCM API should be enabled.
@@ -134,8 +133,8 @@ func Initialise(issuerSpec *ncmv1.IssuerSpec) *NCMConfig {
 		AuthNamespacedName:    types.NamespacedName{},
 		TLSNamespacedName:     types.NamespacedName{},
 		CACert:                "",
-		Key:                   "",
-		Cert:                  "",
+		Key:                   nil,
+		Cert:                  nil,
 		InsecureSkipVerify:    true,
 		MTLS:                  false,
 	}
@@ -178,25 +177,21 @@ func (cfg *NCMConfig) AddTLSData(secret *core.Secret) error {
 	cfg.InsecureSkipVerify = cfg.CACert == ""
 
 	if key, ok := secret.Data["key"]; ok {
-		keyPath, err := ncmutil.WritePEMToTempFile(key)
-		if err != nil {
-			return err
-		}
-		cfg.Key = keyPath
+		// Store the key PEM data directly in memory
+		cfg.Key = make([]byte, len(key))
+		copy(cfg.Key, key)
 	} else {
-		cfg.Key = ""
+		cfg.Key = nil
 	}
 
 	if cert, ok := secret.Data["cert"]; ok {
-		certPath, err := ncmutil.WritePEMToTempFile(cert)
-		if err != nil {
-			return err
-		}
-		cfg.Cert = certPath
+		// Store the cert PEM data directly in memory
+		cfg.Cert = make([]byte, len(cert))
+		copy(cfg.Cert, cert)
 	} else {
-		cfg.Cert = ""
+		cfg.Cert = nil
 	}
-	cfg.MTLS = cfg.Key != "" && cfg.Cert != ""
+	cfg.MTLS = len(cfg.Key) > 0 && len(cfg.Cert) > 0
 
 	return nil
 }
@@ -228,7 +223,7 @@ func (cfg *NCMConfig) Validate() error {
 		return cfg.getError("incorrect signing CA certificate data: missing CANAME or CAHREF")
 	}
 
-	if !reflect.DeepEqual(cfg.TLSNamespacedName, types.NamespacedName{}) && cfg.CACert == "" && cfg.Key == "" && cfg.Cert == "" {
+	if !reflect.DeepEqual(cfg.TLSNamespacedName, types.NamespacedName{}) && cfg.CACert == "" && len(cfg.Key) == 0 && len(cfg.Cert) == 0 {
 		return cfg.getError("incorrect TLS data: missing cacert, key or cert in TLS secret")
 	}
 

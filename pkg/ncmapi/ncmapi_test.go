@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -123,20 +122,7 @@ func TestNewClientCreation(t *testing.T) {
 	CACertPool := x509.NewCertPool()
 	CACertPool.AppendCertsFromPEM([]byte(rootCA))
 
-	dir := t.TempDir()
-	certFile, err := os.CreateTemp(dir, "ncm-testing-cert.pem")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	certFile.Write([]byte(certPEM))
-
-	certKey, err := os.CreateTemp(dir, "ncm-testing-cert-key.pem")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	certKey.Write([]byte(keyPEM))
-
-	clientCert, _ := tls.LoadX509KeyPair(certFile.Name(), certKey.Name())
+	clientCert, _ := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
 
 	run := func(t *testing.T, tc testCase) {
 		var c *Client
@@ -179,16 +165,16 @@ func TestNewClientCreation(t *testing.T) {
 			expectedClient: nil,
 		},
 		{
-			name: "cert-and-key-for-mtls-do-not-exist",
+			name: "cert-and-key-for-mtls-invalid-pem",
 			config: &cfg.NCMConfig{
 				MainAPI:               "https://ncm-server.local",
 				HTTPClientTimeout:     10 * time.Second,
 				HealthCheckerInterval: time.Minute,
 				CACert:                rootCA,
-				Key:                   "ncm-certificate-key.pem",
-				Cert:                  "ncm-certificate.pem",
+				Key:                   []byte("invalid-key-pem"),
+				Cert:                  []byte("invalid-cert-pem"),
 			},
-			err:            errors.New("no such file or directory"),
+			err:            errors.New("failed to parse"),
 			expectedClient: nil,
 		},
 		{
@@ -272,8 +258,8 @@ func TestNewClientCreation(t *testing.T) {
 				HealthCheckerInterval: time.Minute,
 				CACert:                rootCA,
 				MTLS:                  true,
-				Cert:                  certFile.Name(),
-				Key:                   certKey.Name(),
+				Cert:                  []byte(certPEM),
+				Key:                   []byte(keyPEM),
 			},
 			err: nil,
 			expectedClient: &Client{

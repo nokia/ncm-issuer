@@ -35,10 +35,11 @@ import (
 )
 
 var (
-	scheme       = runtime.NewScheme()
-	setupLog     = ctrl.Log.WithName("setup")
-	chartVersion = "1.1.7"
-	imageVersion = "1.1.7"
+	scheme           = runtime.NewScheme()
+	setupLog         = ctrl.Log.WithName("setup")
+	chartVersion     = "1.1.8"
+	imageVersion     = "1.1.8"
+	leaderElectionID = "b84bc1d2.ncm.nokia.com"
 )
 
 const (
@@ -76,6 +77,9 @@ func main() {
 		"replica-count", os.Getenv("REP_COUNT"),
 		"enable-leader-election", enableLeaderElection,
 		"metrics-addr", metricsAddr,
+		"health-probe-addr", probeAddr,
+		"webhook-port", webhookPort,
+		"leader-election-id", leaderElectionID,
 	)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -84,7 +88,7 @@ func main() {
 		},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "b84bc1d2.ncm.nokia.com",
+		LeaderElectionID:       leaderElectionID,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

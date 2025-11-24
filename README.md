@@ -18,7 +18,7 @@
 
 ncm-issuer is a [Kubernetes](https://kubernetes.io) controller (external [cert-manager](https://cert-manager.io/) issuer) that allows to integrate with
 [Nokia NetGuard Certificate Manager (NCM)](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/)
-PKI system to sign certificate requests. 
+PKI system to sign certificate requests.
 
 The integration with NCM makes it easy to obtain non-self-signed certificates for applications and to ensure that they are valid and up-to-date.
 
@@ -47,7 +47,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 Prerequisites for building and using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 23 or later,
-* [Kubernetes](https://kubernetes.io) version 1.24 - 1.33,
+* [Kubernetes](https://kubernetes.io) version 1.24 - 1.34,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
@@ -336,26 +336,31 @@ do it before the certificate expires (the renewal grace period
 depends on the defined values in `Certificate` resource).
 
 You can define what operation ncm-issuer should perform in such a case by
-setting certain PK rotation policy in `Certificate` resource.
+setting certain PK rotation policy in the `Certificate` resource.
 
-|               Field               |  Operation   |             Value             |
-|:---------------------------------:|:------------:|:-----------------------------:|
-| `.spec.privateKey.rotationPolicy` | Re-enrollment |           "Always"            |
-| `.spec.privateKey.rotationPolicy` |   Renewal    | "Never" or not even specified |
+|               Field               |  Operation   |                        Value                        |
+|:---------------------------------:|:------------:|:---------------------------------------------------:|
+| `.spec.privateKey.rotationPolicy` | Re-enrollment | `Always` or **field omitted**                     |
+| `.spec.privateKey.rotationPolicy` |   Renewal    | `Never` (**must be set explicitly**)              |
 
-**:loudspeaker: Attention:** There is also an option for enforcing the re-enrollment on
+**:loudspeaker: Attention:** From **ncm-issuer 1.1.8** onwards, omitting `.spec.privateKey.rotationPolicy`
+means **re-enrollment** (private key rotation) instead of renewal. This aligns ncm-issuer behaviour with
+cert-manager **v1.18.0+**, where the default rotation policy changed from `Never` to `Always`.
+If you require a true renew-with-same-key flow, set `.spec.privateKey.rotationPolicy` to `Never` explicitly.
+
+**NOTE:** There is also an option for enforcing the re-enrollment on
 renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
 to **true** in `Issuer` or `ClusterIssuer` definition.
 
-However, you can also trigger renewal or re-enrolling operation manually using one of the commands below.
+You can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
-In case you have cert-manager kubectl plugin:
+In case you have cert-manager `kubectl` plugin:
 
   ```bash
   $ kubectl cert-manager renew <certificate> -n <namespace>
   ```
 
-In case you use cmctl:
+In case you use `cmctl`:
 
   ```bash
   $ cmctl renew <certificate> -n <namespace>
