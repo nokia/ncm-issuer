@@ -339,7 +339,10 @@ func (c *Client) StartHealthChecker(interval time.Duration) {
 // NCM API is responding or not.
 func (c *Client) isAPIHealthy(apiUrl string) bool {
 	parsedURL, _ := url.Parse(apiUrl)
-	req, _ := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
+	req, err := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
+	if err != nil {
+		return false
+	}
 	c.setHeaders(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
