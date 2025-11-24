@@ -173,7 +173,7 @@ pack-app: docker-save
 	rm -rf "builds/$(APP_NAME)" && mkdir -p "builds/$(APP_NAME)/images" "builds/$(APP_NAME)/charts/$(APP_NAME)/"
 	cp -rf builds/$(APP_NAME)-images/*.tgz "builds/$(APP_NAME)/images/"
 	cp -rf helm/* "builds/$(APP_NAME)/charts/$(APP_NAME)/"
-	cp -rf release_notes.txt "builds/$(APP_NAME)/"
+	cp -rf RELEASE_NOTES.md "builds/$(APP_NAME)/"
 	cd builds && tar czvf "../${APP_NAME}-${APP_VERSION}-${BUILD_VERSION}.tar.gz" "$(APP_NAME)"
 
 clean:
