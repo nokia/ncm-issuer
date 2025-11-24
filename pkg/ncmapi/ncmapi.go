@@ -224,8 +224,8 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 		CACertPool.AppendCertsFromPEM([]byte(cfg.CACert))
 
 		if cfg.MTLS {
-			// Reads the key pair for client certificate
-			clientCert, err := tls.LoadX509KeyPair(cfg.Cert, cfg.Key)
+			// Loads the key pair for client certificate from PEM data in memory
+			clientCert, err := tls.X509KeyPair(cfg.Cert, cfg.Key)
 			if err != nil {
 				return nil, err
 			}
