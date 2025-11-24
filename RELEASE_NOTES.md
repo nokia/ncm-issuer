@@ -7,6 +7,7 @@
 - Improved resource management by ensuring proper cleanup of temporary files and HTTP response bodies to prevent resource leaks
 - Added nil checks and improved error handling in **NCM API** operations
 - Refactored code for improved clarity, including leader election configuration and type improvements
+- Updated `ncm-issuer-utils` troubleshooting container to `1.1.8`
 - Updated `go.mod` dependencies: **Kubernetes API** to `0.34`, **controller-runtime** to `0.22`, **cert-manager** to `1.19.1`
 - Upgraded **Go** version used for building the binary and Docker image from `1.24.4` to `1.25.4`
 
