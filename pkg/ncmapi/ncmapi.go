@@ -271,6 +271,7 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 }
 
 func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
+	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	c.log.V(2).Info("Validating response from NCM API", "bytes", len(body))
 	if err != nil {
@@ -285,9 +286,6 @@ func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 	err = json.Unmarshal(body, &apiError)
 	if err != nil {
 		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
-	}
-	if err = resp.Body.Close(); err != nil {
-		return nil, &ClientError{Reason: "cannot close response body", ErrorMessage: err}
 	}
 	return nil, &apiError
 }
@@ -344,7 +342,11 @@ func (c *Client) isAPIHealthy(apiUrl string) bool {
 	req, _ := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
 	c.setHeaders(req)
 	resp, err := c.client.Do(req)
-	return err == nil && (resp.StatusCode < 500 || resp.StatusCode >= 600)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode < 500 || resp.StatusCode >= 600
 }
 
 func (c *Client) StopHealthChecker() {
