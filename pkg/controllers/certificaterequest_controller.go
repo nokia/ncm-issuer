@@ -269,7 +269,18 @@ func (r *CertificateRequestReconciler) isQualifiedForRenewal(ctx context.Context
 	if crt.Status.Revision == nil || (crt.Status.Revision != nil && *crt.Status.Revision < 1) {
 		return false, nil
 	}
-	if crt.Spec.PrivateKey != nil && crt.Spec.PrivateKey.RotationPolicy == cmapi.RotationPolicyAlways {
+
+	// From cert-manager v1.18.0 onwards, the default behaviour for an unset
+	// .spec.privateKey.rotationPolicy changed from effectively "Never" to
+	// "Always" (private key rotation on renewal). To align with this and avoid
+	// ambiguous behaviour between cert-manager versions, ncm-issuer will:
+	//   - Only perform an NCM Renew (same key) when rotationPolicy is explicitly "Never".
+	//   - Treat unset (""), "Always" and any other value as reenrollment, using Sign.
+	//
+	// This means that omitting rotationPolicy now results in reenrollment and
+	// users who require a true renew-with-same-key flow must set "Never"
+	// explicitly in the Certificate spec.
+	if crt.Spec.PrivateKey == nil || crt.Spec.PrivateKey.RotationPolicy != cmapi.RotationPolicyNever {
 		return false, nil
 	}
 
