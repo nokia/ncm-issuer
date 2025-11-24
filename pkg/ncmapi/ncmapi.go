@@ -408,6 +408,11 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot write PEM to file", ErrorMessage: err}
 	}
+	defer func() {
+		if removeErr := os.Remove(filePath); removeErr != nil {
+			c.log.V(1).Info("Failed to remove temporary CSR file", "path", filePath, "error", removeErr)
+		}
+	}()
 
 	certDuration := cmapi.DefaultCertificateDuration
 	if duration != nil {
@@ -458,10 +463,6 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	err = os.Remove(filePath)
-	if err != nil {
-		return nil, &ClientError{Reason: "cannot remove file", ErrorMessage: err}
-	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
