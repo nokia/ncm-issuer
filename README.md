@@ -25,7 +25,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 ## Table of contents
 
 * [Prerequisites](#prerequisites)
-* [Resource Requirements](#resource-requirements)
+* [Resource requirements](#resource-requirements)
 * [Installation and configuration](#installation-and-configuration)
   * [Installing using Helm](#installing-using-helm)
     * [Using own (local or remote) registry](#using-own--local-or-remote--registry)
@@ -53,7 +53,7 @@ Prerequisites for building and using ncm-issuer:
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
-## Resource Requirements
+## Resource requirements
 
 The following resource requirements are based on the default configuration for ncm-issuer:
 
