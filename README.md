@@ -7,11 +7,6 @@
 [![e2e](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=coverage)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=nokia_ncm-issuer&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=nokia_ncm-issuer)
-
 <p align="center">
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
 </p>
