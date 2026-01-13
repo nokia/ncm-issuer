@@ -56,22 +56,15 @@ Prerequisites for building and using ncm-issuer:
 
 The following resource requirements are based on the default configuration for ncm-issuer:
 
-#### CPU Requirements
+| Resource Type | Configuration | CPU | Memory | Disk (per node) |
+|:--------------|:--------------|:----|:-------|:----------------|
+| **Minimum** | Single replica, no sidecar | 400m (0.4 cores) | 500Mi | 500 MB |
+| **With sidecar** | Single replica, troubleshooting sidecar enabled | 800m (0.8 cores) | 1000Mi (1 Gi) | 1 GB |
+| **High Availability** | Multiple replicas (leader election enabled) | 400m × replicas | 500Mi × replicas | 500 MB + (100 MB × replicas) |
 
-* **Minimum (single replica, no sidecar)**: 400m (0.4 cores)
-* **With troubleshooting sidecar enabled**: 800m (0.8 cores) per pod
-* **High Availability (multiple replicas)**: 400m × number of replicas (leader election enabled automatically)
-
-#### Memory Requirements
-
-* **Minimum (single replica, no sidecar)**: 500Mi
-* **With troubleshooting sidecar enabled**: 1000Mi (1 Gi) per pod
-* **High Availability (multiple replicas)**: 500Mi × number of replicas
-
-#### Disk Requirements
-
-* **Minimum recommended**: 500 MB per node (without sidecar)
-* **With sidecar enabled**: 1 GB per node
+**Container Image Sizes:**
+* ncm-issuer: 17.6 MB
+* ncm-issuer-utils (optional sidecar): 170 MB
 
 **Note**: These requirements are for the ncm-issuer component only. Additional resources are required for cert-manager, which is a separate dependency. The actual resource consumption may vary based on:
 * Number of Issuer/ClusterIssuer resources
