@@ -25,6 +25,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 ## Table of contents
 
 * [Prerequisites](#prerequisites)
+* [Resource Requirements](#resource-requirements)
 * [Installation and configuration](#installation-and-configuration)
   * [Installing using Helm](#installing-using-helm)
     * [Using own (local or remote) registry](#using-own--local-or-remote--registry)
@@ -52,7 +53,7 @@ Prerequisites for building and using ncm-issuer:
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
-### Resource Requirements
+## Resource Requirements
 
 The following resource requirements are based on the default configuration for ncm-issuer:
 
@@ -63,8 +64,8 @@ The following resource requirements are based on the default configuration for n
 | **High Availability** | Multiple replicas (leader election enabled) | 400m × replicas | 500Mi × replicas | 500 MB + (100 MB × replicas) |
 
 **Container Image Sizes:**
-* ncm-issuer: 17.6 MB
-* ncm-issuer-utils (optional sidecar): 170 MB
+* ncm-issuer: ~18 MB
+* ncm-issuer-utils (optional sidecar): ~170 MB
 
 **Note**: These requirements are for the ncm-issuer component only. Additional resources are required for cert-manager, which is a separate dependency. The actual resource consumption may vary based on:
 * Number of Issuer/ClusterIssuer resources
