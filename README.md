@@ -52,6 +52,33 @@ Prerequisites for building and using ncm-issuer:
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
+### Resource Requirements
+
+The following resource requirements are based on the default configuration for ncm-issuer:
+
+#### CPU Requirements
+
+* **Minimum (single replica, no sidecar)**: 400m (0.4 cores)
+* **With troubleshooting sidecar enabled**: 800m (0.8 cores) per pod
+* **High Availability (multiple replicas)**: 400m × number of replicas (leader election enabled automatically)
+
+#### Memory Requirements
+
+* **Minimum (single replica, no sidecar)**: 500Mi
+* **With troubleshooting sidecar enabled**: 1000Mi (1 Gi) per pod
+* **High Availability (multiple replicas)**: 500Mi × number of replicas
+
+#### Disk Requirements
+
+* **Minimum recommended**: 500 MB per node (without sidecar)
+* **With sidecar enabled**: 1 GB per node
+
+**Note**: These requirements are for the ncm-issuer component only. Additional resources are required for cert-manager, which is a separate dependency. The actual resource consumption may vary based on:
+* Number of Issuer/ClusterIssuer resources
+* Certificate request frequency
+* NCM API response times
+* Logging verbosity level
+
 ### Installing using Helm
 
 The easiest way to install ncm-issuer in Kubernetes cluster is to use Helm. The image will be automatically downloaded from public repository.
