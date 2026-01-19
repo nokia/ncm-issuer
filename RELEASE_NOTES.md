@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version 1.1.9 (Chart: 1.1.9, Image: 1.1.9) - 19 Jan 2026
+- **Corrected URL handling for backup API requests** (fixes #60)
+- Added support for **Kubernetes** `1.35` (supported versions: `1.25 - 1.35`)
+- Updated `go.mod` dependencies: **Kubernetes API** to `0.35`, **controller-runtime** to `0.22.4`, **cert-manager** to `1.19.2`
+- Upgraded **Go** version used for building the binary and Docker image from `1.25.4` to `1.25.6`
+
 ## Version 1.1.8 (Chart: 1.1.8, Image: 1.1.8) - 24 Nov 2025
 - **Fixed private key rotation policy handling** to align with cert-manager `>=1.18.0` changes. From this release onwards, omitting `.spec.privateKey.rotationPolicy` means **re-enrollment** (private key rotation) instead of renewal. This aligns ncm-issuer behaviour with cert-manager `v1.18.0+`, where the default rotation policy changed from `Never` to `Always`. If you require a true renew-with-same-key flow, set `.spec.privateKey.rotationPolicy` to `Never` explicitly
 - Enhanced logging for certificate operations with improved certificate extraction utilities. Logs now include detailed certificate information such as **subject DN**, **serial number**, **validity period** (`notBefore`/`notAfter`), **SAN entries** (DNS names and IP addresses), **key type and size**, **signature algorithm**, **issuer details**, **operation type**, **issue duration** etc.
