@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/ncm-issuer-logo.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -27,7 +27,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -265,7 +265,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../release-notes/1.1.8/" class="md-tabs__link">
+        <a href="../../release-notes/1.1.9/" class="md-tabs__link">
           
   
   
@@ -476,6 +476,17 @@
     <span class="md-ellipsis">
       
         Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource requirements
       
     </span>
   </a>
@@ -1027,6 +1038,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../release-notes/1.1.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1.1.9
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../release-notes/1.1.8/" class="md-nav__link">
         
   
@@ -1373,6 +1412,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#resource-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installing-with-helm" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1419,11 +1469,55 @@
 <p>Prerequisites for using ncm-issuer:</p>
 <ul>
 <li><a href="https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/">NCM</a> release 23 or later,</li>
-<li><a href="https://kubernetes.io">Kubernetes</a> version 1.24 - 1.34,</li>
+<li><a href="https://kubernetes.io">Kubernetes</a> version 1.25 - 1.35,</li>
 <li><a href="https://cert-manager.io/">cert-manager</a> version 1.0.0 or later,</li>
 <li>Kubernetes container runtime like Docker, containerd or CRI-O,</li>
 <li><a href="https://helm.sh/docs/intro/install/">Helm</a> v3.</li>
 </ul>
+<h2 id="resource-requirements">Resource requirements</h2>
+<p>The following resource requirements are based on the default configuration for ncm-issuer:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Resource Type</th>
+<th style="text-align: left;">Configuration</th>
+<th style="text-align: left;">CPU</th>
+<th style="text-align: left;">Memory</th>
+<th style="text-align: left;">Disk (per node)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Minimum</strong></td>
+<td style="text-align: left;">Single replica, no sidecar</td>
+<td style="text-align: left;">400m (0.4 cores)</td>
+<td style="text-align: left;">500Mi</td>
+<td style="text-align: left;">500 MB</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>With sidecar</strong></td>
+<td style="text-align: left;">Single replica, troubleshooting sidecar enabled</td>
+<td style="text-align: left;">800m (0.8 cores)</td>
+<td style="text-align: left;">1000Mi (1 Gi)</td>
+<td style="text-align: left;">1 GB</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>High Availability</strong></td>
+<td style="text-align: left;">Multiple replicas (leader election enabled)</td>
+<td style="text-align: left;">400m × replicas</td>
+<td style="text-align: left;">500Mi × replicas</td>
+<td style="text-align: left;">500 MB + (100 MB × replicas)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Container Image Sizes:</strong>
+* ncm-issuer: ~18 MB
+* ncm-issuer-utils (optional sidecar): ~170 MB</p>
+<p><strong>Note</strong>: These requirements are for the ncm-issuer component only. Additional resources are required for cert-manager, which is a separate dependency. The actual resource consumption may vary based on:
+* Number of Issuer/ClusterIssuer resources
+* Certificate request frequency
+* NCM API response times
+* Logging verbosity level</p>
 <h2 id="installing-with-helm">Installing with Helm</h2>
 <p>The easiest way to install ncm-issuer in Kubernetes cluster is to use Helm.
 The image will be automatically downloaded from public repository.</p>
@@ -1563,10 +1657,10 @@ just use the command:</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

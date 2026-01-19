@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../1.1.3/">
+        <link rel="prev" href="../../documentation/troubleshooting/">
       
       
-        <link rel="next" href="../1.1.1/">
+        <link rel="next" href="../1.1.8/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>1.1.2 - ncm-issuer</title>
+        <title>1.1.9 - ncm-issuer</title>
       
     
     
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              1.1.2
+              1.1.9
             
           </span>
         </div>
@@ -265,7 +265,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../1.1.9/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -932,10 +932,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../1.1.9/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1.1.9
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -951,6 +978,37 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#improvements-and-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Improvements and fixes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1128,37 +1186,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    1.1.2
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../1.1.2/" class="md-nav__link">
         
   
   
@@ -1174,48 +1205,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Features
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#other" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Other
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1367,21 +1356,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#improvements-and-fixes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#other" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Other
+        Improvements and fixes
       
     </span>
   </a>
@@ -1409,17 +1387,13 @@
 
 
 <h1 id="whats-changed">What's changed</h1>
-<p>ncm-issuer <code>1.1.2</code> introduces two new features and includes some small improvements.</p>
-<h2 id="features">Features</h2>
+<p>ncm-issuer <code>1.1.9</code>  is a compatibility and robustness release that corrects URL handling for NCM backup API requests. It also adds support for Kubernetes <code>1.35</code> and updates core dependencies and build tooling.</p>
+<h2 id="improvements-and-fixes">Improvements and fixes</h2>
 <ul>
-<li>Support for setting notBefore and notAfter parameters in NCM certificate requests corresponding to suggested Duration parameter in cert-manager.io/v1 Certificate object kind. notBefore is set to the current time when cert is being enrolled. Feature is available for NCM &gt;= <code>24.11</code>, in older releases new parameters are ignored</li>
-<li>Added issuer <code>.spec.caID/CASHREF</code> validation, so there is an error presented if the user specifies wrongly formatted value</li>
-</ul>
-<h2 id="other">Other</h2>
-<ul>
-<li>Linting code improvements</li>
-<li>CI improvements</li>
-<li>Bumped Go version to 1.22.10</li>
+<li><strong>Corrected URL handling for backup API requests</strong> (fixes #60)</li>
+<li>Added support for <strong>Kubernetes</strong> <code>1.35</code> (supported versions: <code>1.25 - 1.35</code>)</li>
+<li>Updated <code>go.mod</code> dependencies: <strong>Kubernetes API</strong> to <code>0.35</code>, <strong>controller-runtime</strong> to <code>0.22.4</code>, <strong>cert-manager</strong> to <code>1.19.2</code></li>
+<li>Upgraded <strong>Go</strong> version used for building the binary and Docker image from <code>1.25.4</code> to <code>1.25.6</code></li>
 </ul>
 
 
