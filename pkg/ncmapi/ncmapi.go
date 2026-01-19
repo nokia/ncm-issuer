@@ -301,7 +301,11 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		return resp, nil
 	} else if c.backupAPI != nil && c.backupAPI.isHealthy() {
 		parsedURL, _ := url.Parse(c.backupAPI.url)
+		req.URL.Scheme = parsedURL.Scheme
 		req.URL.Host = parsedURL.Host
+		if parsedURL.Path != "" {
+			req.URL.Path = parsedURL.Path + req.URL.Path
+		}
 
 		resp, err := c.client.Do(req)
 		if err != nil {
