@@ -5,7 +5,7 @@ IMG ?= ${APP_NAME}:${BUILD_VERSION}
 REGISTRY ?= docker.io/misiektoja
 REMOTE_IMG := ${REGISTRY}/${APP_NAME}:${BUILD_VERSION}
 PLATFORM ?= linux/amd64
-ENVTEST_K8S_VERSION ?= 1.34.0
+ENVTEST_K8S_VERSION ?= 1.35.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
