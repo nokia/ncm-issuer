@@ -2,8 +2,6 @@ module github.com/nokia/ncm-issuer
 
 go 1.25.6
 
-toolchain go1.25.6
-
 require (
 	github.com/cert-manager/cert-manager v1.19.2
 	github.com/go-logr/logr v1.4.3
