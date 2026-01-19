@@ -5,10 +5,30 @@
 Prerequisites for using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 23 or later,
-* [Kubernetes](https://kubernetes.io) version 1.24 - 1.34,
+* [Kubernetes](https://kubernetes.io) version 1.25 - 1.35,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
+
+## Resource requirements
+
+The following resource requirements are based on the default configuration for ncm-issuer:
+
+| Resource Type | Configuration | CPU | Memory | Disk (per node) |
+|:--------------|:--------------|:----|:-------|:----------------|
+| **Minimum** | Single replica, no sidecar | 400m (0.4 cores) | 500Mi | 500 MB |
+| **With sidecar** | Single replica, troubleshooting sidecar enabled | 800m (0.8 cores) | 1000Mi (1 Gi) | 1 GB |
+| **High Availability** | Multiple replicas (leader election enabled) | 400m × replicas | 500Mi × replicas | 500 MB + (100 MB × replicas) |
+
+**Container Image Sizes:**
+* ncm-issuer: ~18 MB
+* ncm-issuer-utils (optional sidecar): ~170 MB
+
+**Note**: These requirements are for the ncm-issuer component only. Additional resources are required for cert-manager, which is a separate dependency. The actual resource consumption may vary based on:
+* Number of Issuer/ClusterIssuer resources
+* Certificate request frequency
+* NCM API response times
+* Logging verbosity level
 
 ## Installing with Helm
 
