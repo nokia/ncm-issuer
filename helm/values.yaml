@@ -113,3 +113,11 @@ logging:
   # Level at and above which stacktraces are captured (one of 'info', 'error' or
   # 'panic').
   stacktraceLevel: panic
+
+# Outbound proxy settings for connecting to NCM via HTTP(S) proxy
+# These values are injected as standard env vars: HTTP_PROXY/HTTPS_PROXY/NO_PROXY
+# (and their lowercase equivalents) and used by Go's HTTP client
+proxy:
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: ""
