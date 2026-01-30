@@ -37,8 +37,8 @@ import (
 var (
 	scheme           = runtime.NewScheme()
 	setupLog         = ctrl.Log.WithName("setup")
-	chartVersion     = "1.1.9"
-	imageVersion     = "1.1.9"
+	chartVersion     = "1.2.0"
+	imageVersion     = "1.2.0"
 	leaderElectionID = "b84bc1d2.ncm.nokia.com"
 )
 
