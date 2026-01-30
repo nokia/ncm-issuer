@@ -405,4 +405,19 @@ the desired value and update your deployment. To get all possible log messages, 
 There is also the possibility of using sidecar for troubleshooting purposes - just change the value of
 `sidecar.enabled` to **true** in `values.yaml` and update your deployment.
 
+### Using an outbound HTTP(S) proxy
+
+If your Kubernetes cluster does not have direct egress connectivity to the NCM instance, configure an
+HTTP(S) proxy for the `ncm-issuer` controller pod. When installed via Helm, set:
+
+```yaml
+proxy:
+  httpsProxy: "http://proxy.example:3128"
+  httpProxy: "http://proxy.example:3128"
+  noProxy: "localhost,127.0.0.1,.cluster.local"
+```
+
+This injects `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` (and lowercase equivalents) and is honored by Go's
+HTTP client.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
