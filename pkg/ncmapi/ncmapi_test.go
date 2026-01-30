@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -104,10 +103,51 @@ func compareClients(c1, c2 *Client) bool {
 		return false
 	}
 
-	if !reflect.DeepEqual(c1.client, c2.client) {
+	if !compareHTTPClients(c1.client, c2.client) {
 		return false
 	}
 
+	return true
+}
+
+func compareHTTPClients(c1, c2 *http.Client) bool {
+	if c1 == nil || c2 == nil {
+		return c1 == c2
+	}
+
+	if c1.Timeout != c2.Timeout {
+		return false
+	}
+
+	if c1.Transport == nil || c2.Transport == nil {
+		return c1.Transport == c2.Transport
+	}
+
+	t1, ok := c1.Transport.(*http.Transport)
+	if !ok {
+		return false
+	}
+	t2, ok := c2.Transport.(*http.Transport)
+	if !ok {
+		return false
+	}
+
+	return compareTLSConfig(t1.TLSClientConfig, t2.TLSClientConfig)
+}
+
+func compareTLSConfig(c1, c2 *tls.Config) bool {
+	if c1 == nil || c2 == nil {
+		return c1 == c2
+	}
+	if c1.InsecureSkipVerify != c2.InsecureSkipVerify {
+		return false
+	}
+	if (c1.RootCAs == nil) != (c2.RootCAs == nil) {
+		return false
+	}
+	if len(c1.Certificates) != len(c2.Certificates) {
+		return false
+	}
 	return true
 }
 

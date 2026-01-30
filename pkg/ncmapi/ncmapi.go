@@ -241,12 +241,16 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 	}
 
 	// Creates an HTTPS client and supply it with created CA pool
-	// (and client CA if mTLS is enabled)
+	// (and client CA if mTLS is enabled).
+	//
+	// We clone the default transport so we keep Go's sane defaults
+	// (timeouts, connection pooling) and proxy support via
+	// HTTP_PROXY / HTTPS_PROXY / NO_PROXY
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsConfig
 	client := &http.Client{
-		Timeout: cfg.HTTPClientTimeout,
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
+		Timeout:   cfg.HTTPClientTimeout,
+		Transport: transport,
 	}
 	return client, nil
 }
