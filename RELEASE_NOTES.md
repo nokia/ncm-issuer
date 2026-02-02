@@ -3,6 +3,7 @@
 ## Version 1.2.0 (Chart: 1.2.0, Image: 1.2.0) - 30 Jan 2026
 - Enhanced HTTPS client transport configuration to honor standard proxy env vars (`HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`) when calling NCM REST API
 - Added Helm chart values to configure outbound proxy settings for the controller pod
+- Made `helm upgrade` resilient to cert-manager approver RBAC name variations by preserving the already-installed `ClusterRoleBinding.roleRef` (which is immutable in Kubernetes). This prevents upgrade failures when the existing RBAC was created with different naming than chart defaults. Also aligned default `certManagerRbac.role` with `certManagerRbac.binding` for consistency in fresh installs.
 
 ## Version 1.1.9 (Chart: 1.1.9, Image: 1.1.9) - 19 Jan 2026
 - **Corrected URL handling for backup API requests** (fixes #60)
