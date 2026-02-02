@@ -32,6 +32,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
       * [NCM REST API credentials](#ncm-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
       * [TLS with client authentication](#tls-with-client-authentication)
+      * [Using an outbound HTTP(S) proxy](#using-an-outbound-https-proxy)
 * [Custom resource definitions (CRDs)](#custom-resource-definitions--crds-)
   * [Issuer resource](#issuer-resource)
   * [ClusterIssuer resource](#clusterissuer-resource)
@@ -167,6 +168,21 @@ by using command:
   ```bash
   $ kubectl -n <namespace> describe secrets <secret-name>
   ```
+
+#### Using an outbound HTTP(S) proxy
+
+If your Kubernetes cluster does not have direct egress connectivity to the NCM instance, configure an
+HTTP(S) proxy for the `ncm-issuer` controller pod. When installed via Helm, set:
+
+```yaml
+proxy:
+  httpsProxy: "http://proxy.example:3128"
+  httpProxy: "http://proxy.example:3128"
+  noProxy: "localhost,127.0.0.1,.cluster.local"
+```
+
+This injects `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` (and lowercase equivalents) and is honored by Go's
+HTTP client.
 
 ## Custom resource definitions (CRDs)
 
@@ -408,20 +424,5 @@ the desired value and update your deployment. To get all possible log messages, 
 
 There is also the possibility of using sidecar for troubleshooting purposes - just change the value of
 `sidecar.enabled` to **true** in `values.yaml` and update your deployment.
-
-### Using an outbound HTTP(S) proxy
-
-If your Kubernetes cluster does not have direct egress connectivity to the NCM instance, configure an
-HTTP(S) proxy for the `ncm-issuer` controller pod. When installed via Helm, set:
-
-```yaml
-proxy:
-  httpsProxy: "http://proxy.example:3128"
-  httpProxy: "http://proxy.example:3128"
-  noProxy: "localhost,127.0.0.1,.cluster.local"
-```
-
-This injects `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` (and lowercase equivalents) and is honored by Go's
-HTTP client.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
