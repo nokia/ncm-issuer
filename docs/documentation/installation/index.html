@@ -265,7 +265,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../release-notes/1.1.9/" class="md-tabs__link">
+        <a href="../../release-notes/1.2.0/" class="md-tabs__link">
           
   
   
@@ -509,6 +509,17 @@
     <span class="md-ellipsis">
       
         Using own (local or remote) registry
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outbound-https-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outbound HTTP(S) proxy
       
     </span>
   </a>
@@ -1038,6 +1049,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../release-notes/1.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1.2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../release-notes/1.1.9/" class="md-nav__link">
         
   
@@ -1444,6 +1483,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#outbound-https-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outbound HTTP(S) proxy
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1560,6 +1610,8 @@ just use the command:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>docker-save
 </span></code></pre></div>
 <p>Saved image should appear in the path <code>./builds/ncm-issuer-images/</code>.</p>
+<h2 id="outbound-https-proxy">Outbound HTTP(S) proxy</h2>
+<p>If the cluster has no direct egress to the NCM instance, you can configure proxy environment variables via the Helm chart; see <a href="../troubleshooting.md#using-an-outbound-https-proxy">Troubleshooting — Using an outbound HTTP(S) proxy</a>.</p>
 
 
 
