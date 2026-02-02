@@ -44,6 +44,24 @@ spec:
           env:
             - name: REP_COUNT
               value: {{ .Values.replicaCount | quote }}
+            {{- if .Values.proxy.httpProxy }}
+            - name: HTTP_PROXY
+              value: {{ .Values.proxy.httpProxy | quote }}
+            - name: http_proxy
+              value: {{ .Values.proxy.httpProxy | quote }}
+            {{- end }}
+            {{- if .Values.proxy.httpsProxy }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.proxy.httpsProxy | quote }}
+            - name: https_proxy
+              value: {{ .Values.proxy.httpsProxy | quote }}
+            {{- end }}
+            {{- if .Values.proxy.noProxy }}
+            - name: NO_PROXY
+              value: {{ .Values.proxy.noProxy | quote }}
+            - name: no_proxy
+              value: {{ .Values.proxy.noProxy | quote }}
+            {{- end }}
           {{- if .Values.livenessProbe }}
           livenessProbe:
             httpGet:

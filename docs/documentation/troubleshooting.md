@@ -26,3 +26,19 @@ wanted value and update your deployment. To get all possible log messages, simpl
 
 There is also the possibility of using sidecar for debugging purposes - just change the value of
 `sidecar.enabled` to **true** in `values.yaml` and update your deployment.
+
+## Using an outbound HTTP(S) proxy
+
+If your cluster has no direct internet/egress connectivity to the NCM instance, configure an HTTP(S) proxy.
+
+If you install using Helm, set standard proxy environment variables via chart values:
+
+```yaml
+proxy:
+  httpsProxy: "http://proxy.example:3128"
+  httpProxy: "http://proxy.example:3128"
+  noProxy: "localhost,127.0.0.1,.cluster.local"
+```
+
+Under the hood this sets `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` (and lowercase equivalents) which are
+honored by Go's HTTP client (including HTTPS via CONNECT).

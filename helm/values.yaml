@@ -7,7 +7,7 @@ priorityClassName: ""
 # Container image for the ncm-issuer controller
 image:
   repository: docker.io/misiektoja/ncm-issuer
-  tag: 1.1.9
+  tag: 1.2.0
   pullPolicy: Always
   pullSecrets: []
 
@@ -51,7 +51,7 @@ certManagerRbac:
   namespace: cert-manager
   sa: cert-manager
   binding: cert-manager-controller-approve:ncm-certmanager-nokia-com
-  role: cert-manager-controller-approve:ncm-certmanager-nokia-comv
+  role: cert-manager-controller-approve:ncm-certmanager-nokia-com
 
   operatorWorkaround:  # Only enable when cert-manager is installed via the OLM/operator
     enable: false
@@ -113,3 +113,11 @@ logging:
   # Level at and above which stacktraces are captured (one of 'info', 'error' or
   # 'panic').
   stacktraceLevel: panic
+
+# Outbound proxy settings for connecting to NCM via HTTP(S) proxy
+# These values are injected as standard env vars: HTTP_PROXY/HTTPS_PROXY/NO_PROXY
+# (and their lowercase equivalents) and used by Go's HTTP client
+proxy:
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: ""
