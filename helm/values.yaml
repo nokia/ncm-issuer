@@ -51,7 +51,7 @@ certManagerRbac:
   namespace: cert-manager
   sa: cert-manager
   binding: cert-manager-controller-approve:ncm-certmanager-nokia-com
-  role: cert-manager-controller-approve:ncm-certmanager-nokia-comv
+  role: cert-manager-controller-approve:ncm-certmanager-nokia-com
 
   operatorWorkaround:  # Only enable when cert-manager is installed via the OLM/operator
     enable: false

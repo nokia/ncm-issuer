@@ -58,5 +58,21 @@ It does minimal escaping for use in Kubernetes labels.
   {{- replace "+" "_" .Chart.Version | printf "%s-%s" .Chart.Name -}}
 {{- end -}}
 
+{{/*
+Return the cert-manager approver ClusterRole name in an upgrade-safe way.
 
-
+ClusterRoleBinding.roleRef is immutable. Older chart versions (and/or manual installs)
+may have created a ClusterRoleBinding with a different roleRef.name (e.g. the historical
+trailing "v" typo). During helm upgrade we preserve the already-installed roleRef.name
+when the binding exists to avoid "cannot change roleRef" failures.
+*/}}
+{{- define "ncm-issuer.certManagerRbac.roleName" -}}
+{{- $default := .Values.certManagerRbac.role -}}
+{{- $existingBinding := lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "" .Values.certManagerRbac.binding -}}
+{{- if $existingBinding -}}
+{{- /* If present, prefer the immutable existing roleRef.name */ -}}
+{{- $existingBinding.roleRef.name | default $default -}}
+{{- else -}}
+{{- $default -}}
+{{- end -}}
+{{- end -}}
