@@ -390,16 +390,16 @@ to **true** in `Issuer` or `ClusterIssuer` definition.
 
 You can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
-In case you have cert-manager `kubectl` plugin:
-
-  ```bash
-  $ kubectl cert-manager renew <certificate> -n <namespace>
-  ```
-
-In case you use `cmctl`:
+In case you use [cmctl](https://cert-manager.io/docs/reference/cmctl/):
 
   ```bash
   $ cmctl renew <certificate> -n <namespace>
+  ```
+
+  In case you have [cert-manager kubectl plugin](https://cert-manager.io/docs/reference/cmctl/#kubectl-plugin):
+
+  ```bash
+  $ kubectl cert-manager renew <certificate> -n <namespace>
   ```
 
 ## Troubleshooting
