@@ -1402,11 +1402,11 @@ renewal in the definition of <code>Issuer</code> or <code>ClusterIssuer</code> r
 to <strong>true</strong> in <code>Issuer</code> or <code>ClusterIssuer</code> definition.</p>
 </div>
 <p>However, you can also trigger renewal or re-enrolling operation manually using one of the commands below.</p>
-<p>In case you have cert-manager kubectl plugin:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>kubectl<span class="w"> </span>cert-manager<span class="w"> </span>renew<span class="w"> </span>&lt;certificate&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;
+<p>In case you use <a href="https://cert-manager.io/docs/reference/cmctl/">cmctl</a>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>cmctl<span class="w"> </span>renew<span class="w"> </span>&lt;certificate&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;
 </span></code></pre></div>
-<p>In case you use cmctl:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cmctl<span class="w"> </span>renew<span class="w"> </span>&lt;certificate&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;
+<p>In case you have <a href="https://cert-manager.io/docs/reference/cmctl/#kubectl-plugin">cert-manager kubectl plugin</a>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>cert-manager<span class="w"> </span>renew<span class="w"> </span>&lt;certificate&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;
 </span></code></pre></div>
 
 
