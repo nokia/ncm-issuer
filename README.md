@@ -40,7 +40,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 * [Usage](#usage)
   * [Create an Issuer](#create-an-issuer)
   * [Signing certificate](#signing-certificate)
-  * [Renewing or reenrolling certificate](#renewing-or-reenrolling-certificate)
+  * [Renewing or re-enrolling certificate](#renewing-or-re-enrolling-certificate)
 * [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
