@@ -25,14 +25,14 @@ setting certain PK rotation policy in the `Certificate` resource.
 
 However, you can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
-In case you have cert-manager kubectl plugin:
+In case you use [cmctl](https://cert-manager.io/docs/reference/cmctl/):
 
   ```bash
-  kubectl cert-manager renew <certificate> -n <namespace>
+  $ cmctl renew <certificate> -n <namespace>
   ```
 
-In case you use cmctl:
+  In case you have [cert-manager kubectl plugin](https://cert-manager.io/docs/reference/cmctl/#kubectl-plugin):
 
   ```bash
-  cmctl renew <certificate> -n <namespace>
+  $ kubectl cert-manager renew <certificate> -n <namespace>
   ```
