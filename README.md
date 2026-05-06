@@ -75,26 +75,72 @@ The following resource requirements are based on the default configuration for n
 
 ### Installing using Helm
 
-The easiest way to install ncm-issuer in Kubernetes cluster is to use Helm. The image will be automatically downloaded from public repository.
+The easiest way to install ncm-issuer in a Kubernetes cluster is to use Helm. The container image will be downloaded automatically from the public registry.
 
 <img src="./assets/installation.gif" alt="installation"/>
 
-Install ncm-issuer using the command:
+The chart is published on GitHub Pages as a public Helm chart repository at
+[https://nokia.github.io/ncm-issuer/charts](https://nokia.github.io/ncm-issuer/charts).
+Pick one of the three install flows below based on your situation. They are equivalent in the resulting deployment. The first flow does not require cloning the repository.
+
+> The Helm repo alias `nokia` used below is just a local nickname picked at `helm repo add`. You can use any name you want.
+
+#### From the public Helm chart repository (recommended)
+
+Add the repository:
 
   ```bash
-  $ helm install \
-  ncm-issuer \
-  --create-namespace --namespace ncm-issuer \
-  helm
+  $ helm repo add nokia https://nokia.github.io/ncm-issuer/charts
   ```
 
-On the other hand, if you did not use `git`, but downloaded the packaged version of ncm-issuer use:
+Update the local Helm chart cache:
+
+  ```bash
+  $ helm repo update
+  ```
+
+Install ncm-issuer:
 
   ```bash
   $ helm install \
-  ncm-issuer \
-  --create-namespace --namespace ncm-issuer \
-  ncm-issuer/charts/ncm-issuer
+  ncm-issuer nokia/ncm-issuer \
+  --create-namespace --namespace ncm-issuer
+  ```
+
+To list available chart versions:
+
+  ```bash
+  $ helm search repo nokia/ncm-issuer -l
+  ```
+
+#### From a packaged chart (`.tgz`)
+
+Useful when working offline or behind a corporate mirror. Pull the packaged chart:
+
+  ```bash
+  $ helm pull nokia/ncm-issuer
+  ```
+
+This produces a file like `ncm-issuer-<chart-version>.tgz` in the current directory. Install it directly:
+
+  ```bash
+  $ helm install \
+  ncm-issuer ./ncm-issuer-<chart-version>.tgz \
+  --create-namespace --namespace ncm-issuer
+  ```
+
+You can also download the `.tgz` manually from the chart repository (URLs are listed in [`index.yaml`](https://nokia.github.io/ncm-issuer/charts/index.yaml)) or mirror it to an internal artifact store before installing.
+
+#### From a cloned repository (development / customization)
+
+Use this flow if you want to modify the chart sources or build everything from `main`:
+
+  ```bash
+  $ git clone https://github.com/nokia/ncm-issuer.git
+  $ cd ncm-issuer
+  $ helm install \
+  ncm-issuer ./helm \
+  --create-namespace --namespace ncm-issuer
   ```
 
 #### Using own (local or remote) registry
