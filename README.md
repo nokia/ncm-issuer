@@ -80,7 +80,8 @@ The easiest way to install ncm-issuer in a Kubernetes cluster is to use Helm. Th
 <img src="./assets/installation.gif" alt="installation"/>
 
 The chart is published on GitHub Pages as a public Helm chart repository at
-[https://nokia.github.io/ncm-issuer/charts](https://nokia.github.io/ncm-issuer/charts).
+`https://nokia.github.io/ncm-issuer/charts` (this URL is consumed by the `helm` CLI which fetches `/index.yaml` from it).
+
 Pick one of the three install flows below based on your situation. They are equivalent in the resulting deployment. The first flow does not require cloning the repository.
 
 > The Helm repo alias `nokia` used below is just a local nickname picked at `helm repo add`. You can use any name you want.

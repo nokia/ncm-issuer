@@ -40,7 +40,9 @@ The container image will be downloaded automatically from the public registry.
 </figure>
 
 The chart is published on GitHub Pages as a public Helm chart repository at
-[https://nokia.github.io/ncm-issuer/charts](https://nokia.github.io/ncm-issuer/charts).
+`https://nokia.github.io/ncm-issuer/charts` (this URL is consumed by the `helm` CLI
+which fetches `/index.yaml` from it).
+
 Pick one of the three install flows below based on your situation. They are equivalent
 in the resulting deployment. The first flow does not require cloning the repository.
 
