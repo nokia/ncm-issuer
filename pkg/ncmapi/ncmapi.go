@@ -354,7 +354,7 @@ func (c *Client) CheckHealth() error {
 }
 
 // refreshHealth probes every configured NCM API once and updates the cached
-// health status accordingly
+// health status accordingly.
 func (c *Client) refreshHealth() {
 	c.mainAPI.setHealthStatus(c.isAPIHealthy(c.mainAPI.url))
 	if c.backupAPI != nil {
@@ -363,7 +363,7 @@ func (c *Client) refreshHealth() {
 }
 
 // isAPIHealthy probes the NCM API by issuing an authenticated GET against the
-// CAs endpoint and treating only a 2xx response as healthy
+// CAs endpoint and treating only a 2xx response as healthy.
 func (c *Client) isAPIHealthy(apiUrl string) bool {
 	parsedURL, err := url.Parse(apiUrl)
 	if err != nil {
