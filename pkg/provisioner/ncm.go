@@ -220,6 +220,12 @@ func (p *Provisioner) PreventRenewal() bool {
 	return p.NCMConfig.ReenrollmentOnRenew
 }
 
+// CheckHealth performs a synchronous probe of the underlying NCM API client and
+// returns an error when no API is reachable
+func (p *Provisioner) CheckHealth() error {
+	return p.NCMClient.CheckHealth()
+}
+
 func (p *Provisioner) Retire() {
 	p.NCMClient.StopHealthChecker()
 }

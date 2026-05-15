@@ -150,6 +150,13 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
+	if err = p.CheckHealth(); err != nil {
+		log.Error(err, "NCM API health check failed during issuer setup")
+		p.Retire()
+		_ = r.SetStatus(ctx, issuer, ncmv1.ConditionFalse, ncmv1.ReasonError, "NCM API health check failed: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	r.Provisioners.AddOrReplace(req.NamespacedName, p)
 	return ctrl.Result{}, r.SetStatus(ctx, issuer, ncmv1.ConditionTrue, ncmv1.ReasonVerified, "Signing CA verified and ready to sign certificates")
 }

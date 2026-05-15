@@ -18,7 +18,10 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -61,6 +64,14 @@ func TestIssuerReconcile(t *testing.T) {
 
 	clk := clock.RealClock{}
 	now := metav1.NewTime(clk.Now().Truncate(time.Second))
+
+	healthyNCM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"totalCount": 0, "href": "", "cas": []any{}})
+	}))
+	defer healthyNCM.Close()
+
 	run := func(t *testing.T, tc testCase) {
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
@@ -429,11 +440,12 @@ func TestIssuerReconcile(t *testing.T) {
 					Spec: ncmv1.IssuerSpec{
 						CAName: "ncmCA",
 						Provisioner: &ncmv1.NCMProvisioner{
-							MainAPI: "https://ncm-server.local:8081",
+							MainAPI: healthyNCM.URL,
 							AuthRef: &v1.SecretReference{
 								Namespace: "ncm-ns",
 								Name:      "ncm-auth-secret",
 							},
+							HTTPClientTimeout:     metav1.Duration{Duration: 5 * time.Second},
 							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
 						},
 					},
@@ -529,11 +541,12 @@ func TestIssuerReconcile(t *testing.T) {
 					Spec: ncmv1.IssuerSpec{
 						CAName: "ncmCA",
 						Provisioner: &ncmv1.NCMProvisioner{
-							MainAPI: "https://ncm-server.local",
+							MainAPI: healthyNCM.URL,
 							AuthRef: &v1.SecretReference{
 								Namespace: v1.NamespaceDefault,
 								Name:      "ncm-auth-secret",
 							},
+							HTTPClientTimeout:     metav1.Duration{Duration: 5 * time.Second},
 							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
 						},
 					},

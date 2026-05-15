@@ -24,5 +24,6 @@ type ExternalProvisioner interface {
 	Sign(cr *cmapi.CertificateRequest) ([]byte, []byte, string, error)
 	Renew(cr *cmapi.CertificateRequest, certID string) ([]byte, []byte, string, error)
 	PreventRenewal() bool
+	CheckHealth() error
 	Retire()
 }

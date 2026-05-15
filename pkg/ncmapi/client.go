@@ -32,4 +32,5 @@ type ExternalClient interface {
 	RenewCertificate(path string, duration *metav1.Duration, profileID string) (*RenewCertificateResponse, error)
 	StartHealthChecker(interval time.Duration)
 	StopHealthChecker()
+	CheckHealth() error
 }
