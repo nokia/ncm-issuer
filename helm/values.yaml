@@ -19,11 +19,24 @@ sidecar:
   pullPolicy: Always
   pullSecrets: []
   # Container-level security context for the troubleshooting sidecar.
-  # The sidecar runs /usr/sbin/init so it cannot use the restricted profile
-  # that the main controller container uses.
+  # Drops every capability and adds back only the ones tcpdump/strace need.
+  # allowPrivilegeEscalation must stay true so file capabilities (set via
+  # setcap on the binaries inside the image) are applied on exec; with
+  # no_new_privs (allowPrivilegeEscalation: false) the kernel refuses to
+  # honour file caps and tcpdump/strace would fail.
   securityContext:
     runAsNonRoot: true
     runAsUser: 998
+    allowPrivilegeEscalation: true
+    capabilities:
+      drop:
+      - ALL
+      add:
+      - NET_RAW
+      - NET_ADMIN
+      - SYS_PTRACE
+    seccompProfile:
+      type: RuntimeDefault
 
 # Limits to cap the resource usage of ncm-issuer pods
 # NOTE: exceeding memory limit will cause the pod to be killed by Kubernetes
