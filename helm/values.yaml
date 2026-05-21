@@ -18,6 +18,12 @@ sidecar:
   tag: 1.1.8
   pullPolicy: Always
   pullSecrets: []
+  # Container-level security context for the troubleshooting sidecar.
+  # The sidecar runs /usr/sbin/init so it cannot use the restricted profile
+  # that the main controller container uses.
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 998
 
 # Limits to cap the resource usage of ncm-issuer pods
 # NOTE: exceeding memory limit will cause the pod to be killed by Kubernetes
@@ -84,14 +90,27 @@ readinessProbe: false
 # Enable leader election for HA setups
 enableLeaderElection: true
 
-# Security context when running the container
+# Pod-level security context applied to all containers in the pod.
+# Holds fields that are only valid at the pod level (or that we want shared
+# by every container in the pod).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context for the ncm-issuer controller container.
+# Defaults align with the Pod Security Standards "restricted" profile.
 securityContext:
   runAsNonRoot: true
   runAsUser: 65532
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+  seccompProfile:
+    type: RuntimeDefault
 
 # How metrics are exposed
 metrics:
