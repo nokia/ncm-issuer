@@ -41,7 +41,7 @@ extra:
       link: https://github.com/nokia
 
     - icon: fontawesome/brands/docker
-      link: https://hub.docker.com/r/misiektoja/ncm-issuer
+      link: https://github.com/nokia/ncm-issuer/pkgs/container/ncm-issuer
 
 extra_css:
   - stylesheets/extra.css
