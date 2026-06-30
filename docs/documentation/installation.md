@@ -118,7 +118,7 @@ in the `values.yaml` file in directory that contains Helm files. Then just repea
 mentioned above.
 
   ```bash
-  sed -i "s|docker.io/misiektoja|<your-registry>|g" values.yaml
+  sed -i "s|ghcr.io/nokia|<your-registry>|g" values.yaml
   ```
 
 !!! note
