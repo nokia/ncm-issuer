@@ -6,7 +6,7 @@ priorityClassName: ""
 
 # Container image for the ncm-issuer controller
 image:
-  repository: docker.io/misiektoja/ncm-issuer
+  repository: ghcr.io/nokia/ncm-issuer
   tag: 1.2.0
   pullPolicy: Always
   pullSecrets: []
@@ -14,7 +14,7 @@ image:
 # Optionally run a troubleshooting sidecar
 sidecar:
   enabled: false
-  repository: docker.io/misiektoja/ncm-issuer-utils
+  repository: ghcr.io/nokia/ncm-issuer-utils
   tag: 1.1.8
   pullPolicy: Always
   pullSecrets: []
