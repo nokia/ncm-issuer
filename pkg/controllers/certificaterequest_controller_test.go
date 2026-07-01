@@ -152,7 +152,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Group: "foreign-issuer.ncm.nokia.com",
 						},
@@ -171,7 +171,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -230,7 +230,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -287,7 +287,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -341,7 +341,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -400,7 +400,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -434,7 +434,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Unrecognised,
 							Group: ncmv1.GroupVersion.Group,
@@ -468,7 +468,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -503,7 +503,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  ClusterIssuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -538,7 +538,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -587,7 +587,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -658,7 +658,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "cr",
 					},
 					Spec: cmapi.CertificateRequestSpec{
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -731,7 +731,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -798,7 +798,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -855,7 +855,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -922,7 +922,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -979,7 +979,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1046,7 +1046,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1100,7 +1100,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1167,7 +1167,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1221,7 +1221,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1288,7 +1288,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1342,7 +1342,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1409,7 +1409,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1462,7 +1462,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1529,7 +1529,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1573,7 +1573,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1640,7 +1640,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1684,7 +1684,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-cluster-issuer",
 								Kind:  ClusterIssuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1751,7 +1751,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  ClusterIssuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1804,7 +1804,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1871,7 +1871,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -1929,7 +1929,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-issuer",
 								Kind:  Issuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -1996,7 +1996,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  Issuer,
 							Group: ncmv1.GroupVersion.Group,
@@ -2050,7 +2050,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 							Name:      "cr",
 						},
 						Spec: cmapi.CertificateRequestSpec{
-							IssuerRef: cmmeta.ObjectReference{
+							IssuerRef: cmmeta.IssuerReference{
 								Name:  "ncm-cluster-issuer",
 								Kind:  ClusterIssuer,
 								Group: ncmv1.GroupVersion.Group,
@@ -2117,7 +2117,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 					Spec: cmapi.CertificateSpec{
 						CommonName: "ncm-cert.local",
-						IssuerRef: cmmeta.ObjectReference{
+						IssuerRef: cmmeta.IssuerReference{
 							Name:  "ncm-issuer",
 							Kind:  ClusterIssuer,
 							Group: ncmv1.GroupVersion.Group,
