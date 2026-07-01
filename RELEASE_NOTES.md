@@ -8,6 +8,9 @@
 - Updated `ncm-issuer-utils` troubleshooting image to apply matching file capabilities (`cap_net_raw,cap_net_admin+ep` on `tcpdump`, `cap_sys_ptrace+ep` on `strace`) so the non-root sidecar user can actually use them without granting the whole container privileged caps
 - **Published multi-architecture container images for `linux/amd64` and `linux/arm64`**. The release workflow now builds and pushes a multi-arch manifest, and the `Dockerfile` cross-compiles the manager binary for the target platform (`TARGETOS`/`TARGETARCH`) instead of hardcoding `amd64`. This enables running ncm-issuer on ARM64 nodes such as AWS Graviton, ARM bare metal and Apple Silicon dev clusters
 - **Moved the default container registry from a Docker Hub namespace to the Nokia-owned GitHub Container Registry (`ghcr.io/nokia`)**. The Helm chart now defaults `image.repository` to `ghcr.io/nokia/ncm-issuer` and the troubleshooting sidecar to `ghcr.io/nokia/ncm-issuer-utils`. The release workflow publishes both images to `ghcr.io/nokia` using the built-in `GITHUB_TOKEN` instead of Docker Hub credentials. The troubleshooting sidecar is now rebuilt on every release so it ships with up-to-date OS packages. **Migration**: pull images from `ghcr.io/nokia/ncm-issuer`. Deployments that already override `image.repository` are unaffected
+- Added support for **Kubernetes** `1.36` (supported versions: `1.26 - 1.36`)
+- Updated `go.mod` dependencies: **Kubernetes API** to `0.36`, **controller-runtime** to `0.24.1`, **cert-manager** to `1.20.3`
+- Upgraded **Go** version used for building the binary and Docker image from `1.25.6` to `1.26.4`
 
 ## Version 1.2.0 (Chart: 1.2.0, Image: 1.2.0) - 30 Jan 2026
 - Enhanced HTTPS client transport configuration to honor standard proxy env vars (`HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`) when calling NCM REST API
