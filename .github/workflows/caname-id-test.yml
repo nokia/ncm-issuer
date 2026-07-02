@@ -58,7 +58,7 @@ jobs:
 
     - name: "install ncm-issuer plugin"
       run: |
-        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
+        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm" --set logging.logLevel=1
 
     - name: "sleep for 10s"
       run: sleep 10
@@ -151,7 +151,7 @@ jobs:
 
     - name: "install ncm-issuer plugin"
       run: |
-        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm"
+        sudo microk8s.helm3 install -n ncm-issuer ncm-issuer "$(pwd)/helm" --set logging.logLevel=1
 
     - name: "sleep for 10s"
       run: sleep 10
