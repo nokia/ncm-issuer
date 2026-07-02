@@ -15,6 +15,9 @@
 builds/
 bin/
 
+# packaged release tarballs produced by `make pack-app`
+ncm-issuer-*.tar.gz
+
 # Dependency directories
 vendor/
 
