@@ -12,7 +12,7 @@
         <link rel="prev" href="../tutorials/first-certificate/">
       
       
-        <link rel="next" href="../../release-notes/1.2.0/">
+        <link rel="next" href="../../release-notes/1.2.1/">
       
       
         
@@ -265,7 +265,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../release-notes/1.2.0/" class="md-tabs__link">
+        <a href="../../release-notes/1.2.1/" class="md-tabs__link">
           
   
   
@@ -953,6 +953,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#issuer-stuck-in-readyfalse-with-ncm-api-health-check-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issuer stuck in Ready=False with NCM API health check failed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#using-an-outbound-https-proxy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1030,6 +1041,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release-notes/1.2.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1.2.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1462,6 +1501,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#issuer-stuck-in-readyfalse-with-ncm-api-health-check-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issuer stuck in Ready=False with NCM API health check failed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#using-an-outbound-https-proxy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1509,13 +1559,45 @@ wanted value and update your deployment. To get all possible log messages, simpl
 <h2 id="enabling-troubleshooting-sidecar">Enabling troubleshooting sidecar</h2>
 <p>There is also the possibility of using sidecar for debugging purposes - just change the value of
 <code>sidecar.enabled</code> to <strong>true</strong> in <code>values.yaml</code> and update your deployment.</p>
+<p>From <code>1.2.1</code> onwards the sidecar runs under a non-root user (<code>runAsUser: 998</code>) with a
+narrow capability set: every Linux capability is dropped and only <code>NET_RAW</code>, <code>NET_ADMIN</code>
+and <code>SYS_PTRACE</code> are added back so <code>tcpdump</code> and <code>strace</code> can be used. The matching
+file capabilities are baked into the <code>ncm-issuer-utils</code> image (<code>cap_net_raw,cap_net_admin+ep</code>
+on <code>/usr/sbin/tcpdump</code> and <code>cap_sys_ptrace+ep</code> on <code>/usr/bin/strace</code>), so a <code>kubectl exec</code>
+into the sidecar lets you run those tools directly without <code>sudo</code>. <code>allowPrivilegeEscalation</code>
+is intentionally left at <code>true</code> on the sidecar so the kernel honours those file capabilities
+on <code>execve()</code>; setting it to <code>false</code> would set <code>no_new_privs=1</code> and silently break both tools.</p>
+<p>If your cluster enforces the Pod Security Standards "restricted" profile at the namespace
+level the sidecar will be rejected at admission because of <code>allowPrivilegeEscalation: true</code>.
+In that case either keep <code>sidecar.enabled: false</code> in those namespaces, or relabel the
+namespace to "baseline" specifically for ncm-issuer.</p>
+<h2 id="issuer-stuck-in-readyfalse-with-ncm-api-health-check-failed">Issuer stuck in <code>Ready=False</code> with <code>NCM API health check failed</code></h2>
+<p>From <code>1.2.1</code> onwards, the <code>Issuer</code> (and <code>ClusterIssuer</code>) <code>Ready</code> condition is
+gated on a synchronous health probe of the NCM REST API during reconciliation.
+If you see something like:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>ncmissuers<span class="w"> </span>-n<span class="w"> </span>example-ncm-ns
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>NAME<span class="w">                 </span>AGE<span class="w">   </span>READY<span class="w">   </span>REASON<span class="w">   </span>MESSAGE
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>example-ncm-issuer<span class="w">   </span>5s<span class="w">    </span>False<span class="w">   </span>Error<span class="w">    </span>NCM<span class="w"> </span>API<span class="w"> </span>health<span class="w"> </span>check<span class="w"> </span>failed:<span class="w"> </span>...
+</span></code></pre></div>
+<p>it means the controller could reach the Kubernetes apiserver but the
+authenticated <code>GET /v1/cas</code> probe against the configured <code>mainAPI</code> (and
+<code>backupAPI</code> if set) did not return <code>2xx</code>. Typical causes:</p>
+<ul>
+<li>wrong <code>mainAPI</code> / <code>backupAPI</code> URL or unreachable NCM host</li>
+<li>invalid or missing credentials in the auth <code>secret</code></li>
+<li>TLS misconfiguration (missing CA bundle when the NCM uses HTTPS)</li>
+<li>egress/proxy not configured (see the next section)</li>
+</ul>
+<p>Check the <code>ncm-issuer</code> pod logs for the exact probe failure. The issuer will
+be retried by the controller automatically. There is no manual action needed
+besides fixing the underlying connectivity or configuration.</p>
 <h2 id="using-an-outbound-https-proxy">Using an outbound HTTP(S) proxy</h2>
 <p>If your cluster has no direct internet/egress connectivity to the NCM instance, configure an HTTP(S) proxy.</p>
 <p>If you install using Helm, set standard proxy environment variables via chart values:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">proxy</span><span class="p">:</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">httpsProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://proxy.example:3128&quot;</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">httpProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://proxy.example:3128&quot;</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">noProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;localhost,127.0.0.1,.cluster.local&quot;</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">proxy</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">httpsProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://proxy.example:3128&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">httpProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://proxy.example:3128&quot;</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">noProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;localhost,127.0.0.1,.cluster.local&quot;</span>
 </span></code></pre></div>
 <p>Under the hood this sets <code>HTTP_PROXY</code> / <code>HTTPS_PROXY</code> / <code>NO_PROXY</code> (and lowercase equivalents) which are
 honored by Go's HTTP client (including HTTPS via CONNECT).</p>
@@ -1597,7 +1679,7 @@ honored by Go's HTTP client (including HTTPS via CONNECT).</p>
       
       
     
-    <a href="https://hub.docker.com/r/misiektoja/ncm-issuer" target="_blank" rel="noopener" title="hub.docker.com" class="md-social__link">
+    <a href="https://github.com/nokia/ncm-issuer/pkgs/container/ncm-issuer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z"/></svg>
     </a>
   

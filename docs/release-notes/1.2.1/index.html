@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../1.2.0/">
+        <link rel="prev" href="../../documentation/troubleshooting/">
       
       
-        <link rel="next" href="../1.1.8/">
+        <link rel="next" href="../1.2.0/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>1.1.9 - ncm-issuer</title>
+        <title>1.2.1 - ncm-issuer</title>
       
     
     
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              1.1.9
+              1.2.1
             
           </span>
         </div>
@@ -265,7 +265,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../1.2.1/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -932,62 +932,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../1.2.1/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    1.2.1
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../1.2.0/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    1.2.0
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -1007,7 +951,7 @@
   <span class="md-ellipsis">
     
   
-    1.1.9
+    1.2.1
   
 
     
@@ -1025,7 +969,7 @@
   <span class="md-ellipsis">
     
   
-    1.1.9
+    1.2.1
   
 
     
@@ -1065,6 +1009,62 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1.2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.1.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1.1.9
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1443,13 +1443,19 @@
 
 
 <h1 id="whats-changed">What's changed</h1>
-<p>ncm-issuer <code>1.1.9</code>  is a compatibility and robustness release that corrects URL handling for NCM backup API requests. It also adds support for Kubernetes <code>1.35</code> and updates core dependencies and build tooling.</p>
+<p>ncm-issuer 1.2.1 is a security and reliability focused release that hardens the controller to the Pod Security Standards "restricted" profile (non-root, read-only rootfs, all capabilities dropped), makes issuer health checks trustworthy and moves images to ghcr.io/nokia with multi-arch (amd64/arm64) support. It also adds Kubernetes 1.36 support with Go 1.26.4.</p>
 <h2 id="improvements-and-fixes">Improvements and fixes</h2>
 <ul>
-<li><strong>Corrected URL handling for backup API requests</strong> (fixes #60)</li>
-<li>Added support for <strong>Kubernetes</strong> <code>1.35</code> (supported versions: <code>1.25 - 1.35</code>)</li>
-<li>Updated <code>go.mod</code> dependencies: <strong>Kubernetes API</strong> to <code>0.35</code>, <strong>controller-runtime</strong> to <code>0.22.4</code>, <strong>cert-manager</strong> to <code>1.19.2</code></li>
-<li>Upgraded <strong>Go</strong> version used for building the binary and Docker image from <code>1.25.4</code> to <code>1.25.6</code></li>
+<li><strong>Fixed NCM REST API health check</strong> to actually probe the <code>/v1/cas</code> endpoint with authentication and to treat only <code>2xx</code> responses as healthy. Previously the probe targeted the base URL and considered any non-<code>5xx</code> response (including authentication failures and other <code>4xx</code>) as healthy, which masked misconfigured endpoints and credentials</li>
+<li><strong>Gated <code>Issuer</code> / <code>ClusterIssuer</code> <code>Ready</code> condition on a synchronous health probe</strong> during reconciliation. An unreachable or misconfigured NCM REST API is now surfaced immediately as <code>Ready=False</code> with reason <code>Error</code> and a descriptive message instead of being marked <code>Ready=True</code> until the first periodic check (which by default could take up to one minute)</li>
+<li><strong>Hardened the controller container to Pod Security Standards "restricted"</strong> by default. The CSR PEM is now streamed directly into the NCM multipart upload instead of being round-tripped through a temporary file under <code>/tmp</code>, which removes a data-leakage surface and lets the chart ship with <code>readOnlyRootFilesystem: true</code>, <code>capabilities.drop: [ALL]</code>, <code>allowPrivilegeEscalation: false</code> and <code>seccompProfile: RuntimeDefault</code> on the controller container, plus <code>seccompProfile: RuntimeDefault</code> at the pod level</li>
+<li><strong>Split chart <code>securityContext</code> into pod-level and container-level blocks</strong>. Pod-level fields now live under <code>.Values.podSecurityContext</code>, container-level fields for the controller stay under <code>.Values.securityContext</code>. The troubleshooting sidecar gets its own <code>.Values.sidecar.securityContext</code> that drops all capabilities and re-adds only <code>NET_RAW</code>, <code>NET_ADMIN</code> and <code>SYS_PTRACE</code> so <code>tcpdump</code> and <code>strace</code> keep working under a non-root user. <strong>Breaking</strong>: chart overrides that previously set <code>.Values.securityContext</code> to control both pod-level and container-level fields will need to be split accordingly</li>
+<li>Updated <code>ncm-issuer-utils</code> troubleshooting image to apply matching file capabilities (<code>cap_net_raw,cap_net_admin+ep</code> on <code>tcpdump</code>, <code>cap_sys_ptrace+ep</code> on <code>strace</code>) so the non-root sidecar user can actually use them without granting the whole container privileged caps</li>
+<li><strong>Published multi-architecture container images for <code>linux/amd64</code> and <code>linux/arm64</code></strong>. The release workflow now builds and pushes a multi-arch manifest, and the <code>Dockerfile</code> cross-compiles the manager binary for the target platform (<code>TARGETOS</code>/<code>TARGETARCH</code>) instead of hardcoding <code>amd64</code>. This enables running ncm-issuer on ARM64 nodes such as AWS Graviton, ARM bare metal and Apple Silicon dev clusters</li>
+<li><strong>Moved the default container registry from a Docker Hub namespace to the Nokia-owned GitHub Container Registry (<code>ghcr.io/nokia</code>)</strong>. The Helm chart now defaults <code>image.repository</code> to <code>ghcr.io/nokia/ncm-issuer</code> and the troubleshooting sidecar to <code>ghcr.io/nokia/ncm-issuer-utils</code>. The release workflow publishes both images to <code>ghcr.io/nokia</code> using the built-in <code>GITHUB_TOKEN</code> instead of Docker Hub credentials. The troubleshooting sidecar is now rebuilt on every release so it ships with up-to-date OS packages. <strong>Migration</strong>: pull images from <code>ghcr.io/nokia/ncm-issuer</code>. Deployments that already override <code>image.repository</code> are unaffected</li>
+<li>Added support for <strong>Kubernetes</strong> <code>1.36</code> (supported versions: <code>1.26 - 1.36</code>)</li>
+<li>Updated <code>go.mod</code> dependencies: <strong>Kubernetes API</strong> to <code>0.36</code>, <strong>controller-runtime</strong> to <code>0.24.1</code>, <strong>cert-manager</strong> to <code>1.20.3</code></li>
+<li>Upgraded <strong>Go</strong> version used for building the binary and Docker image from <code>1.25.6</code> to <code>1.26.4</code></li>
 </ul>
 
 
