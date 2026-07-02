@@ -26,7 +26,7 @@ jobs:
     name: "ca id"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup
@@ -125,7 +125,7 @@ jobs:
     name: "ca name"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup

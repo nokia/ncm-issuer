@@ -8,8 +8,8 @@ jobs:
     outputs:
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: arnested/go-version-action@v1
+      - uses: actions/checkout@v7
+      - uses: arnested/go-version-action@v2
         id: versions
 
   golangci:
@@ -20,9 +20,9 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: "setup go"
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -40,9 +40,9 @@ jobs:
     needs: go-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: "setup go"
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -57,9 +57,9 @@ jobs:
     needs: go-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: "setup go"
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
