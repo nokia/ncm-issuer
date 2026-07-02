@@ -72,6 +72,31 @@ jobs:
           push: true
           tags: ghcr.io/nokia/ncm-issuer-utils:latest,ghcr.io/nokia/ncm-issuer-utils:${{ env.TAG }}
 
+  package:
+    name: "build and attach release tarball"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "resolve tarball name"
+        run: |
+          APP_VERSION=$(grep -m1 chartVersion main.go | cut -d '"' -f2)
+          BUILD_VERSION=$(grep -m1 imageVersion main.go | cut -d '"' -f2)
+          echo "ASSET=ncm-issuer-${APP_VERSION}-${BUILD_VERSION}.tar.gz" >> $GITHUB_ENV
+
+      - name: "set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "build release tarball"
+        run: make pack-app
+
+      - name: "upload tarball to release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ env.ASSET }}" --clobber
+
   pages:
     name: Build mkdocs and helm charts
     runs-on: ubuntu-latest
