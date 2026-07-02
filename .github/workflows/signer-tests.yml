@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup-matrix.outputs.matrix) }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup
@@ -153,7 +153,7 @@ jobs:
     name: "cluster issuer"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup
@@ -287,7 +287,7 @@ jobs:
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "[ * ] uploading artifacts"
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: ${{ failure() }}
       with:
         name: logs-clusterissuer.tar.gz

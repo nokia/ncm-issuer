@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         ref: main
 
     - name: Install Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: 3.x
 
@@ -30,7 +30,7 @@ jobs:
       run: helm package helm/
 
     - name: Checkout to gh-pages
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         ref: gh-pages
         clean: false
@@ -43,13 +43,13 @@ jobs:
     - name: Index charts
       run: helm repo index ./charts
 
-    - uses: stefanzweifel/git-auto-commit-action@v5
+    - uses: stefanzweifel/git-auto-commit-action@v7
       with:
         commit_message: Update documentation
         file_pattern: './docs'
         skip_checkout: true
 
-    - uses: stefanzweifel/git-auto-commit-action@v5
+    - uses: stefanzweifel/git-auto-commit-action@v7
       with:
         commit_message: Update helm charts
         file_pattern: './charts'
