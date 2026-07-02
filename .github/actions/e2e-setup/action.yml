@@ -16,7 +16,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
     - shell: bash
       run: go version
 
@@ -36,7 +36,7 @@ runs:
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
 
     - name: "download ncm-issuer image"
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.image-artifact-name }}
         path: .
