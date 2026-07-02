@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 1.2.1 (Chart: 1.2.1, Image: 1.2.1) - TBD
+## Version 1.2.1 (Chart: 1.2.1, Image: 1.2.1) - 02 Jul 2026
 - **Fixed NCM REST API health check** to actually probe the `/v1/cas` endpoint with authentication and to treat only `2xx` responses as healthy. Previously the probe targeted the base URL and considered any non-`5xx` response (including authentication failures and other `4xx`) as healthy, which masked misconfigured endpoints and credentials
 - **Gated `Issuer` / `ClusterIssuer` `Ready` condition on a synchronous health probe** during reconciliation. An unreachable or misconfigured NCM REST API is now surfaced immediately as `Ready=False` with reason `Error` and a descriptive message instead of being marked `Ready=True` until the first periodic check (which by default could take up to one minute)
 - **Hardened the controller container to Pod Security Standards "restricted"** by default. The CSR PEM is now streamed directly into the NCM multipart upload instead of being round-tripped through a temporary file under `/tmp`, which removes a data-leakage surface and lets the chart ship with `readOnlyRootFilesystem: true`, `capabilities.drop: [ALL]`, `allowPrivilegeEscalation: false` and `seccompProfile: RuntimeDefault` on the controller container, plus `seccompProfile: RuntimeDefault` at the pod level
