@@ -49,9 +49,10 @@ const (
 
 // ServerURL is used to store NCM API url and health status.
 type ServerURL struct {
-	url    string
-	health string
-	mu     sync.RWMutex
+	url     string
+	health  string
+	lastErr error
+	mu      sync.RWMutex
 }
 
 func NewServerURL(url string) *ServerURL {
@@ -64,15 +65,25 @@ func (s *ServerURL) isHealthy() bool {
 	return s.health == healthy
 }
 
-func (s *ServerURL) setHealthStatus(isHealthy bool) {
+// setHealthStatus updates the cached health status and records the underlying probe error when unhealthy.
+func (s *ServerURL) setHealthStatus(isHealthy bool, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if isHealthy {
 		s.health = healthy
+		s.lastErr = nil
 		return
 	}
 	s.health = unhealthy
+	s.lastErr = err
+}
+
+// lastError returns the most recent probe error recorded for the NCM API.
+func (s *ServerURL) lastError() error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.lastErr
 }
 
 // Client is a client used to communicate with the NCM API.
@@ -296,7 +307,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		resp, err := c.client.Do(req)
 		if err != nil {
 			c.log.Error(err, "Main NCM API seems not responding", "url", c.mainAPI.url)
-			c.mainAPI.setHealthStatus(false)
+			c.mainAPI.setHealthStatus(false, err)
 			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
 		}
 		return resp, nil
@@ -311,7 +322,7 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 		resp, err := c.client.Do(req)
 		if err != nil {
 			c.log.Error(err, "Backup NCM API seems not responding", "url", c.backupAPI.url)
-			c.backupAPI.setHealthStatus(false)
+			c.backupAPI.setHealthStatus(false, err)
 			return nil, &ClientError{Reason: "not reachable NCM API", ErrorMessage: err}
 		}
 		return resp, nil
@@ -349,43 +360,60 @@ func (c *Client) CheckHealth() error {
 	}
 	return &ClientError{
 		Reason:       "not reachable NCM APIs",
-		ErrorMessage: errors.New("neither main NCM API nor backup NCM API are healthy"),
+		ErrorMessage: c.healthCheckError(),
 	}
+}
+
+// healthCheckError describes why no NCM API is healthy, including the underlying probe cause for each configured API.
+func (c *Client) healthCheckError() error {
+	msg := "neither main NCM API nor backup NCM API are healthy"
+	if mainErr := c.mainAPI.lastError(); mainErr != nil {
+		msg = fmt.Sprintf("%s: main API: %v", msg, mainErr)
+	}
+	if c.backupAPI != nil {
+		if backupErr := c.backupAPI.lastError(); backupErr != nil {
+			msg = fmt.Sprintf("%s; backup API: %v", msg, backupErr)
+		}
+	}
+	return errors.New(msg)
 }
 
 // refreshHealth probes every configured NCM API once and updates the cached
 // health status accordingly.
 func (c *Client) refreshHealth() {
-	c.mainAPI.setHealthStatus(c.isAPIHealthy(c.mainAPI.url))
+	mainHealthy, mainErr := c.isAPIHealthy(c.mainAPI.url)
+	c.mainAPI.setHealthStatus(mainHealthy, mainErr)
 	if c.backupAPI != nil {
-		c.backupAPI.setHealthStatus(c.isAPIHealthy(c.backupAPI.url))
+		backupHealthy, backupErr := c.isAPIHealthy(c.backupAPI.url)
+		c.backupAPI.setHealthStatus(backupHealthy, backupErr)
 	}
 }
 
 // isAPIHealthy probes the NCM API by issuing an authenticated GET against the
-// CAs endpoint and treating only a 2xx response as healthy.
-func (c *Client) isAPIHealthy(apiUrl string) bool {
+// CAs endpoint and returns whether the response was 2xx together with the
+// underlying failure cause when it was not.
+func (c *Client) isAPIHealthy(apiUrl string) (bool, error) {
 	parsedURL, err := url.Parse(apiUrl)
 	if err != nil {
-		return false
+		return false, err
 	}
 	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + CAsPath
 	req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
-		return false
+		return false, err
 	}
 	c.setHeaders(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		c.log.V(1).Info("NCM API health probe failed", "url", parsedURL.String(), "error", err.Error())
-		return false
+		return false, err
 	}
 	defer resp.Body.Close()
-	isHealthy := resp.StatusCode >= 200 && resp.StatusCode < 300
-	if !isHealthy {
-		c.log.V(1).Info("NCM API health probe returned non-2xx", "url", parsedURL.String(), "status", resp.StatusCode)
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return true, nil
 	}
-	return isHealthy
+	c.log.V(1).Info("NCM API health probe returned non-2xx", "url", parsedURL.String(), "status", resp.StatusCode)
+	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 }
 
 func (c *Client) StopHealthChecker() {
