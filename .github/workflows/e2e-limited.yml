@@ -37,9 +37,9 @@ jobs:
           retention-days: 1
 
   clientauth:
-    name: "clientauth test limited"
+    name: "clientauth test"
     needs: [go-versions, build-image]
-    uses: ./.github/workflows/clientauth-test-limited.yml
+    uses: ./.github/workflows/clientauth-test.yml
     secrets: inherit
     with:
       go-version: ${{ needs.go-versions.outputs.go-mod-version }}
