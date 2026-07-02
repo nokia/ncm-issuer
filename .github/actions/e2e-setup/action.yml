@@ -1,0 +1,83 @@
+name: "ncm-issuer e2e setup"
+description: "Provision microk8s, install cert-manager and tooling, and load the ncm-issuer image"
+
+inputs:
+  k8s-version:
+    description: "microk8s channel to install (e.g. 1.35)"
+    required: true
+  certmgr-version:
+    description: "cert-manager version to pin (e.g. 1.20.3). Leave empty to install the latest chart"
+    required: false
+    default: ""
+  image-artifact-name:
+    description: "Name of the ncm-issuer image artifact to download and import"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-go@v5
+    - shell: bash
+      run: go version
+
+    - name: "install microk8s"
+      shell: bash
+      run: |
+        sudo snap install microk8s --classic --channel=${{ inputs.k8s-version }}/stable
+        sudo microk8s status --wait-ready
+        sudo microk8s enable helm3
+        sudo microk8s enable dns
+        echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
+    - shell: bash
+      run: echo "k8s ${{ env.K8S_VERSION }}"
+
+    - name: "Set KUBECONFIG for MicroK8s"
+      shell: bash
+      run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
+
+    - name: "download ncm-issuer image"
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.image-artifact-name }}
+        path: .
+
+    - name: "load ncm-issuer image"
+      shell: bash
+      run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
+
+    - name: "install cert-manager charts"
+      shell: bash
+      run: |
+        sudo microk8s.kubectl create namespace cert-manager
+        sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
+        sudo microk8s.helm3 repo update
+        VERSION_FLAG=""
+        if [ -n "${{ inputs.certmgr-version }}" ]; then
+          VERSION_FLAG="--version v${{ inputs.certmgr-version }}"
+        fi
+        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager $VERSION_FLAG --set installCRDs=true
+        echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
+    - shell: bash
+      run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
+
+    - name: "sleep for 10s"
+      shell: bash
+      run: sleep 10
+
+    - name: "cert-manager status"
+      shell: bash
+      run: |
+        sudo microk8s.helm3 list -A
+        sudo microk8s.kubectl get pods -A
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
+
+    - name: "install cmctl"
+      shell: bash
+      run: |
+        OS=$(uname -s | tr A-Z a-z); ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); curl -fsSL -o cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_${OS}_${ARCH}
+        sudo chmod +x cmctl
+        sudo mv cmctl /usr/local/bin
+
+    - name: "install yq"
+      shell: bash
+      run: sudo snap install yq

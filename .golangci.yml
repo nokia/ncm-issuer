@@ -95,3 +95,13 @@ issues:
         - goconst
         - gosec
         - unused
+    # GetEventRecorderFor is deprecated in controller-runtime 0.24 or newer but
+    # it still works. Migration to the new events.EventRecorder API is deferred.
+    # staticcheck SA1019 detection for this cross-package deprecation depends on
+    # the analysis cache state, so it is excluded here rather than with an inline
+    # //nolint:staticcheck directive that nolintlint reports as unused whenever
+    # SA1019 does not fire.
+    - path: "(^|/)main\\.go$"
+      linters:
+        - staticcheck
+      text: "SA1019.*GetEventRecorderFor"

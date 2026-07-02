@@ -24,6 +24,7 @@ type FakeProvisioner struct {
 	SignFn           func() ([]byte, []byte, string, error)
 	RenewFn          func() ([]byte, []byte, string, error)
 	PreventRenewalFn func() bool
+	CheckHealthFn    func() error
 }
 
 func NewFakeProvisioner(mods ...func(fakeProvisioner *FakeProvisioner)) *FakeProvisioner {
@@ -74,6 +75,14 @@ func SetFakeProvisionerPreventRenewal(prevent bool) func(provisioner *FakeProvis
 	}
 }
 
+func SetFakeProvisionerCheckHealthError(err error) func(*FakeProvisioner) {
+	return func(fp *FakeProvisioner) {
+		fp.CheckHealthFn = func() error {
+			return err
+		}
+	}
+}
+
 func (fp *FakeProvisioner) Sign(*cmapi.CertificateRequest) ([]byte, []byte, string, error) {
 	return fp.SignFn()
 }
@@ -84,6 +93,13 @@ func (fp *FakeProvisioner) Renew(*cmapi.CertificateRequest, string) ([]byte, []b
 
 func (fp *FakeProvisioner) PreventRenewal() bool {
 	return fp.PreventRenewalFn()
+}
+
+func (fp *FakeProvisioner) CheckHealth() error {
+	if fp.CheckHealthFn == nil {
+		return nil
+	}
+	return fp.CheckHealthFn()
 }
 
 func (fp *FakeProvisioner) Retire() {}

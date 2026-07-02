@@ -2,10 +2,14 @@ APP_NAME ?= ncm-issuer
 APP_VERSION ?= $(shell grep -m1 chartVersion main.go | cut -d '"' -f2)
 BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
-REGISTRY ?= docker.io/misiektoja
+REGISTRY ?= ghcr.io/nokia
 REMOTE_IMG := ${REGISTRY}/${APP_NAME}:${BUILD_VERSION}
+UTILS_NAME ?= ncm-issuer-utils
+UTILS_IMG ?= ${UTILS_NAME}:${BUILD_VERSION}
+UTILS_REMOTE_IMG := ${REGISTRY}/${UTILS_NAME}:${BUILD_VERSION}
+UTILS_CONTEXT ?= ncm-issuer-utils/docker
 PLATFORM ?= linux/amd64
-ENVTEST_K8S_VERSION ?= 1.35.0
+ENVTEST_K8S_VERSION ?= 1.36.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -110,6 +114,17 @@ docker-save: docker-build
 	rm -rf "builds/$(APP_NAME)-images" && mkdir -p "builds/$(APP_NAME)-images"
 	docker save "${REMOTE_IMG}" "${IMG}" | gzip > "builds/$(APP_NAME)-images/${APP_NAME}-${BUILD_VERSION}.tgz"
 
+docker-build-utils: check-buildx ## Build troubleshooting sidecar (utils) image
+	docker buildx build --platform ${PLATFORM} ${UTILS_CONTEXT} -t "${UTILS_REMOTE_IMG}" --load --progress=plain
+	docker tag ${UTILS_REMOTE_IMG} ${UTILS_IMG}
+
+docker-push-utils: ## Push troubleshooting sidecar (utils) image
+	docker push "${UTILS_IMG}"
+
+docker-save-utils: docker-build-utils ## Build and save troubleshooting sidecar (utils) image tarball
+	rm -rf "builds/$(UTILS_NAME)-images" && mkdir -p "builds/$(UTILS_NAME)-images"
+	docker save "${UTILS_REMOTE_IMG}" "${UTILS_IMG}" | gzip > "builds/$(UTILS_NAME)-images/${UTILS_NAME}-${BUILD_VERSION}.tgz"
+
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs
@@ -142,7 +157,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
 CONTROLLER_TOOLS_VERSION    ?= v0.19.0
-ENVTEST_VERSION             ?= release-0.22
+ENVTEST_VERSION             ?= release-0.24
 GOLANGCI_LINT_VERSION       ?= v1.64.8
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -174,6 +189,7 @@ pack-app: docker-save
 	cp -rf builds/$(APP_NAME)-images/*.tgz "builds/$(APP_NAME)/images/"
 	cp -rf helm/* "builds/$(APP_NAME)/charts/$(APP_NAME)/"
 	cp -rf RELEASE_NOTES.md "builds/$(APP_NAME)/"
+	cp -rf README.md "builds/$(APP_NAME)/"
 	cd builds && tar czvf "../${APP_NAME}-${APP_VERSION}-${BUILD_VERSION}.tar.gz" "$(APP_NAME)"
 
 clean:

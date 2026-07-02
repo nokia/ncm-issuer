@@ -27,8 +27,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -36,7 +34,6 @@ import (
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
 	"github.com/nokia/ncm-issuer/pkg/cfg"
-	ncmutil "github.com/nokia/ncm-issuer/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -332,32 +329,63 @@ func (c *Client) StartHealthChecker(interval time.Duration) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				c.mainAPI.setHealthStatus(
-					c.isAPIHealthy(c.mainAPI.url))
-				if c.backupAPI != nil {
-					c.backupAPI.setHealthStatus(
-						c.isAPIHealthy(c.backupAPI.url))
-				}
+				c.refreshHealth()
 			}
 		}
 	}()
 }
 
-// isAPIHealthy sends request for CAs to determine whether
-// NCM API is responding or not.
+// CheckHealth performs a synchronous probe of the main NCM API and the backup
+// NCM API (when configured), updates their cached health status and returns an
+// error when no API is healthy. Intended to be used as a startup readiness gate
+// before signaling that a dependent component is Ready.
+func (c *Client) CheckHealth() error {
+	c.refreshHealth()
+	if c.mainAPI.isHealthy() {
+		return nil
+	}
+	if c.backupAPI != nil && c.backupAPI.isHealthy() {
+		return nil
+	}
+	return &ClientError{
+		Reason:       "not reachable NCM APIs",
+		ErrorMessage: errors.New("neither main NCM API nor backup NCM API are healthy"),
+	}
+}
+
+// refreshHealth probes every configured NCM API once and updates the cached
+// health status accordingly.
+func (c *Client) refreshHealth() {
+	c.mainAPI.setHealthStatus(c.isAPIHealthy(c.mainAPI.url))
+	if c.backupAPI != nil {
+		c.backupAPI.setHealthStatus(c.isAPIHealthy(c.backupAPI.url))
+	}
+}
+
+// isAPIHealthy probes the NCM API by issuing an authenticated GET against the
+// CAs endpoint and treating only a 2xx response as healthy.
 func (c *Client) isAPIHealthy(apiUrl string) bool {
-	parsedURL, _ := url.Parse(apiUrl)
-	req, err := http.NewRequest(http.MethodGet, parsedURL.String(), strings.NewReader(url.Values{}.Encode()))
+	parsedURL, err := url.Parse(apiUrl)
+	if err != nil {
+		return false
+	}
+	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + CAsPath
+	req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return false
 	}
 	c.setHeaders(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
+		c.log.V(1).Info("NCM API health probe failed", "url", parsedURL.String(), "error", err.Error())
 		return false
 	}
 	defer resp.Body.Close()
-	return resp.StatusCode < 500 || resp.StatusCode >= 600
+	isHealthy := resp.StatusCode >= 200 && resp.StatusCode < 300
+	if !isHealthy {
+		c.log.V(1).Info("NCM API health probe returned non-2xx", "url", parsedURL.String(), "status", resp.StatusCode)
+	}
+	return isHealthy
 }
 
 func (c *Client) StopHealthChecker() {
@@ -415,18 +443,8 @@ func (c *Client) GetCA(path string) (*CAResponse, error) {
 	return &ca, nil
 }
 
+// SendCSR submits the PEM-encoded CSR to NCM as a multipart upload without touching the filesystem
 func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, profileID string) (*CSRResponse, error) {
-	filePath, err := ncmutil.WritePEMToTempFile(pem)
-	c.log.V(2).Info("Wrote certificate to temp PEM file", "path", filePath)
-	if err != nil {
-		return nil, &ClientError{Reason: "cannot write PEM to file", ErrorMessage: err}
-	}
-	defer func() {
-		if removeErr := os.Remove(filePath); removeErr != nil {
-			c.log.V(1).Info("Failed to remove temporary CSR file", "path", filePath, "error", removeErr)
-		}
-	}()
-
 	certDuration := cmapi.DefaultCertificateDuration
 	if duration != nil {
 		certDuration = duration.Duration
@@ -444,22 +462,16 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 		params["profileId"] = profileID
 	}
 
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, &ClientError{Reason: "cannot open file", ErrorMessage: err}
-	}
-	defer func() {
-		err = file.Close()
-	}()
-
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("pkcs10", filepath.Base(filePath))
+	part, err := writer.CreateFormFile("pkcs10", "csr.pem")
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot create new form-data header", ErrorMessage: err}
 	}
 
-	_, _ = io.Copy(part, file)
+	if _, err := part.Write(pem); err != nil {
+		return nil, &ClientError{Reason: "cannot write PEM to form-data part", ErrorMessage: err}
+	}
 
 	for k, v := range params {
 		_ = writer.WriteField(k, v)

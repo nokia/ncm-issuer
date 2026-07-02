@@ -6,18 +6,37 @@ priorityClassName: ""
 
 # Container image for the ncm-issuer controller
 image:
-  repository: docker.io/misiektoja/ncm-issuer
-  tag: 1.2.0
+  repository: ghcr.io/nokia/ncm-issuer
+  tag: 1.2.1
   pullPolicy: Always
   pullSecrets: []
 
 # Optionally run a troubleshooting sidecar
 sidecar:
   enabled: false
-  repository: docker.io/misiektoja/ncm-issuer-utils
-  tag: 1.1.8
+  repository: ghcr.io/nokia/ncm-issuer-utils
+  tag: 1.2.1
   pullPolicy: Always
   pullSecrets: []
+  # Container-level security context for the troubleshooting sidecar.
+  # Drops every capability and adds back only the ones tcpdump/strace need.
+  # allowPrivilegeEscalation must stay true so file capabilities (set via
+  # setcap on the binaries inside the image) are applied on exec; with
+  # no_new_privs (allowPrivilegeEscalation: false) the kernel refuses to
+  # honour file caps and tcpdump/strace would fail.
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 998
+    allowPrivilegeEscalation: true
+    capabilities:
+      drop:
+      - ALL
+      add:
+      - NET_RAW
+      - NET_ADMIN
+      - SYS_PTRACE
+    seccompProfile:
+      type: RuntimeDefault
 
 # Limits to cap the resource usage of ncm-issuer pods
 # NOTE: exceeding memory limit will cause the pod to be killed by Kubernetes
@@ -84,14 +103,27 @@ readinessProbe: false
 # Enable leader election for HA setups
 enableLeaderElection: true
 
-# Security context when running the container
+# Pod-level security context applied to all containers in the pod.
+# Holds fields that are only valid at the pod level (or that we want shared
+# by every container in the pod).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context for the ncm-issuer controller container.
+# Defaults align with the Pod Security Standards "restricted" profile.
 securityContext:
   runAsNonRoot: true
   runAsUser: 65532
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+  seccompProfile:
+    type: RuntimeDefault
 
 # How metrics are exposed
 metrics:

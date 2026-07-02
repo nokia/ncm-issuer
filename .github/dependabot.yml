@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # GitHub Actions used in .github/workflows/*.yml (auto-discovered)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+
+  # Base images in the controller Dockerfile at repo root
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker:
+        patterns: ["*"]
+    commit-message:
+      prefix: "build"
+
+  # Base image in the troubleshooting sidecar Dockerfile
+  - package-ecosystem: "docker"
+    directory: "/ncm-issuer-utils/docker"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker:
+        patterns: ["*"]
+    commit-message:
+      prefix: "build"

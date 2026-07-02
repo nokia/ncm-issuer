@@ -33,6 +33,7 @@ type FakeClient struct {
 	DownloadCertificateFn      func(path string) (*ncmapi.CertificateDownloadResponse, error)
 	DownloadCertificateInPEMFn func(path string) ([]byte, error)
 	RenewCertificateFn         func() (*ncmapi.RenewCertificateResponse, error)
+	CheckHealthFn              func() error
 }
 
 func NewFakeClient(mods ...func(*FakeClient)) *FakeClient {
@@ -194,6 +195,14 @@ func SetFakeClientRenewCertificateError(err error) func(*FakeClient) {
 	}
 }
 
+func SetFakeClientCheckHealthError(err error) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.CheckHealthFn = func() error {
+			return err
+		}
+	}
+}
+
 func (fc *FakeClient) GetCAs() (*ncmapi.CAsResponse, error) {
 	return fc.GetCAsFn()
 }
@@ -225,3 +234,10 @@ func (fc *FakeClient) RenewCertificate(string, *metav1.Duration, string) (*ncmap
 func (fc *FakeClient) StartHealthChecker(interval time.Duration) {}
 
 func (fc *FakeClient) StopHealthChecker() {}
+
+func (fc *FakeClient) CheckHealth() error {
+	if fc.CheckHealthFn == nil {
+		return nil
+	}
+	return fc.CheckHealthFn()
+}

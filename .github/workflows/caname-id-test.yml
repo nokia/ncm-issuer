@@ -10,6 +10,16 @@ on:
         type: string
         description: "Name of the ncm-issuer image artifact"
         required: true
+      k8s-version:
+        type: string
+        description: "microk8s channel to test against"
+        required: false
+        default: "1.35"
+      certmgr-version:
+        type: string
+        description: "cert-manager version to pin"
+        required: false
+        default: "1.20.3"
 
 jobs:
   ca-id-test:
@@ -17,50 +27,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
-    - run: go version
 
-    - name: "install microk8s"
-      run: |
-        sudo snap install microk8s --classic --channel=1.34/stable
-        sudo microk8s status --wait-ready
-        sudo microk8s enable helm3
-        sudo microk8s enable dns
-        echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
-    - run: echo "k8s ${{ env.K8S_VERSION }}"
-
-    - name: Set KUBECONFIG for MicroK8s
-      run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
-
-    - name: "download ncm-issuer image"
-      uses: actions/download-artifact@v4
+    - name: "provision cluster and cert-manager"
+      uses: ./.github/actions/e2e-setup
       with:
-        name: ${{ inputs.image-artifact-name }}
-        path: .
-
-    - name: "load ncm-issuer image"
-      run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
-
-    - name: "install cert-manager charts"
-      run: |
-        sudo microk8s.kubectl create namespace cert-manager
-        sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
-        sudo microk8s.helm3 repo update
-        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --set installCRDs=true
-        echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
-    - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
-
-    - name: "sleep for 10s"
-      run: sleep 10
-
-    - name: "cert-manager status"
-      run: |
-        sudo microk8s.helm3 list -A
-        sudo microk8s.kubectl get pods -A
-        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
-
-    - name: "install yq"
-      run: sudo snap install yq
+        k8s-version: ${{ inputs.k8s-version }}
+        certmgr-version: ${{ inputs.certmgr-version }}
+        image-artifact-name: ${{ inputs.image-artifact-name }}
 
     - name: "prepare environment / create namespace and secret"
       run: |
@@ -142,81 +115,24 @@ jobs:
         openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
 
     - name: "[ * ] collecting test logs"
-      continue-on-error: true
       if: ${{ failure() }}
-      run: |
-        sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
-        sudo microk8s.kubectl get po -A > data/logs/get_pods.log
-        sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
-        sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
-        sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
-        sudo microk8s.kubectl describe issuer.certmanager.ncm.nokia.com  -n ncm-issuer > data/logs/describe_issuer.log
-        sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
-        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
-        sudo microk8s.kubectl get certificaterequest -n ncm-issuer > data/logs/get_csr.log
-        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
-        sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
-        sudo microk8s.kubectl describe certificate ncm-cert -n ncm-issuer > data/logs/describe_certificate.log
-        mkdir -p ${{ github.workspace }}/artifact/upload
-        sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
-        sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
-
-    - name: "[ * ] uploading artifacts"
-      uses: actions/upload-artifact@v4
-      if: ${{ failure() }}
+      uses: ./.github/actions/e2e-collect-logs
       with:
-        name: logs-cahref.tar.gz
-        path: ${{ github.workspace }}/artifact/upload/
+        namespace: ncm-issuer
+        artifact-name: logs-cahref.tar.gz
 
   ca-name-test:
     name: "ca name"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
-    - run: go version
 
-    - name: "install microk8s"
-      run: |
-        sudo snap install microk8s --classic --channel=1.34/stable
-        sudo microk8s status --wait-ready
-        sudo microk8s enable helm3
-        sudo microk8s enable dns
-        echo K8S_VERSION=$(sudo microk8s.kubectl version --short=true|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
-    - run: echo "k8s ${{ env.K8S_VERSION }}"
-
-    - name: Set KUBECONFIG for MicroK8s
-      run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
-
-    - name: "download ncm-issuer image"
-      uses: actions/download-artifact@v4
+    - name: "provision cluster and cert-manager"
+      uses: ./.github/actions/e2e-setup
       with:
-        name: ${{ inputs.image-artifact-name }}
-        path: .
-
-    - name: "load ncm-issuer image"
-      run: sudo microk8s ctr image import ${{ inputs.image-artifact-name }}.tar
-
-    - name: "install cert-manager charts"
-      run: |
-        sudo microk8s.kubectl create namespace cert-manager
-        sudo microk8s.helm3 repo add jetstack https://charts.jetstack.io
-        sudo microk8s.helm3 repo update
-        sudo microk8s.helm3 install cert-manager jetstack/cert-manager --namespace cert-manager --set installCRDs=true
-        echo CERTMGR_VERSION=$(sudo microk8s.helm3 list -n cert-manager -o yaml|grep -Po 'cert-manager-\K.*' -m 1) >> $GITHUB_ENV
-    - run: echo "cert-manager ${{ env.CERTMGR_VERSION }}"
-
-    - name: "sleep for 10s"
-      run: sleep 10
-
-    - name: "cert-manager status"
-      run: |
-        sudo microk8s.helm3 list -A
-        sudo microk8s.kubectl get pods -A
-        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'`|tail -25
-
-    - name: "install yq"
-      run: sudo snap install yq
+        k8s-version: ${{ inputs.k8s-version }}
+        certmgr-version: ${{ inputs.certmgr-version }}
+        image-artifact-name: ${{ inputs.image-artifact-name }}
 
     - name: "prepare environment / create namespace and secret"
       run: |
@@ -295,28 +211,8 @@ jobs:
         openssl verify -CAfile /tmp/ca.pem --untrusted /tmp/cert.der /tmp/cert.der
 
     - name: "[ * ] collecting test logs"
-      continue-on-error: true
       if: ${{ failure() }}
-      run: |
-        sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
-        sudo microk8s.kubectl get po -A > data/logs/get_pods.log
-        sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
-        sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
-        sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
-        sudo microk8s.kubectl describe issuer.certmanager.ncm.nokia.com  -n ncm-issuer > data/logs/describe_issuer.log
-        sudo microk8s.kubectl -n ncm-issuer logs  `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
-        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
-        sudo microk8s.kubectl get certificaterequest -n ncm-issuer > data/logs/get_csr.log
-        sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer > data/logs/describe_csr.log
-        sudo microk8s.kubectl get certificate -n ncm-issuer > data/logs/get_certificate.log
-        sudo microk8s.kubectl describe certificate ncm-cert -n ncm-issuer > data/logs/describe_certificate.log
-        mkdir -p ${{ github.workspace }}/artifact/upload
-        sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
-        sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
-
-    - name: "[ * ] uploading artifacts"
-      uses: actions/upload-artifact@v4
-      if: ${{ failure() }}
+      uses: ./.github/actions/e2e-collect-logs
       with:
-        name: logs-caname.tar.gz
-        path: ${{ github.workspace }}/artifact/upload/
+        namespace: ncm-issuer
+        artifact-name: logs-caname.tar.gz

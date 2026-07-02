@@ -15,10 +15,20 @@ spec:
         app: ncm-issuer-utils
     spec:
       containers:
-         - name: "ncm-issuer-utils"
-           command: ["/usr/sbin/init"]
-           image: k8s-master:5000/ncm-issuer-utils:1.1.8
-           imagePullPolicy: Always
-           securityContext:
-                runAsNonRoot: true
-                runAsUser: 998
+      - name: "ncm-issuer-utils"
+        command: ["/usr/sbin/init"]
+        image: ghcr.io/nokia/ncm-issuer-utils:1.2.1
+        imagePullPolicy: Always
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 998
+          allowPrivilegeEscalation: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_RAW
+            - NET_ADMIN
+            - SYS_PTRACE
+          seccompProfile:
+            type: RuntimeDefault

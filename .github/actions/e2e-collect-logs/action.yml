@@ -1,0 +1,41 @@
+name: "ncm-issuer e2e log collection"
+description: "Collect ncm-issuer and cert-manager diagnostics and upload them as an artifact. Gate the caller step with if: failure()"
+
+inputs:
+  namespace:
+    description: "Namespace holding the ncm-issuer resources and certificate"
+    required: false
+    default: "ncm-issuer"
+  artifact-name:
+    description: "Name of the uploaded log artifact"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "collecting test logs"
+      shell: bash
+      continue-on-error: true
+      run: |
+        NS=${{ inputs.namespace }}
+        sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
+        sudo microk8s.kubectl get po -A > data/logs/get_pods.log
+        sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
+        sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
+        sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
+        sudo microk8s.kubectl describe issuer.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/describe_issuer.log
+        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
+        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
+        sudo microk8s.kubectl get certificaterequest -n $NS > data/logs/get_csr.log
+        sudo microk8s.kubectl describe certificaterequest ncm-cert -n $NS > data/logs/describe_csr.log
+        sudo microk8s.kubectl get certificate -n $NS > data/logs/get_certificate.log
+        sudo microk8s.kubectl describe certificate ncm-cert -n $NS > data/logs/describe_certificate.log
+        mkdir -p ${{ github.workspace }}/artifact/upload
+        sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
+        sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
+
+    - name: "uploading artifacts"
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ github.workspace }}/artifact/upload/
