@@ -101,7 +101,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("clusterissuer-controller"), //nolint:staticcheck // GetEventRecorderFor is deprecated in controller-runtime 0.24 but still functional. Migration to the new events.EventRecorder API is deferred
+		Recorder:     mgr.GetEventRecorderFor("clusterissuer-controller"),
 		Provisioners: provisioners,
 		Log:          ctrl.Log.WithName("controllers").WithName("ClusterIssuer"),
 	}).SetupWithManager(mgr); err != nil {
@@ -114,7 +114,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("issuer-controller"), //nolint:staticcheck // GetEventRecorderFor is deprecated in controller-runtime 0.24 but still functional. Migration to the new events.EventRecorder API is deferred
+		Recorder:     mgr.GetEventRecorderFor("issuer-controller"),
 		Provisioners: provisioners,
 		Log:          ctrl.Log.WithName("controllers").WithName("Issuer"),
 	}).SetupWithManager(mgr); err != nil {
@@ -126,7 +126,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
 		Clock:        clock.RealClock{},
-		Recorder:     mgr.GetEventRecorderFor("certificaterequest-controller"), //nolint:staticcheck // GetEventRecorderFor is deprecated in controller-runtime 0.24 but still functional. Migration to the new events.EventRecorder API is deferred
+		Recorder:     mgr.GetEventRecorderFor("certificaterequest-controller"),
 		Provisioners: provisioners,
 		Scheme:       mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
