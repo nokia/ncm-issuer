@@ -518,6 +518,153 @@ func TestIsAPIHealthy(t *testing.T) {
 	}
 }
 
+func TestCheckHealth(t *testing.T) {
+	type probe struct {
+		statusCode   int
+		pathPrefix   string
+		expectedPath string
+	}
+	type recordedProbe struct {
+		path      string
+		authUser  string
+		authPass  string
+		hasAuth   bool
+		accept    string
+		language  string
+		callCount int
+	}
+	type testCase struct {
+		name              string
+		main              probe
+		backup            *probe
+		err               error
+		expectedMainPath  string
+		expectedMainCalls int
+		expectedBackup    *recordedProbe
+	}
+
+	newProbeServer := func(t *testing.T, p probe, recorded *recordedProbe) *httptest.Server {
+		t.Helper()
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user, pass, ok := r.BasicAuth()
+			recorded.path = r.URL.Path
+			recorded.authUser = user
+			recorded.authPass = pass
+			recorded.hasAuth = ok
+			recorded.accept = r.Header.Get("Accept")
+			recorded.language = r.Header.Get("Accept-Language")
+			recorded.callCount++
+			if p.expectedPath != "" && r.URL.Path != p.expectedPath {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(p.statusCode)
+			json.NewEncoder(w).Encode(cas)
+		}))
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		mainRecorded := &recordedProbe{}
+		mainServer := newProbeServer(t, tc.main, mainRecorded)
+		defer mainServer.Close()
+		config := &cfg.NCMConfig{
+			MainAPI:               mainServer.URL + tc.main.pathPrefix,
+			Username:              "ncm-user",
+			Password:              "ncm-user-password",
+			HTTPClientTimeout:     10 * time.Second,
+			HealthCheckerInterval: time.Minute,
+		}
+		var backupRecorded *recordedProbe
+		var backupServer *httptest.Server
+		if tc.backup != nil {
+			backupRecorded = &recordedProbe{}
+			backupServer = newProbeServer(t, *tc.backup, backupRecorded)
+			defer backupServer.Close()
+			config.BackupAPI = backupServer.URL + tc.backup.pathPrefix
+		}
+		c, _ := NewClient(config, testr.New(t))
+		err := c.CheckHealth()
+		if tc.err != nil {
+			if err == nil || !strings.Contains(err.Error(), tc.err.Error()) {
+				t.Fatalf("%s failed; expected error containing %s; got %v", tc.name, tc.err.Error(), err)
+			}
+		} else if err != nil {
+			t.Fatalf("%s failed; expected no error; got %s", tc.name, err.Error())
+		}
+		if mainRecorded.path != tc.expectedMainPath {
+			t.Fatalf("%s failed; expected main probe path %s; got %s", tc.name, tc.expectedMainPath, mainRecorded.path)
+		}
+		if mainRecorded.callCount != tc.expectedMainCalls {
+			t.Fatalf("%s failed; expected main probe call count %d; got %d", tc.name, tc.expectedMainCalls, mainRecorded.callCount)
+		}
+		if !mainRecorded.hasAuth || mainRecorded.authUser != "ncm-user" || mainRecorded.authPass != "ncm-user-password" {
+			t.Fatalf("%s failed; expected main probe basic auth credentials", tc.name)
+		}
+		if mainRecorded.accept != "application/json" || mainRecorded.language != "en_US" {
+			t.Fatalf("%s failed; expected main probe headers, got Accept=%s Accept-Language=%s", tc.name, mainRecorded.accept, mainRecorded.language)
+		}
+		if tc.expectedBackup != nil {
+			if backupRecorded == nil {
+				t.Fatalf("%s failed; expected backup probe to be configured", tc.name)
+			}
+			if backupRecorded.path != tc.expectedBackup.path {
+				t.Fatalf("%s failed; expected backup probe path %s; got %s", tc.name, tc.expectedBackup.path, backupRecorded.path)
+			}
+			if backupRecorded.callCount != tc.expectedBackup.callCount {
+				t.Fatalf("%s failed; expected backup probe call count %d; got %d", tc.name, tc.expectedBackup.callCount, backupRecorded.callCount)
+			}
+			if !backupRecorded.hasAuth || backupRecorded.authUser != "ncm-user" || backupRecorded.authPass != "ncm-user-password" {
+				t.Fatalf("%s failed; expected backup probe basic auth credentials", tc.name)
+			}
+			if backupRecorded.accept != "application/json" || backupRecorded.language != "en_US" {
+				t.Fatalf("%s failed; expected backup probe headers, got Accept=%s Accept-Language=%s", tc.name, backupRecorded.accept, backupRecorded.language)
+			}
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name:              "main-api-healthy",
+			main:              probe{statusCode: http.StatusOK, expectedPath: CAsPath},
+			expectedMainPath:  CAsPath,
+			expectedMainCalls: 1,
+		},
+		{
+			name: "backup-api-healthy-when-main-unhealthy",
+			main: probe{
+				statusCode:   http.StatusInternalServerError,
+				pathPrefix:   "/main",
+				expectedPath: "/main/v1/cas",
+			},
+			backup: &probe{
+				statusCode:   http.StatusOK,
+				pathPrefix:   "/backup",
+				expectedPath: "/backup/v1/cas",
+			},
+			expectedMainPath:  "/main/v1/cas",
+			expectedMainCalls: 1,
+			expectedBackup: &recordedProbe{
+				path:      "/backup/v1/cas",
+				callCount: 1,
+			},
+		},
+		{
+			name:              "no-api-healthy",
+			main:              probe{statusCode: http.StatusUnauthorized, expectedPath: CAsPath},
+			expectedMainPath:  CAsPath,
+			expectedMainCalls: 1,
+			err:               errors.New("neither main NCM API nor backup NCM API are healthy"),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestDoRequest(t *testing.T) {
 	type testCase struct {
 		name             string
