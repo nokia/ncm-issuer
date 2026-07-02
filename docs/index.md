@@ -8,7 +8,6 @@ title: Home
 
 [![build](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml)
 [![e2e](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
 <p align="center">
    <img src="./assets/ncm-issuer-gopher.png" alt="ncm-issuer-gopher" width="40%"/>

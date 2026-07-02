@@ -4,12 +4,11 @@
 <div id="top"></div>
 
 [![GitHub Release](https://img.shields.io/github/v/release/nokia/ncm-issuer?style=flat-square&color=blue)](https://github.com/nokia/ncm-issuer/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/nokia/ncm-issuer?style=flat-square&color=yellow)](https://github.com/nokia/ncm-issuer)
+[![GitHub Stars](https://img.shields.io/github/stars/nokia/ncm-issuer?style=flat-square&color=magenta)](https://github.com/nokia/ncm-issuer)
 [![Last Commit](https://img.shields.io/github/last-commit/nokia/ncm-issuer?style=flat-square&color=green)](https://github.com/nokia/ncm-issuer/commits/main)
 [![Maintenance](https://img.shields.io/badge/maintenance-active-brightgreen?style=flat-square)](https://github.com/nokia/ncm-issuer)
 [![build](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml)
 [![e2e](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/nokia/ncm-issuer)](https://goreportcard.com/report/github.com/nokia/ncm-issuer)
 
 <p align="center">
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
@@ -47,7 +46,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 
 Prerequisites for building and using ncm-issuer:
 
-* [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 23 or later,
+* [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 24 or later,
 * [Kubernetes](https://kubernetes.io) version 1.26 - 1.36,
 * [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
 * Kubernetes container runtime like Docker, containerd or CRI-O,
