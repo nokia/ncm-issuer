@@ -172,6 +172,9 @@ func TestNewClientCreation(t *testing.T) {
 		} else {
 			c, err = NewClient(tc.config, testr.New(t))
 		}
+		if c != nil {
+			defer c.StopHealthChecker()
+		}
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Errorf("%s failed; expected error containing %s; got %s", tc.name, tc.err.Error(), err.Error())
@@ -345,6 +348,7 @@ func TestNewRequestCreation(t *testing.T) {
 		}
 
 		c, _ := NewClient(config, testr.New(t))
+		defer c.StopHealthChecker()
 		params := url.Values{}
 		_, err := c.newRequest(tc.method, "random-path", strings.NewReader(params.Encode()))
 
@@ -397,6 +401,7 @@ func TestValidateResponse(t *testing.T) {
 		}
 
 		c, _ := NewClient(config, testr.New(t))
+		defer c.StopHealthChecker()
 		body, err := c.validateResponse(tc.resp)
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
@@ -476,6 +481,7 @@ func TestIsAPIHealthy(t *testing.T) {
 		}
 
 		c, _ := NewClient(config, testr.New(t))
+		defer c.StopHealthChecker()
 		isHealthy := c.isAPIHealthy(c.mainAPI.url)
 		if isHealthy != tc.expectedIsHealthy {
 			t.Fatalf("%s failed; expected API health to be %T; got %T", tc.name, tc.expectedIsHealthy, isHealthy)
@@ -583,6 +589,7 @@ func TestCheckHealth(t *testing.T) {
 			config.BackupAPI = backupServer.URL + tc.backup.pathPrefix
 		}
 		c, _ := NewClient(config, testr.New(t))
+		defer c.StopHealthChecker()
 		err := c.CheckHealth()
 		if tc.err != nil {
 			if err == nil || !strings.Contains(err.Error(), tc.err.Error()) {
@@ -701,6 +708,7 @@ func TestDoRequest(t *testing.T) {
 		}
 
 		c, _ := NewClient(config, testr.New(t))
+		defer c.StopHealthChecker()
 		req, _ := c.newRequest(http.MethodGet, CAsPath, strings.NewReader(url.Values{}.Encode()))
 		_, err := c.doRequest(req)
 
@@ -801,6 +809,7 @@ func TestGetCAs(t *testing.T) {
 		}
 
 		c, _ := NewClient(config, testr.New(t))
+		defer c.StopHealthChecker()
 		cas, err := c.GetCAs()
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
@@ -889,6 +898,7 @@ func TestGetCA(t *testing.T) {
 		}
 
 		c, _ := NewClient(config, testr.New(t))
+		defer c.StopHealthChecker()
 		ca, err := c.GetCA("random-path")
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
