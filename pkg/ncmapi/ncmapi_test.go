@@ -482,7 +482,7 @@ func TestIsAPIHealthy(t *testing.T) {
 
 		c, _ := NewClient(config, testr.New(t))
 		defer c.StopHealthChecker()
-		isHealthy := c.isAPIHealthy(c.mainAPI.url)
+		isHealthy, _ := c.isAPIHealthy(c.mainAPI.url)
 		if isHealthy != tc.expectedIsHealthy {
 			t.Fatalf("%s failed; expected API health to be %T; got %T", tc.name, tc.expectedIsHealthy, isHealthy)
 		}
@@ -669,6 +669,36 @@ func TestCheckHealth(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
+	}
+}
+
+// TestCheckHealthErrorIncludesCause verifies the health check error retains the summary phrase and surfaces the underlying probe cause.
+func TestCheckHealthErrorIncludesCause(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer svr.Close()
+
+	config := &cfg.NCMConfig{
+		MainAPI:               svr.URL,
+		Username:              "ncm-user",
+		Password:              "ncm-user-password",
+		HTTPClientTimeout:     10 * time.Second,
+		HealthCheckerInterval: time.Minute,
+	}
+
+	c, _ := NewClient(config, testr.New(t))
+	defer c.StopHealthChecker()
+
+	err := c.CheckHealth()
+	if err == nil {
+		t.Fatal("expected error; got nil")
+	}
+	if !strings.Contains(err.Error(), "neither main NCM API nor backup NCM API are healthy") {
+		t.Fatalf("expected error to retain summary phrase; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "unexpected status code: 401") {
+		t.Fatalf("expected error to include underlying cause; got %v", err)
 	}
 }
 
