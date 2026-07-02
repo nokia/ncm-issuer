@@ -92,12 +92,10 @@ jobs:
         sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer
 
     - name: "wait for ncm-issuer readiness"
-      run: |
-        while [[ $(sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer -o jsonpath="{.items[0].status.conditions[?(@.type=='Ready')].status}") != "True" ]]; do
-          echo "Waiting for ncm-issuer to be ready..."
-          sleep 1
-        done
-        echo "ncm-issuer is ready"
+      uses: ./.github/actions/e2e-wait
+      with:
+        kind: issuer
+        namespace: ncm-issuer
 
     - name: "check issuer status"
       run: |
@@ -111,12 +109,11 @@ jobs:
         sudo microk8s.kubectl apply -f data/cert-resource.yml
 
     - name: "wait for certificate readiness"
-      run: |
-        while [[ $(sudo microk8s.kubectl get certificate.cert-manager.io/ncm-cert -n ncm-issuer -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}") != "True" ]]; do
-          echo "Waiting for certificate to be ready..."
-          sleep 1
-        done
-        echo "Certificate is ready"
+      uses: ./.github/actions/e2e-wait
+      with:
+        kind: certificate
+        namespace: ncm-issuer
+        name: ncm-cert
 
     - name: "check certificate resource"
       run: |
