@@ -4,6 +4,10 @@ BUILD_VERSION ?= $(shell grep -m1 imageVersion main.go | cut -d '"' -f2)
 IMG ?= ${APP_NAME}:${BUILD_VERSION}
 REGISTRY ?= ghcr.io/nokia
 REMOTE_IMG := ${REGISTRY}/${APP_NAME}:${BUILD_VERSION}
+UTILS_NAME ?= ncm-issuer-utils
+UTILS_IMG ?= ${UTILS_NAME}:${BUILD_VERSION}
+UTILS_REMOTE_IMG := ${REGISTRY}/${UTILS_NAME}:${BUILD_VERSION}
+UTILS_CONTEXT ?= ncm-issuer-utils/docker
 PLATFORM ?= linux/amd64
 ENVTEST_K8S_VERSION ?= 1.36.0
 
@@ -109,6 +113,17 @@ docker-build: check-buildx
 docker-save: docker-build
 	rm -rf "builds/$(APP_NAME)-images" && mkdir -p "builds/$(APP_NAME)-images"
 	docker save "${REMOTE_IMG}" "${IMG}" | gzip > "builds/$(APP_NAME)-images/${APP_NAME}-${BUILD_VERSION}.tgz"
+
+docker-build-utils: check-buildx ## Build troubleshooting sidecar (utils) image
+	docker buildx build --platform ${PLATFORM} ${UTILS_CONTEXT} -t "${UTILS_REMOTE_IMG}" --load --progress=plain
+	docker tag ${UTILS_REMOTE_IMG} ${UTILS_IMG}
+
+docker-push-utils: ## Push troubleshooting sidecar (utils) image
+	docker push "${UTILS_IMG}"
+
+docker-save-utils: docker-build-utils ## Build and save troubleshooting sidecar (utils) image tarball
+	rm -rf "builds/$(UTILS_NAME)-images" && mkdir -p "builds/$(UTILS_NAME)-images"
+	docker save "${UTILS_REMOTE_IMG}" "${UTILS_IMG}" | gzip > "builds/$(UTILS_NAME)-images/${UTILS_NAME}-${BUILD_VERSION}.tgz"
 
 ##@ Deployment
 
