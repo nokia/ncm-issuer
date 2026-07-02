@@ -1,0 +1,58 @@
+name: "ncm-issuer e2e wait"
+description: "Wait for an Issuer, ClusterIssuer or Certificate to become Ready with a bounded timeout and diagnostics on failure"
+
+inputs:
+  kind:
+    description: "Resource to wait for: issuer, clusterissuer or certificate"
+    required: true
+  namespace:
+    description: "Namespace of the resource"
+    required: true
+  name:
+    description: "Resource name (used for certificate lookups and diagnostics)"
+    required: false
+    default: "ncm-cert"
+  timeout-seconds:
+    description: "Maximum time to wait before failing"
+    required: false
+    default: "240"
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        NS="${{ inputs.namespace }}"
+        KIND="${{ inputs.kind }}"
+        NAME="${{ inputs.name }}"
+        DEADLINE=$(( $(date +%s) + ${{ inputs.timeout-seconds }} ))
+        status=""
+        while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+          case "$KIND" in
+            issuer)
+              status=$(sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n "$NS" -o jsonpath="{.items[0].status.conditions[?(@.type=='Ready')].status}" 2>/dev/null || true) ;;
+            clusterissuer)
+              status=$(sudo microk8s.kubectl get clusterissuers.certmanager.ncm.nokia.com -n "$NS" -o jsonpath="{.items[0].status.conditions[?(@.type=='Ready')].status}" 2>/dev/null || true) ;;
+            certificate)
+              status=$(sudo microk8s.kubectl get certificate.cert-manager.io/"$NAME" -n "$NS" -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}" 2>/dev/null || true) ;;
+            *)
+              echo "::error::unknown kind '$KIND'"; exit 1 ;;
+          esac
+          if [ "$status" = "True" ]; then
+            echo "$KIND is ready"
+            exit 0
+          fi
+          echo "Waiting for $KIND to be ready..."
+          sleep 2
+        done
+        echo "::error::$KIND did not become Ready within ${{ inputs.timeout-seconds }}s"
+        sudo microk8s.kubectl get pods -A || true
+        case "$KIND" in
+          issuer) sudo microk8s.kubectl describe issuers.certmanager.ncm.nokia.com -n "$NS" || true ;;
+          clusterissuer) sudo microk8s.kubectl describe clusterissuers.certmanager.ncm.nokia.com -n "$NS" || true ;;
+          certificate)
+            sudo microk8s.kubectl describe certificate "$NAME" -n "$NS" || true
+            sudo microk8s.kubectl describe certificaterequest -n "$NS" || true ;;
+        esac
+        sudo microk8s.kubectl -n ncm-issuer logs -l app=ncm-issuer --tail=200 || true
+        exit 1
