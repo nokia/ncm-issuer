@@ -32,3 +32,7 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "build"
+    ignore:
+      # Stay on RockyLinux 8; skip the major bump to 9
+      - dependency-name: "rockylinux"
+        update-types: ["version-update:semver-major"]
