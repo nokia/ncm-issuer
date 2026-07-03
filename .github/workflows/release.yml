@@ -7,6 +7,9 @@ jobs:
   docker:
     name: "publish release on GitHub Container Registry"
     runs-on: ubuntu-latest
+    environment:
+      name: ghcr
+      url: https://github.com/nokia/ncm-issuer/pkgs/container/ncm-issuer
     permissions:
       contents: read
       packages: write
@@ -41,6 +44,9 @@ jobs:
   docker-utils:
     name: "publish troubleshooting sidecar on GitHub Container Registry"
     runs-on: ubuntu-latest
+    environment:
+      name: ghcr-utils
+      url: https://github.com/nokia/ncm-issuer/pkgs/container/ncm-issuer-utils
     permissions:
       contents: read
       packages: write
@@ -124,7 +130,7 @@ jobs:
         ${{ github.event.release.body }}
         EOF
         sed -i "s|nav:|nav:\n    - ${{ github.event.release.name }}.md|g" docs/release-notes/.pages
-  
+
     - uses: stefanzweifel/git-auto-commit-action@v7
       with:
         commit_message: Write release notes to documentation
@@ -133,7 +139,7 @@ jobs:
 
     - name: Build MkDocs Configuration
       run: |
-        mkdocs build        
+        mkdocs build
 
     - name: Package charts
       run: helm package helm/
@@ -143,7 +149,7 @@ jobs:
       with:
         ref: gh-pages
         clean: false
-        
+
     - name: Move files to the pages gh-pages
       run: |
         mkdir -p ./docs && rm -rf ./docs/* && mv ./site/* ./docs
@@ -160,7 +166,6 @@ jobs:
 
     - uses: stefanzweifel/git-auto-commit-action@v7
       with:
-        commit_message: Update helm charts 
+        commit_message: Update helm charts
         file_pattern: './charts'
         skip_checkout: true
-
