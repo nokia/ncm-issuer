@@ -196,12 +196,13 @@ func (cfg *NCMConfig) AddTLSData(secret *core.Secret) error {
 	return nil
 }
 
-func (cfg *NCMConfig) InjectNamespace(namespace string) {
-	if cfg.AuthNamespacedName.Namespace == "" {
+// InjectNamespace resolves the auth and TLS secret reference namespaces, overriding any user-supplied namespace when force is true so a namespace-scoped Issuer cannot reference secrets outside its own namespace.
+func (cfg *NCMConfig) InjectNamespace(namespace string, force bool) {
+	if force || cfg.AuthNamespacedName.Namespace == "" {
 		cfg.AuthNamespacedName.Namespace = namespace
 	}
 
-	if cfg.TLSNamespacedName.Name != "" && cfg.TLSNamespacedName.Namespace == "" {
+	if cfg.TLSNamespacedName.Name != "" && (force || cfg.TLSNamespacedName.Namespace == "") {
 		cfg.TLSNamespacedName.Namespace = namespace
 	}
 }

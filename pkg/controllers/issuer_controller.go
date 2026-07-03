@@ -98,7 +98,10 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	NCMCfg := cfg.Initialise(issuerSpec)
-	NCMCfg.InjectNamespace(GetSecretNamespace(issuer, req))
+	// A namespace-scoped Issuer must only reference secrets in its own namespace.
+	// Only a cluster-scoped ClusterIssuer may point at an operator-chosen namespace.
+	_, isNamespacedIssuer := issuer.(*ncmv1.Issuer)
+	NCMCfg.InjectNamespace(GetSecretNamespace(issuer, req), isNamespacedIssuer)
 	authSecret := &core.Secret{}
 	if err = r.Get(ctx, NCMCfg.AuthNamespacedName, authSecret); err != nil {
 		log.Error(err, "Failed to retrieve auth secret from namespace", "namespacedName", NCMCfg.AuthNamespacedName)

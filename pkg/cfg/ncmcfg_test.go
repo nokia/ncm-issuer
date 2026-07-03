@@ -208,44 +208,82 @@ func TestInjectNamespace(t *testing.T) {
 		initialTLSName        string
 		initialTLSNamespace   string
 		namespace             string
+		force                 bool
 		expectedAuthNamespace string
 		expectedTLSNamespace  string
 	}{
+		// force == false mimics a ClusterIssuer: only unset namespaces are backfilled.
 		{
-			name:                  "AuthNamespace empty, TLSNamespace empty",
+			name:                  "backfill: AuthNamespace empty, TLSNamespace empty",
 			initialAuthNamespace:  "",
 			initialTLSName:        "tls-secret",
 			initialTLSNamespace:   "",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "default",
 			expectedTLSNamespace:  "default",
 		},
 		{
-			name:                  "AuthNamespace set, TLSNamespace empty",
+			name:                  "backfill: AuthNamespace set, TLSNamespace empty",
 			initialAuthNamespace:  "existing-ns",
 			initialTLSName:        "tls-secret",
 			initialTLSNamespace:   "",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "existing-ns", // Should not overwrite existing AuthNamespace
 			expectedTLSNamespace:  "default",     // Should set the new namespace
 		},
 		{
-			name:                  "AuthNamespace set, TLSNamespace set",
+			name:                  "backfill: AuthNamespace set, TLSNamespace set",
 			initialAuthNamespace:  "existing-ns",
 			initialTLSName:        "tls-secret",
 			initialTLSNamespace:   "existing-tls-ns",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "existing-ns",     // Should not overwrite existing AuthNamespace
 			expectedTLSNamespace:  "existing-tls-ns", // Should not overwrite existing TLSNamespace
 		},
 		{
-			name:                  "TLSName empty, AuthNamespace set",
+			name:                  "backfill: TLSName empty, AuthNamespace set",
 			initialAuthNamespace:  "existing-ns",
 			initialTLSName:        "",
 			initialTLSNamespace:   "",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "existing-ns",
 			expectedTLSNamespace:  "", // No TLS name, so namespace should not be set
+		},
+		// force == true mimics a namespace-scoped Issuer: any user-supplied
+		// namespace is overridden so secret references stay in the Issuer's namespace.
+		{
+			name:                  "force: overrides foreign auth and TLS namespaces",
+			initialAuthNamespace:  "tenant-b",
+			initialTLSName:        "tls-secret",
+			initialTLSNamespace:   "tenant-b",
+			namespace:             "tenant-a",
+			force:                 true,
+			expectedAuthNamespace: "tenant-a",
+			expectedTLSNamespace:  "tenant-a",
+		},
+		{
+			name:                  "force: overrides foreign auth namespace with no TLS ref",
+			initialAuthNamespace:  "tenant-b",
+			initialTLSName:        "",
+			initialTLSNamespace:   "",
+			namespace:             "tenant-a",
+			force:                 true,
+			expectedAuthNamespace: "tenant-a",
+			expectedTLSNamespace:  "", // No TLS name, so namespace should not be set
+		},
+		{
+			name:                  "force: sets empty auth namespace to the Issuer namespace",
+			initialAuthNamespace:  "",
+			initialTLSName:        "tls-secret",
+			initialTLSNamespace:   "",
+			namespace:             "tenant-a",
+			force:                 true,
+			expectedAuthNamespace: "tenant-a",
+			expectedTLSNamespace:  "tenant-a",
 		},
 	}
 
@@ -261,7 +299,7 @@ func TestInjectNamespace(t *testing.T) {
 				},
 			}
 
-			config.InjectNamespace(tt.namespace)
+			config.InjectNamespace(tt.namespace, tt.force)
 			if config.AuthNamespacedName.Namespace != tt.expectedAuthNamespace {
 				t.Errorf("AuthNamespacedName.Namespace = %v, want %v", config.AuthNamespacedName.Namespace, tt.expectedAuthNamespace)
 			}
