@@ -135,7 +135,7 @@ func Initialise(issuerSpec *ncmv1.IssuerSpec) *NCMConfig {
 		CACert:                "",
 		Key:                   nil,
 		Cert:                  nil,
-		InsecureSkipVerify:    true,
+		InsecureSkipVerify:    false,
 		MTLS:                  false,
 	}
 
@@ -145,6 +145,7 @@ func Initialise(issuerSpec *ncmv1.IssuerSpec) *NCMConfig {
 		config.HTTPClientTimeout = time.Duration(p.HTTPClientTimeout.Nanoseconds())
 		config.HealthCheckerInterval = time.Duration(p.HealthCheckerInterval.Nanoseconds())
 		config.AuthNamespacedName.Namespace, config.AuthNamespacedName.Name = p.AuthRef.Namespace, p.AuthRef.Name
+		config.InsecureSkipVerify = p.InsecureSkipVerify
 		if p.TLSRef != nil {
 			config.TLSNamespacedName.Namespace, config.TLSNamespacedName.Name = p.TLSRef.Namespace, p.TLSRef.Name
 		}
@@ -174,7 +175,6 @@ func (cfg *NCMConfig) AddTLSData(secret *core.Secret) error {
 	} else {
 		cfg.CACert = ""
 	}
-	cfg.InsecureSkipVerify = cfg.CACert == ""
 
 	if key, ok := secret.Data["key"]; ok {
 		// Store the key PEM data directly in memory
@@ -196,12 +196,13 @@ func (cfg *NCMConfig) AddTLSData(secret *core.Secret) error {
 	return nil
 }
 
-func (cfg *NCMConfig) InjectNamespace(namespace string) {
-	if cfg.AuthNamespacedName.Namespace == "" {
+// InjectNamespace resolves the auth and TLS secret reference namespaces, overriding any user-supplied namespace when force is true so a namespace-scoped Issuer cannot reference secrets outside its own namespace.
+func (cfg *NCMConfig) InjectNamespace(namespace string, force bool) {
+	if force || cfg.AuthNamespacedName.Namespace == "" {
 		cfg.AuthNamespacedName.Namespace = namespace
 	}
 
-	if cfg.TLSNamespacedName.Name != "" && cfg.TLSNamespacedName.Namespace == "" {
+	if cfg.TLSNamespacedName.Name != "" && (force || cfg.TLSNamespacedName.Namespace == "") {
 		cfg.TLSNamespacedName.Namespace = namespace
 	}
 }

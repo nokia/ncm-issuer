@@ -45,6 +45,11 @@ const (
 
 	creationErrorReason  = "cannot create new API client"
 	unmarshalErrorReason = "cannot unmarshal json"
+
+	// maxResponseBodySize caps how many bytes are read from an NCM API response body,
+	// protecting the controller from memory exhaustion if the API (or an on-path attacker
+	// when server verification is disabled) returns an oversized body.
+	maxResponseBodySize = 8 << 20
 )
 
 // ServerURL is used to store NCM API url and health status.
@@ -213,39 +218,51 @@ func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 	return c, nil
 }
 
+// isHTTPS reports whether the given NCM API URL uses the HTTPS scheme.
+func isHTTPS(rawURL string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(rawURL)), "https")
+}
+
 // configureHTTPClient configures http.Client used for connection
 // to NCM API according to NCM config.
 func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
-	if !strings.HasPrefix(cfg.MainAPI, "https") {
+	// The main and backup NCM API share a single client, so the TLS trust
+	// configuration (CA pinning, mTLS client cert) and any explicit
+	// InsecureSkipVerify must be built whenever either endpoint uses HTTPS,
+	// not only when the main API does.
+	if !isHTTPS(cfg.MainAPI) && !isHTTPS(cfg.BackupAPI) {
 		client := &http.Client{
 			Timeout: cfg.HTTPClientTimeout,
 		}
 		return client, nil
 	}
 
-	var tlsConfig *tls.Config
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
 
-	if cfg.InsecureSkipVerify {
-		tlsConfig = &tls.Config{InsecureSkipVerify: true}
-	} else {
+	// Server verification is enabled by default. When a CA bundle is supplied it
+	// is used as the trust anchor, otherwise RootCAs stays nil so the system trust
+	// store is used. Verification is only skipped when explicitly opted in.
+	switch {
+	case cfg.InsecureSkipVerify:
+		tlsConfig.InsecureSkipVerify = true
+	case cfg.CACert != "":
 		CACertPool := x509.NewCertPool()
-		CACertPool.AppendCertsFromPEM([]byte(cfg.CACert))
-
-		if cfg.MTLS {
-			// Loads the key pair for client certificate from PEM data in memory
-			clientCert, err := tls.X509KeyPair(cfg.Cert, cfg.Key)
-			if err != nil {
-				return nil, err
-			}
-			tlsConfig = &tls.Config{
-				RootCAs:      CACertPool,
-				Certificates: []tls.Certificate{clientCert},
-			}
-		} else {
-			tlsConfig = &tls.Config{
-				RootCAs: CACertPool,
-			}
+		if !CACertPool.AppendCertsFromPEM([]byte(cfg.CACert)) {
+			return nil, errors.New("failed to parse CA certificate bundle from TLS secret")
 		}
+		tlsConfig.RootCAs = CACertPool
+	}
+
+	// The client certificate is presented whenever mTLS material is available,
+	// independently of the server verification decision.
+	if cfg.MTLS {
+		clientCert, err := tls.X509KeyPair(cfg.Cert, cfg.Key)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientCert}
 	}
 
 	// Creates an HTTPS client and supply it with created CA pool
@@ -254,7 +271,11 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 	// We clone the default transport so we keep Go's sane defaults
 	// (timeouts, connection pooling) and proxy support via
 	// HTTP_PROXY / HTTPS_PROXY / NO_PROXY
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, errors.New("unexpected default HTTP transport type")
+	}
+	transport := defaultTransport.Clone()
 	transport.TLSClientConfig = tlsConfig
 	client := &http.Client{
 		Timeout:   cfg.HTTPClientTimeout,
@@ -284,10 +305,13 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 
 func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize+1))
 	c.log.V(2).Info("Validating response from NCM API", "bytes", len(body))
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot read response body", ErrorMessage: err}
+	}
+	if len(body) > maxResponseBodySize {
+		return nil, &ClientError{Reason: "response body too large", ErrorMessage: fmt.Errorf("NCM API response exceeded the maximum allowed size of %d bytes", maxResponseBodySize)}
 	}
 
 	if status := resp.StatusCode; status >= 200 && status < 300 {
@@ -392,8 +416,8 @@ func (c *Client) refreshHealth() {
 // isAPIHealthy probes the NCM API by issuing an authenticated GET against the
 // CAs endpoint and returns whether the response was 2xx together with the
 // underlying failure cause when it was not.
-func (c *Client) isAPIHealthy(apiUrl string) (bool, error) {
-	parsedURL, err := url.Parse(apiUrl)
+func (c *Client) isAPIHealthy(apiURL string) (bool, error) {
+	parsedURL, err := url.Parse(apiURL)
 	if err != nil {
 		return false, err
 	}
@@ -421,9 +445,9 @@ func (c *Client) StopHealthChecker() {
 	close(c.stopChecking)
 }
 
-func (c *Client) GetCAs() (*CAsResponse, error) {
-	params := url.Values{}
-	req, err := c.newRequest(http.MethodGet, CAsPath, strings.NewReader(params.Encode()))
+// doGetJSON performs an authenticated GET against the given NCM API path and decodes the JSON body into T.
+func doGetJSON[T any](c *Client, path string) (*T, error) {
+	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(""))
 	if err != nil {
 		return nil, err
 	}
@@ -438,41 +462,23 @@ func (c *Client) GetCAs() (*CAsResponse, error) {
 		return nil, err
 	}
 
-	cas := CAsResponse{}
-	err = json.Unmarshal(body, &cas)
-	if err != nil {
+	result := new(T)
+	if err := json.Unmarshal(body, result); err != nil {
 		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
 	}
-	return &cas, nil
+	return result, nil
+}
+
+func (c *Client) GetCAs() (*CAsResponse, error) {
+	return doGetJSON[CAsResponse](c, CAsPath)
 }
 
 func (c *Client) GetCA(path string) (*CAResponse, error) {
-	params := url.Values{}
-	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(params.Encode()))
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.validateResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	ca := CAResponse{}
-	err = json.Unmarshal(body, &ca)
-	if err != nil {
-		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
-	}
-	return &ca, nil
+	return doGetJSON[CAResponse](c, path)
 }
 
-// SendCSR submits the PEM-encoded CSR to NCM as a multipart upload without touching the filesystem
-func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, profileID string) (*CSRResponse, error) {
+// SendCSR submits the PEM-encoded CSR to NCM as a multipart upload without touching the filesystem.
+func (c *Client) SendCSR(pem []byte, ca *CAResponse, duration *metav1.Duration, profileID string) (*CSRResponse, error) {
 	certDuration := cmapi.DefaultCertificateDuration
 	if duration != nil {
 		certDuration = duration.Duration
@@ -481,7 +487,7 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 	notAfter := notBefore.Add(certDuration)
 
 	params := map[string]string{
-		"ca":        CA.Href,
+		"ca":        ca.Href,
 		"notBefore": notBefore.Format(time.RFC3339),
 		"notAfter":  notAfter.Format(time.RFC3339),
 	}
@@ -497,7 +503,7 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 		return nil, &ClientError{Reason: "cannot create new form-data header", ErrorMessage: err}
 	}
 
-	if _, err := part.Write(pem); err != nil {
+	if _, err = part.Write(pem); err != nil {
 		return nil, &ClientError{Reason: "cannot write PEM to form-data part", ErrorMessage: err}
 	}
 
@@ -536,53 +542,11 @@ func (c *Client) SendCSR(pem []byte, CA *CAResponse, duration *metav1.Duration, 
 }
 
 func (c *Client) CheckCSRStatus(path string) (*CSRStatusResponse, error) {
-	params := url.Values{}
-	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(params.Encode()))
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.validateResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	csrStatus := CSRStatusResponse{}
-	err = json.Unmarshal(body, &csrStatus)
-	if err != nil {
-		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
-	}
-	return &csrStatus, nil
+	return doGetJSON[CSRStatusResponse](c, path)
 }
 
 func (c *Client) DownloadCertificate(path string) (*CertificateDownloadResponse, error) {
-	params := url.Values{}
-	req, err := c.newRequest(http.MethodGet, path, strings.NewReader(params.Encode()))
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.validateResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	crt := CertificateDownloadResponse{}
-	err = json.Unmarshal(body, &crt)
-	if err != nil {
-		return nil, &ClientError{Reason: unmarshalErrorReason, ErrorMessage: err}
-	}
-	return &crt, nil
+	return doGetJSON[CertificateDownloadResponse](c, path)
 }
 
 func (c *Client) DownloadCertificateInPEM(path string) ([]byte, error) {

@@ -36,8 +36,6 @@ import (
 )
 
 var (
-	rootCA = "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----\n"
-
 	certPEM = `-----BEGIN CERTIFICATE-----
 MIIB2zCCAYWgAwIBAgIUKkV94DTD6al8iCukf+dVMUIzSFMwDQYJKoZIhvcNAQEL
 BQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE
@@ -50,6 +48,9 @@ KCtHx+rRAfX/LKswHwYDVR0jBBgwFoAU7feJQ8nAPPHwKCtHx+rRAfX/LKswDwYD
 VR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAANBAGqea1lWcEDRr7qrDGVKItJn
 m7fvrww42l2LTJJ4nP9h6UBAmoSor0yHn7Zks/CTb9A/VTINB1sbP7n8USeOIxA=
 -----END CERTIFICATE-----`
+
+	// A self-signed CA cert is reused as the CA bundle in TLS client tests.
+	rootCA = certPEM
 
 	keyPEM = `-----BEGIN PRIVATE KEY-----
 MIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAwjCvS9h8ADaBz7jU
@@ -321,6 +322,99 @@ func TestNewClientCreation(t *testing.T) {
 				log: testr.New(t),
 			},
 		},
+		{
+			// HTTPS without a TLS secret must verify against the system trust
+			// store (RootCAs nil, InsecureSkipVerify false) rather than skip
+			// verification.
+			name: "ncm-client-success-https-system-trust-store",
+			config: &cfg.NCMConfig{
+				MainAPI:               "https://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+			},
+			err: nil,
+			expectedClient: &Client{
+				mainAPI:  NewServerURL("https://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
+				client: &http.Client{
+					Timeout: 10 * time.Second,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{},
+					},
+				},
+				log: testr.New(t),
+			},
+		},
+		{
+			// When only the backup endpoint is HTTPS (main API is
+			// plain HTTP), the shared client must still get the TLS trust config
+			// (CA pinning plus mTLS client cert) so it is not bypassed for the
+			// backup API.
+			name: "ncm-client-backup-https-gets-tls-config",
+			config: &cfg.NCMConfig{
+				MainAPI:               "http://ncm-server.local",
+				BackupAPI:             "https://ncm-backup-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				CACert:                rootCA,
+				MTLS:                  true,
+				Cert:                  []byte(certPEM),
+				Key:                   []byte(keyPEM),
+			},
+			err: nil,
+			expectedClient: &Client{
+				mainAPI:   NewServerURL("http://ncm-server.local"),
+				backupAPI: NewServerURL("https://ncm-backup-server.local"),
+				user:      "ncm-user",
+				password:  "ncm-user-password",
+				client: &http.Client{
+					Timeout: 10 * time.Second,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							RootCAs:      CACertPool,
+							Certificates: []tls.Certificate{clientCert},
+						},
+					},
+				},
+				log: testr.New(t),
+			},
+		},
+		{
+			// mTLS material without a CA bundle must still present the client
+			// certificate and keep server verification enabled via the system
+			// trust store (RootCAs nil, InsecureSkipVerify false).
+			name: "ncm-client-success-mtls-connection-system-trust-store",
+			config: &cfg.NCMConfig{
+				MainAPI:               "https://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				MTLS:                  true,
+				Cert:                  []byte(certPEM),
+				Key:                   []byte(keyPEM),
+			},
+			err: nil,
+			expectedClient: &Client{
+				mainAPI:  NewServerURL("https://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
+				client: &http.Client{
+					Timeout: 10 * time.Second,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							Certificates: []tls.Certificate{clientCert},
+						},
+					},
+				},
+				log: testr.New(t),
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -450,6 +544,25 @@ func TestValidateResponse(t *testing.T) {
 				Body:       io.NopCloser(failReader(0)),
 			},
 			err: errors.New("cannot read response body"),
+		},
+		{
+			// Response body at the size cap is still accepted.
+			name: "response-body-at-limit-is-allowed",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader(bytes.Repeat([]byte("a"), maxResponseBodySize))),
+			},
+			expectedBody: bytes.Repeat([]byte("a"), maxResponseBodySize),
+		},
+		{
+			// Response body larger than the cap must be rejected instead
+			// of being read fully into memory.
+			name: "response-body-too-large",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader(bytes.Repeat([]byte("a"), maxResponseBodySize+1))),
+			},
+			err: errors.New("response body too large"),
 		},
 	}
 

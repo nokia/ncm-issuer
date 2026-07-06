@@ -35,6 +35,11 @@ const (
 	// accept CSR manually in NCM before rejecting that request.
 	SingleCSRCheckLimit = 1440
 
+	// MaxCAChainDepth bounds how many CA certificates getChainAndWantedCA walks while
+	// following issuer references, protecting the controller from an unbounded or cyclic
+	// CA chain returned by the NCM API.
+	MaxCAChainDepth = 100
+
 	CSRStatusAccepted  = "accepted"
 	CSRStatusApproved  = "approved"
 	CSRStatusPending   = "pending"
@@ -238,8 +243,17 @@ func (p *Provisioner) Retire() {
 func (p *Provisioner) getChainAndWantedCA(signingCA *ncmapi.CAResponse) ([]byte, []byte, error) {
 	var certChain []byte
 	lastCheckedCA := signingCA
+	visitedCAs := make(map[string]struct{})
 
-	for {
+	for depth := 0; ; depth++ {
+		if depth >= MaxCAChainDepth {
+			return nil, nil, fmt.Errorf("CA chain traversal exceeded the maximum allowed depth of %d, aborting to avoid an unbounded walk", MaxCAChainDepth)
+		}
+		if _, seen := visitedCAs[lastCheckedCA.Href]; seen {
+			return nil, nil, fmt.Errorf("detected a cycle in the CA chain at CA certificate with href: %s, aborting", lastCheckedCA.Href)
+		}
+		visitedCAs[lastCheckedCA.Href] = struct{}{}
+
 		p.log.V(1).Info("Last checked CA certificate in chain", "href", lastCheckedCA.Href)
 
 		lastCheckedCAURLPath, _ := ncmapi.GetPathFromCertHref(lastCheckedCA.Certificates["active"])

@@ -18,6 +18,7 @@ runs:
       continue-on-error: true
       run: |
         NS=${{ inputs.namespace }}
+        mkdir -p data/logs
         sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
         sudo microk8s.kubectl get po -A > data/logs/get_pods.log
         sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
@@ -30,8 +31,12 @@ runs:
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n $NS > data/logs/describe_csr.log
         sudo microk8s.kubectl get certificate -n $NS > data/logs/get_certificate.log
         sudo microk8s.kubectl describe certificate ncm-cert -n $NS > data/logs/describe_certificate.log
-        mkdir -p ${{ github.workspace }}/artifact/upload
-        sudo cp -rp data/ ${{ github.workspace }}/artifact/data/
+        mkdir -p ${{ github.workspace }}/artifact/upload ${{ github.workspace }}/artifact/data
+        # data/ also holds files populated from CI secrets (the PEM client key,
+        # client cert, CA bundle plus the NCM host injected into ncm-issuer.yml).
+        # Collect only data/logs so credential material is never packaged into
+        # the uploaded artifact.
+        sudo cp -rp data/logs ${{ github.workspace }}/artifact/data/logs
         sudo tar -C ${{ github.workspace }}/artifact/ -cvzf ${{ github.workspace }}/artifact/upload/artifact.tar.gz data
 
     - name: "uploading artifacts"

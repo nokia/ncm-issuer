@@ -85,7 +85,7 @@ func TestInitialise(t *testing.T) {
 				CACert:                "",
 				Key:                   nil,
 				Cert:                  nil,
-				InsecureSkipVerify:    true,
+				InsecureSkipVerify:    false,
 				MTLS:                  false,
 			},
 		},
@@ -105,7 +105,7 @@ func TestInitialise(t *testing.T) {
 				HTTPClientTimeout:     DefaultHTTPTimeout,
 				HealthCheckerInterval: DefaultHealthCheckerInterval,
 
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: false,
 				MTLS:               false,
 				MainAPI:            defaultProvisioner.MainAPI,
 				BackupAPI:          defaultProvisioner.BackupAPI,
@@ -201,6 +201,91 @@ func TestNCMConfigAddAuthenticationData(t *testing.T) {
 		})
 	}
 }
+
+func TestAddTLSData(t *testing.T) {
+	tests := []struct {
+		name                       string
+		initialInsecureSkipVerify  bool
+		secret                     *core.Secret
+		expectedCACert             string
+		expectedMTLS               bool
+		expectedInsecureSkipVerify bool
+	}{
+		{
+			name:                      "cacert-key-cert-present-enables-mtls-with-pinning",
+			initialInsecureSkipVerify: false,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"cacert": []byte("ca-bundle"),
+					"key":    []byte("client-key"),
+					"cert":   []byte("client-cert"),
+				},
+			},
+			expectedCACert:             "ca-bundle",
+			expectedMTLS:               true,
+			expectedInsecureSkipVerify: false,
+		},
+		{
+			// Regression for the case where a TLS secret carries key+cert but no
+			// cacert: mTLS must still be enabled and verification must stay on
+			// (falling back to the system trust store) instead of being disabled.
+			name:                      "key-cert-without-cacert-keeps-verification-enabled",
+			initialInsecureSkipVerify: false,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"key":  []byte("client-key"),
+					"cert": []byte("client-cert"),
+				},
+			},
+			expectedCACert:             "",
+			expectedMTLS:               true,
+			expectedInsecureSkipVerify: false,
+		},
+		{
+			name:                      "cacert-only-enables-server-verification-without-mtls",
+			initialInsecureSkipVerify: false,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"cacert": []byte("ca-bundle"),
+				},
+			},
+			expectedCACert:             "ca-bundle",
+			expectedMTLS:               false,
+			expectedInsecureSkipVerify: false,
+		},
+		{
+			name:                      "does-not-override-explicit-insecure-skip-verify",
+			initialInsecureSkipVerify: true,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"cacert": []byte("ca-bundle"),
+				},
+			},
+			expectedCACert:             "ca-bundle",
+			expectedMTLS:               false,
+			expectedInsecureSkipVerify: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &NCMConfig{InsecureSkipVerify: tt.initialInsecureSkipVerify}
+			if err := config.AddTLSData(tt.secret); err != nil {
+				t.Fatalf("AddTLSData() returned unexpected error: %v", err)
+			}
+			if config.CACert != tt.expectedCACert {
+				t.Errorf("CACert = %q, want %q", config.CACert, tt.expectedCACert)
+			}
+			if config.MTLS != tt.expectedMTLS {
+				t.Errorf("MTLS = %v, want %v", config.MTLS, tt.expectedMTLS)
+			}
+			if config.InsecureSkipVerify != tt.expectedInsecureSkipVerify {
+				t.Errorf("InsecureSkipVerify = %v, want %v", config.InsecureSkipVerify, tt.expectedInsecureSkipVerify)
+			}
+		})
+	}
+}
+
 func TestInjectNamespace(t *testing.T) {
 	tests := []struct {
 		name                  string
@@ -208,44 +293,82 @@ func TestInjectNamespace(t *testing.T) {
 		initialTLSName        string
 		initialTLSNamespace   string
 		namespace             string
+		force                 bool
 		expectedAuthNamespace string
 		expectedTLSNamespace  string
 	}{
+		// force == false mimics a ClusterIssuer: only unset namespaces are backfilled.
 		{
-			name:                  "AuthNamespace empty, TLSNamespace empty",
+			name:                  "backfill: AuthNamespace empty, TLSNamespace empty",
 			initialAuthNamespace:  "",
 			initialTLSName:        "tls-secret",
 			initialTLSNamespace:   "",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "default",
 			expectedTLSNamespace:  "default",
 		},
 		{
-			name:                  "AuthNamespace set, TLSNamespace empty",
+			name:                  "backfill: AuthNamespace set, TLSNamespace empty",
 			initialAuthNamespace:  "existing-ns",
 			initialTLSName:        "tls-secret",
 			initialTLSNamespace:   "",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "existing-ns", // Should not overwrite existing AuthNamespace
 			expectedTLSNamespace:  "default",     // Should set the new namespace
 		},
 		{
-			name:                  "AuthNamespace set, TLSNamespace set",
+			name:                  "backfill: AuthNamespace set, TLSNamespace set",
 			initialAuthNamespace:  "existing-ns",
 			initialTLSName:        "tls-secret",
 			initialTLSNamespace:   "existing-tls-ns",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "existing-ns",     // Should not overwrite existing AuthNamespace
 			expectedTLSNamespace:  "existing-tls-ns", // Should not overwrite existing TLSNamespace
 		},
 		{
-			name:                  "TLSName empty, AuthNamespace set",
+			name:                  "backfill: TLSName empty, AuthNamespace set",
 			initialAuthNamespace:  "existing-ns",
 			initialTLSName:        "",
 			initialTLSNamespace:   "",
 			namespace:             "default",
+			force:                 false,
 			expectedAuthNamespace: "existing-ns",
 			expectedTLSNamespace:  "", // No TLS name, so namespace should not be set
+		},
+		// force == true mimics a namespace-scoped Issuer: any user-supplied
+		// namespace is overridden so secret references stay in the Issuer's namespace.
+		{
+			name:                  "force: overrides foreign auth and TLS namespaces",
+			initialAuthNamespace:  "tenant-b",
+			initialTLSName:        "tls-secret",
+			initialTLSNamespace:   "tenant-b",
+			namespace:             "tenant-a",
+			force:                 true,
+			expectedAuthNamespace: "tenant-a",
+			expectedTLSNamespace:  "tenant-a",
+		},
+		{
+			name:                  "force: overrides foreign auth namespace with no TLS ref",
+			initialAuthNamespace:  "tenant-b",
+			initialTLSName:        "",
+			initialTLSNamespace:   "",
+			namespace:             "tenant-a",
+			force:                 true,
+			expectedAuthNamespace: "tenant-a",
+			expectedTLSNamespace:  "", // No TLS name, so namespace should not be set
+		},
+		{
+			name:                  "force: sets empty auth namespace to the Issuer namespace",
+			initialAuthNamespace:  "",
+			initialTLSName:        "tls-secret",
+			initialTLSNamespace:   "",
+			namespace:             "tenant-a",
+			force:                 true,
+			expectedAuthNamespace: "tenant-a",
+			expectedTLSNamespace:  "tenant-a",
 		},
 	}
 
@@ -261,7 +384,7 @@ func TestInjectNamespace(t *testing.T) {
 				},
 			}
 
-			config.InjectNamespace(tt.namespace)
+			config.InjectNamespace(tt.namespace, tt.force)
 			if config.AuthNamespacedName.Namespace != tt.expectedAuthNamespace {
 				t.Errorf("AuthNamespacedName.Namespace = %v, want %v", config.AuthNamespacedName.Namespace, tt.expectedAuthNamespace)
 			}

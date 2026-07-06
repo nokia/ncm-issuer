@@ -31,6 +31,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
       * [NCM REST API credentials](#ncm-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
       * [TLS with client authentication](#tls-with-client-authentication)
+      * [Server certificate verification](#server-certificate-verification)
       * [Using an outbound HTTP(S) proxy](#using-an-outbound-https-proxy)
 * [Custom resource definitions (CRDs)](#custom-resource-definitions--crds-)
   * [Issuer resource](#issuer-resource)
@@ -215,6 +216,34 @@ by using command:
   $ kubectl -n <namespace> describe secrets <secret-name>
   ```
 
+#### Server certificate verification
+
+For any `https://` NCM endpoint (`mainAPI` or `backupAPI`) `ncm-issuer` verifies the NCM REST API server
+certificate by default:
+
+* when `tlsRef` provides a `cacert`, that bundle is used as the trust anchor,
+* when no `cacert` is provided, the server certificate is validated against the container's system trust store,
+* the client certificate configured for mTLS is always presented, independently of the verification mode.
+
+The same trust configuration applies to both the main API and the backup API whenever either one uses `https://`.
+
+Verification can be turned off (insecure, intended for testing only) by setting
+`.spec.provisioner.insecureSkipVerify` to `true`.
+
+> **:warning: Breaking change in `1.2.2-1.2.2` - server certificate verification is now enabled by default.**
+>
+> Before `1.2.2-1.2.2`, an `https://` `mainAPI` or `backupAPI` **silently skipped server certificate verification**
+> when no `tlsRef` was configured and when the referenced Secret omitted `cacert`. From `1.2.2-1.2.2` these
+> connections are verified by default.
+>
+> **If your NCM REST API uses a certificate signed by a private CA and you did not previously supply `cacert`,
+> the controller will now fail to connect after upgrading** (the issuer reports `Ready=False` with reason `Error`).
+> Before upgrading, do one of the following:
+>
+> * **Recommended:** add the CA bundle as the `cacert` entry of the Secret referenced by `tlsRef` (see [TLS without client authentication](#tls-without-client-authentication)).
+> * If your NCM certificate is already trusted by the container's system trust store, no change is needed.
+> * **Not recommended (testing only):** set `.spec.provisioner.insecureSkipVerify: true` to keep the previous insecure behavior.
+
 #### Using an outbound HTTP(S) proxy
 
 If your Kubernetes cluster does not have direct egress connectivity to the NCM instance, configure an
@@ -259,6 +288,8 @@ Below is an example `yaml` file containing `Issuer` definition:
       tlsRef:
         name: ncm-tls
         namespace: ncm-ns
+      # insecureSkipVerify disables server certificate verification (insecure, testing only).
+      # insecureSkipVerify: false
     profileId: "101"
     useProfileIDForRenew: true
     reenrollmentOnRenew: true
@@ -297,7 +328,8 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 | `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM REST API before aborting the request                                                                                                                                                              |  1.1.0-1.1.0   |
 | `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM REST API health check                                                                                                                                                                                                                        |  1.1.0-1.1.0   |
 | `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API (always required)                                                                                                                                               |  1.1.0-1.1.0   |
-| `.spec.provisioner.tlsRef`                | Reference to a Secret containing CA bundle used to verify connections to the NCM REST API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data |  1.1.0-1.1.0   |
+| `.spec.provisioner.tlsRef`                | Reference to a Secret containing the CA bundle (`cacert`) used to verify HTTPS connections to the NCM REST API together with an optional client key and cert (`key`, `cert`) for mTLS. When `cacert` is omitted the server certificate is verified against the system trust store. Verification is only disabled when `.spec.provisioner.insecureSkipVerify` is set to `true` |  1.1.0-1.1.0   |
+| `.spec.provisioner.insecureSkipVerify`    | Disables verification of the NCM REST API server certificate for HTTPS connections. Insecure and intended only for testing. Defaults to `false` so the server certificate is verified against the `tlsRef` CA bundle when provided or the system trust store                       |  1.2.2-1.2.2   |
 | `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                         |  1.0.1-1.0.0   |
 | `.spec.profileId`                         | Entity profile ID in NCM, optional; needs to be in double quotes                                                                                                                                                                                                                |  1.0.1-1.0.0   |
 | `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                             |  1.0.1-1.0.0   |

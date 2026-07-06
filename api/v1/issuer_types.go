@@ -155,13 +155,20 @@ type NCMProvisioner struct {
 	// (user and password) needed for making requests to NCM API.
 	AuthRef *core.SecretReference `json:"authRef"`
 
-	// TLSRef is a reference to a Secret containing CA bundle used to
-	// verify connections to the NCM API. If the secret reference is not
-	// specified and selected protocol is HTTPS, InsecureSkipVerify
-	// will be used. Otherwise, TLS or mTLS connection will be used,
-	// depending on provided data.
+	// TLSRef is a reference to a Secret containing the CA bundle (cacert) used to
+	// verify HTTPS connections to the NCM API together with an optional client key
+	// and cert (key, cert) for mTLS. When cacert is omitted the server certificate
+	// is verified against the system trust store. Verification is only disabled when
+	// InsecureSkipVerify is set to true.
 	// +optional
 	TLSRef *core.SecretReference `json:"tlsRef,omitempty"`
+
+	// InsecureSkipVerify disables verification of the NCM API server certificate for HTTPS connections.
+	// It is insecure so it should only be used for testing. When false, which is the default, the server
+	// certificate is verified against the tlsRef CA bundle when provided or the system trust store.
+	// +kubebuilder:default=false
+	// +optional
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 // IssuerCondition contains condition information for an Issuer.

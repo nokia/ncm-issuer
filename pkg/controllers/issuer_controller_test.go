@@ -160,6 +160,53 @@ func TestIssuerReconcile(t *testing.T) {
 			},
 		},
 		{
+			name:           "issuer-authref-foreign-namespace-is-ignored",
+			kind:           Issuer,
+			namespacedName: types.NamespacedName{Namespace: "tenant-a", Name: "ncm-issuer"},
+			objects: []client.Object{
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "tenant-a",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: healthyNCM.URL,
+							AuthRef: &v1.SecretReference{
+								Namespace: "tenant-b",
+								Name:      "ncm-auth-secret",
+							},
+							HTTPClientTimeout:     metav1.Duration{Duration: 5 * time.Second},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "tenant-b",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("ncm-user"),
+						"usrPassword": []byte("ncm-user-password"),
+					},
+				},
+			},
+			err: errors.New("secrets \"ncm-auth-secret\" not found"),
+			expectedStatus: &ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{
+					{
+						Type:               ncmv1.IssuerConditionReady,
+						Status:             ncmv1.ConditionFalse,
+						LastTransitionTime: &now,
+						Reason:             ncmv1.ReasonNotFound,
+						Message:            "Failed to retrieve auth secret err: secrets \"ncm-auth-secret\" not found",
+					},
+				},
+			},
+		},
+		{
 			name:           "issuer-auth-data-not-useful",
 			kind:           Issuer,
 			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},

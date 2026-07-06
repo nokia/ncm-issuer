@@ -56,6 +56,14 @@ lint: golangci-lint ## Run golangci-lint & yamllint
 lint-fix: golangci-lint ## Run golangci-lint and fix issues
 	"$(GOLANGCI_LINT)" run --fix
 
+# actionlint automatically pipes every workflow "run:" script through shellcheck
+# when shellcheck is present (it is on CI). The existing e2e workflows have many
+# pre-existing shellcheck findings, so "-shellcheck=" turns that pass off and we
+# enforce only actionlint's own checks for now. Remove the flag to also lint the
+# shell scripts once they have been cleaned up.
+lint-actions: actionlint ## Lint GitHub Actions workflows with actionlint
+	"$(ACTIONLINT)" -shellcheck=
+
 ##@ Build
 
 build: vendor generate fmt vet ## Build manager binary
@@ -153,12 +161,14 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+ACTIONLINT ?= $(LOCALBIN)/actionlint
 
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
 CONTROLLER_TOOLS_VERSION    ?= v0.19.0
 ENVTEST_VERSION             ?= release-0.24
 GOLANGCI_LINT_VERSION       ?= v1.64.8
+ACTIONLINT_VERSION          ?= v1.7.12
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 kustomize: $(KUSTOMIZE)
@@ -182,6 +192,14 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 	if [ ! -f "$(GOLANGCI_LINT)" ]; then \
 		echo "Installing golangci-lint into $(LOCALBIN)"; \
 		GOBIN="$(abspath $(LOCALBIN))" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}; \
+	fi
+
+actionlint: $(ACTIONLINT)
+$(ACTIONLINT): $(LOCALBIN)
+	mkdir -p "$(LOCALBIN)"
+	if [ ! -f "$(ACTIONLINT)" ]; then \
+		echo "Installing actionlint into $(LOCALBIN)"; \
+		GOBIN="$(abspath $(LOCALBIN))" go install github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}; \
 	fi
 
 pack-app: docker-save
