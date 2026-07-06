@@ -1,5 +1,46 @@
 # Release Notes
 
+## Version 1.2.2 (Chart: 1.2.2, Image: 1.2.2) - 06 Jul 2026
+
+ncm-issuer 1.2.2 is a security hardening release addressing vulnerabilities reported by **Claude Mythos Preview** scan (Nokia is part of **Project Glasswing** as it builds and maintains critical software infrastructure).
+
+### Security fixes
+
+- **Fixed cross-namespace Secret exfiltration via a namespace-scoped `Issuer`** (CWE-639, HIGH). A namespaced `Issuer` could set `provisioner.authRef.namespace` or `provisioner.tlsRef.namespace` to a Secret in another namespace, and because the controller holds cluster-wide `secrets` read permissions it would read and use those credentials. Namespace-scoped `Issuer` resources now always resolve their auth and TLS Secret references within their own namespace and ignore any user-supplied namespace. `ClusterIssuer` behavior is unchanged
+- **HTTPS server certificate verification is now enabled by default** (CWE-295, MEDIUM / LOW). See the breaking change note below. Verification is only disabled when the new `provisioner.insecureSkipVerify` field is explicitly set to `true`, and the mTLS client certificate is always presented independently of the verification decision
+- **Fixed the TLS trust configuration being bypassed for the backup NCM API** (CWE-295, LOW). When `provisioner.mainAPI` used plain `http://` while `provisioner.backupAPI` used `https://`, the CA pinning and mTLS client certificate were not applied to the backup connection. The trust configuration now applies whenever either endpoint uses `https://`
+- **Stopped the end-to-end test failure artifact from bundling the mTLS private key and other secret material** (CWE-532, MEDIUM). The internal `e2e-collect-logs` CI action archived the whole `data/` directory, which included the PEM client key and cert, the CA bundle plus the NCM host injected from CI secrets. It now collects only `data/logs`. This is a CI/pipeline fix and does not change the released controller
+- **Hardened the GitHub release workflow against shell injection** (CWE-78, LOW). The `pages` and `package` jobs interpolated the release `name`, `body` and `tag_name` directly into shell scripts, so a crafted release could execute arbitrary commands on the runner with a write-capable token. Those fields are now passed through environment variables and treated as data. The `pages` job also runs with an explicit minimal `contents: write` permission. This is a CI/pipeline fix and does not change the released controller
+- **Bounded the CA-chain traversal and NCM API response reads to prevent denial of service** (CWE-835, LOW). When building the certificate chain the controller followed issuer references in an unbounded loop, so a malicious or misconfigured NCM API could keep it walking forever, and every API response body was read into memory without a size limit. The traversal now stops at a maximum depth and rejects cycles, and response bodies are capped at 8 MiB
+
+### :warning: Breaking changes
+
+**HTTPS connections to the NCM REST API now verify the server certificate by default.**
+
+Before `1.2.2`, an `Issuer` / `ClusterIssuer` whose `provisioner.mainAPI` (or `provisioner.backupAPI`) used
+`https://` **silently skipped NCM server certificate verification** in two situations: when no `provisioner.tlsRef`
+was configured and when the referenced Secret omitted the `cacert` entry. From `1.2.2` these connections are verified
+by default (against the `cacert` when it is provided, otherwise against the system trust store), and the mTLS client
+certificate is always presented regardless of the verification mode.
+
+**Who is affected:** any deployment that talks to the NCM REST API over `https://` using a certificate signed by a
+private CA whose bundle was not supplied as `cacert`. After upgrading, the controller will now fail its health probe
+for such an issuer and report `Ready=False` with reason `Error` instead of connecting insecurely.
+
+**What to do before upgrading (pick one):**
+
+- **Recommended:** add the CA bundle as the `cacert` entry of the Secret referenced by `provisioner.tlsRef` (see [TLS without client authentication](README.md#tls-without-client-authentication)). Verification then pins to that bundle.
+- If the NCM certificate is issued by a CA already in the container's system trust store, no change is needed. Verification succeeds automatically.
+- **Not recommended (testing only):** set `provisioner.insecureSkipVerify: true` to explicitly restore the previous no-verification behavior.
+
+This change also closes a related gap where the TLS trust configuration was not applied to a `https://` backup API when
+the main API used plain `http://`. The trust configuration (and any `insecureSkipVerify` opt-in) now applies to every
+`https://` NCM endpoint, main or backup.
+
+### Other changes
+
+- **The `ncm-issuer-utils` troubleshooting sidecar image is now attached to each GitHub release as a downloadable docker load-able tarball** (`ncm-issuer-utils-<version>.tgz`). Previously the sidecar image was only pushed to `ghcr.io/nokia/ncm-issuer-utils`, so users in air-gapped or registry-restricted environments could not obtain it alongside the main `ncm-issuer` release tarball. Load it with `docker load -i ncm-issuer-utils-<version>.tgz`. Like the main image tarball it is built for `linux/amd64`; multi-arch images remain available from `ghcr.io`
+
 ## Version 1.2.1 (Chart: 1.2.1, Image: 1.2.1) - 02 Jul 2026
 - **Fixed NCM REST API health check** to actually probe the `/v1/cas` endpoint with authentication and to treat only `2xx` responses as healthy. Previously the probe targeted the base URL and considered any non-`5xx` response (including authentication failures and other `4xx`) as healthy, which masked misconfigured endpoints and credentials
 - **Gated `Issuer` / `ClusterIssuer` `Ready` condition on a synchronous health probe** during reconciliation. An unreachable or misconfigured NCM REST API is now surfaced immediately as `Ready=False` with reason `Error` and a descriptive message instead of being marked `Ready=True` until the first periodic check (which by default could take up to one minute)
