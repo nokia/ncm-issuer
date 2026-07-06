@@ -545,6 +545,25 @@ func TestValidateResponse(t *testing.T) {
 			},
 			err: errors.New("cannot read response body"),
 		},
+		{
+			// Response body at the size cap is still accepted.
+			name: "response-body-at-limit-is-allowed",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader(bytes.Repeat([]byte("a"), maxResponseBodySize))),
+			},
+			expectedBody: bytes.Repeat([]byte("a"), maxResponseBodySize),
+		},
+		{
+			// Response body larger than the cap must be rejected instead
+			// of being read fully into memory.
+			name: "response-body-too-large",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewReader(bytes.Repeat([]byte("a"), maxResponseBodySize+1))),
+			},
+			err: errors.New("response body too large"),
+		},
 	}
 
 	for _, tc := range testCases {

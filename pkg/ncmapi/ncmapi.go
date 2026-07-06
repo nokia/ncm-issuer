@@ -45,6 +45,11 @@ const (
 
 	creationErrorReason  = "cannot create new API client"
 	unmarshalErrorReason = "cannot unmarshal json"
+
+	// maxResponseBodySize caps how many bytes are read from an NCM API response body,
+	// protecting the controller from memory exhaustion if the API (or an on-path attacker
+	// when server verification is disabled) returns an oversized body.
+	maxResponseBodySize = 8 << 20
 )
 
 // ServerURL is used to store NCM API url and health status.
@@ -294,10 +299,13 @@ func (c *Client) newRequest(method, path string, body io.Reader) (*http.Request,
 
 func (c *Client) validateResponse(resp *http.Response) ([]byte, error) {
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize+1))
 	c.log.V(2).Info("Validating response from NCM API", "bytes", len(body))
 	if err != nil {
 		return nil, &ClientError{Reason: "cannot read response body", ErrorMessage: err}
+	}
+	if len(body) > maxResponseBodySize {
+		return nil, &ClientError{Reason: "response body too large", ErrorMessage: fmt.Errorf("NCM API response exceeded the maximum allowed size of %d bytes", maxResponseBodySize)}
 	}
 
 	if status := resp.StatusCode; status >= 200 && status < 300 {

@@ -18,6 +18,7 @@ package provisioner
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -190,6 +191,32 @@ func TestGetChainAndWantedCA(t *testing.T) {
 		}
 	}
 
+	// depthLimitFakeClient models an NCM API that never returns a root CA and hands
+	// back a brand-new issuer on every hop, so the chain grows without repeating a
+	// href and must be stopped by the depth cap rather than the cycle detector.
+	depthCounter := 0
+	depthLimitFakeClient := &gen.FakeClient{
+		DownloadCertificateFn: func(string) (*ncmapi.CertificateDownloadResponse, error) {
+			depthCounter++
+			return &ncmapi.CertificateDownloadResponse{
+				IssuerCA: fmt.Sprintf("https://ncm-server.local/cas/depth-%d", depthCounter),
+				Status:   "active",
+			}, nil
+		},
+		DownloadCertificateInPEMFn: func(string) ([]byte, error) {
+			return []byte("-----BEGIN CERTIFICATE-----\nDepthChain...\n-----END CERTIFICATE-----\n"), nil
+		},
+		GetCAFn: func(path string) (*ncmapi.CAResponse, error) {
+			id := path[strings.LastIndex(path, "/")+1:]
+			return &ncmapi.CAResponse{
+				Href: fmt.Sprintf("https://ncm-server.local/cas/%s", id),
+				Certificates: map[string]string{
+					"active": fmt.Sprintf("https://ncm-server.local/certificate/%s", id),
+				},
+			}, nil
+		},
+	}
+
 	testCases := []testCase{
 		{
 			name: "get-chain-and-ca-success",
@@ -218,6 +245,41 @@ func TestGetChainAndWantedCA(t *testing.T) {
 				gen.SetFakeClientDownloadCertificateInPEMError(errors.New("failed to download CA certificate in PEM")),
 			),
 			err:           errors.New("failed to download CA certificate in PEM"),
+			expectedChain: []byte(""),
+			expectedCA:    []byte(""),
+		},
+		{
+			// CA chain that loops back on itself (crt1 issued by crt2,
+			// crt2 issued by crt1) must be rejected by the cycle detector instead of
+			// looping forever.
+			name: "ca-chain-cycle-is-detected",
+			fakeClient: &gen.FakeClient{
+				DownloadCertificateFn: func(path string) (*ncmapi.CertificateDownloadResponse, error) {
+					if strings.Contains(path, "Mn012Se") {
+						return &ncmapi.CertificateDownloadResponse{IssuerCA: crt2.Href, Status: "active"}, nil
+					}
+					return &ncmapi.CertificateDownloadResponse{IssuerCA: crt1.Href, Status: "active"}, nil
+				},
+				DownloadCertificateInPEMFn: func(string) ([]byte, error) {
+					return []byte("-----BEGIN CERTIFICATE-----\nCycleChain...\n-----END CERTIFICATE-----\n"), nil
+				},
+				GetCAFn: func(path string) (*ncmapi.CAResponse, error) {
+					if strings.Contains(path, "eS210nM") {
+						return &crt2, nil
+					}
+					return &crt1, nil
+				},
+			},
+			err:           errors.New("detected a cycle in the CA chain"),
+			expectedChain: []byte(""),
+			expectedCA:    []byte(""),
+		},
+		{
+			// Chain that never reaches a root and never repeats a href
+			// must be stopped by the maximum depth guard.
+			name:          "ca-chain-depth-limit-is-enforced",
+			fakeClient:    depthLimitFakeClient,
+			err:           errors.New("exceeded the maximum allowed depth"),
 			expectedChain: []byte(""),
 			expectedCA:    []byte(""),
 		},
