@@ -17,7 +17,7 @@ spec:
       containers:
       - name: "ncm-issuer-utils"
         command: ["/usr/sbin/init"]
-        image: ghcr.io/nokia/ncm-issuer-utils:1.2.1
+        image: ghcr.io/nokia/ncm-issuer-utils:1.2.2
         imagePullPolicy: Always
         securityContext:
           runAsNonRoot: true
