@@ -104,6 +104,31 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: gh release upload "$RELEASE_TAG" "${{ env.ASSET }}" --clobber
 
+  package-utils:
+    name: "build and attach troubleshooting sidecar image tarball"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: "resolve tarball path"
+        run: |
+          BUILD_VERSION=$(grep -m1 imageVersion main.go | cut -d '"' -f2)
+          echo "ASSET=builds/ncm-issuer-utils-images/ncm-issuer-utils-${BUILD_VERSION}.tgz" >> $GITHUB_ENV
+
+      - name: "set up Docker Buildx"
+        uses: docker/setup-buildx-action@v4
+
+      - name: "build troubleshooting sidecar image tarball"
+        run: make docker-save-utils
+
+      - name: "upload tarball to release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" "${{ env.ASSET }}" --clobber
+
   pages:
     name: Build mkdocs and helm charts
     runs-on: ubuntu-latest
