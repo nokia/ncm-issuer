@@ -101,11 +101,14 @@ jobs:
       - name: "upload tarball to release"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" "${{ env.ASSET }}" --clobber
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" "${{ env.ASSET }}" --clobber
 
   pages:
     name: Build mkdocs and helm charts
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - name: Checkout code
       uses: actions/checkout@v7
@@ -122,14 +125,17 @@ jobs:
         pip install mkdocs-material mkdocs-awesome-pages-plugin
 
     - name: Create release notes file
+      env:
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+        RELEASE_NAME: ${{ github.event.release.name }}
+        RELEASE_BODY: ${{ github.event.release.body }}
       run: |
         mkdir -p ./docs/release-notes
-        release_file=./docs/release-notes/${{ github.event.release.tag_name }}.md
-        echo -e "---\ntitle: ${{ github.event.release.name }}\n---\n" > $release_file
-        cat << "EOF" >> $release_file
-        ${{ github.event.release.body }}
-        EOF
-        sed -i "s|nav:|nav:\n    - ${{ github.event.release.name }}.md|g" docs/release-notes/.pages
+        release_file="./docs/release-notes/${RELEASE_TAG}.md"
+        printf -- '---\ntitle: %s\n---\n\n' "$RELEASE_NAME" > "$release_file"
+        printf '%s\n' "$RELEASE_BODY" >> "$release_file"
+        awk '{ print } /^nav:$/ { print "    - " ENVIRON["RELEASE_NAME"] ".md" }' docs/release-notes/.pages > docs/release-notes/.pages.tmp
+        mv docs/release-notes/.pages.tmp docs/release-notes/.pages
 
     - uses: stefanzweifel/git-auto-commit-action@v7
       with:
