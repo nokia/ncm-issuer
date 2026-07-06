@@ -223,29 +223,30 @@ func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
 		return client, nil
 	}
 
-	var tlsConfig *tls.Config
+	tlsConfig := &tls.Config{}
 
-	if cfg.InsecureSkipVerify {
-		tlsConfig = &tls.Config{InsecureSkipVerify: true}
-	} else {
+	// Server verification is enabled by default. When a CA bundle is supplied it
+	// is used as the trust anchor, otherwise RootCAs stays nil so the system trust
+	// store is used. Verification is only skipped when explicitly opted in.
+	switch {
+	case cfg.InsecureSkipVerify:
+		tlsConfig.InsecureSkipVerify = true
+	case cfg.CACert != "":
 		CACertPool := x509.NewCertPool()
-		CACertPool.AppendCertsFromPEM([]byte(cfg.CACert))
-
-		if cfg.MTLS {
-			// Loads the key pair for client certificate from PEM data in memory
-			clientCert, err := tls.X509KeyPair(cfg.Cert, cfg.Key)
-			if err != nil {
-				return nil, err
-			}
-			tlsConfig = &tls.Config{
-				RootCAs:      CACertPool,
-				Certificates: []tls.Certificate{clientCert},
-			}
-		} else {
-			tlsConfig = &tls.Config{
-				RootCAs: CACertPool,
-			}
+		if !CACertPool.AppendCertsFromPEM([]byte(cfg.CACert)) {
+			return nil, errors.New("failed to parse CA certificate bundle from TLS secret")
 		}
+		tlsConfig.RootCAs = CACertPool
+	}
+
+	// The client certificate is presented whenever mTLS material is available,
+	// independently of the server verification decision.
+	if cfg.MTLS {
+		clientCert, err := tls.X509KeyPair(cfg.Cert, cfg.Key)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientCert}
 	}
 
 	// Creates an HTTPS client and supply it with created CA pool

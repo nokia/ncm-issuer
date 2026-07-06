@@ -36,8 +36,6 @@ import (
 )
 
 var (
-	rootCA = "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----\n"
-
 	certPEM = `-----BEGIN CERTIFICATE-----
 MIIB2zCCAYWgAwIBAgIUKkV94DTD6al8iCukf+dVMUIzSFMwDQYJKoZIhvcNAQEL
 BQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE
@@ -50,6 +48,9 @@ KCtHx+rRAfX/LKswHwYDVR0jBBgwFoAU7feJQ8nAPPHwKCtHx+rRAfX/LKswDwYD
 VR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAANBAGqea1lWcEDRr7qrDGVKItJn
 m7fvrww42l2LTJJ4nP9h6UBAmoSor0yHn7Zks/CTb9A/VTINB1sbP7n8USeOIxA=
 -----END CERTIFICATE-----`
+
+	// A self-signed CA cert is reused as the CA bundle in TLS client tests.
+	rootCA = certPEM
 
 	keyPEM = `-----BEGIN PRIVATE KEY-----
 MIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAwjCvS9h8ADaBz7jU
@@ -314,6 +315,63 @@ func TestNewClientCreation(t *testing.T) {
 					Transport: &http.Transport{
 						TLSClientConfig: &tls.Config{
 							RootCAs:      CACertPool,
+							Certificates: []tls.Certificate{clientCert},
+						},
+					},
+				},
+				log: testr.New(t),
+			},
+		},
+		{
+			// HTTPS without a TLS secret must verify against the system trust
+			// store (RootCAs nil, InsecureSkipVerify false) rather than skip
+			// verification.
+			name: "ncm-client-success-https-system-trust-store",
+			config: &cfg.NCMConfig{
+				MainAPI:               "https://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+			},
+			err: nil,
+			expectedClient: &Client{
+				mainAPI:  NewServerURL("https://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
+				client: &http.Client{
+					Timeout: 10 * time.Second,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{},
+					},
+				},
+				log: testr.New(t),
+			},
+		},
+		{
+			// mTLS material without a CA bundle must still present the client
+			// certificate and keep server verification enabled via the system
+			// trust store (RootCAs nil, InsecureSkipVerify false).
+			name: "ncm-client-success-mtls-connection-system-trust-store",
+			config: &cfg.NCMConfig{
+				MainAPI:               "https://ncm-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				MTLS:                  true,
+				Cert:                  []byte(certPEM),
+				Key:                   []byte(keyPEM),
+			},
+			err: nil,
+			expectedClient: &Client{
+				mainAPI:  NewServerURL("https://ncm-server.local"),
+				user:     "ncm-user",
+				password: "ncm-user-password",
+				client: &http.Client{
+					Timeout: 10 * time.Second,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
 							Certificates: []tls.Certificate{clientCert},
 						},
 					},

@@ -85,7 +85,7 @@ func TestInitialise(t *testing.T) {
 				CACert:                "",
 				Key:                   nil,
 				Cert:                  nil,
-				InsecureSkipVerify:    true,
+				InsecureSkipVerify:    false,
 				MTLS:                  false,
 			},
 		},
@@ -105,7 +105,7 @@ func TestInitialise(t *testing.T) {
 				HTTPClientTimeout:     DefaultHTTPTimeout,
 				HealthCheckerInterval: DefaultHealthCheckerInterval,
 
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: false,
 				MTLS:               false,
 				MainAPI:            defaultProvisioner.MainAPI,
 				BackupAPI:          defaultProvisioner.BackupAPI,
@@ -201,6 +201,91 @@ func TestNCMConfigAddAuthenticationData(t *testing.T) {
 		})
 	}
 }
+
+func TestAddTLSData(t *testing.T) {
+	tests := []struct {
+		name                       string
+		initialInsecureSkipVerify  bool
+		secret                     *core.Secret
+		expectedCACert             string
+		expectedMTLS               bool
+		expectedInsecureSkipVerify bool
+	}{
+		{
+			name:                      "cacert-key-cert-present-enables-mtls-with-pinning",
+			initialInsecureSkipVerify: false,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"cacert": []byte("ca-bundle"),
+					"key":    []byte("client-key"),
+					"cert":   []byte("client-cert"),
+				},
+			},
+			expectedCACert:             "ca-bundle",
+			expectedMTLS:               true,
+			expectedInsecureSkipVerify: false,
+		},
+		{
+			// Regression for the case where a TLS secret carries key+cert but no
+			// cacert: mTLS must still be enabled and verification must stay on
+			// (falling back to the system trust store) instead of being disabled.
+			name:                      "key-cert-without-cacert-keeps-verification-enabled",
+			initialInsecureSkipVerify: false,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"key":  []byte("client-key"),
+					"cert": []byte("client-cert"),
+				},
+			},
+			expectedCACert:             "",
+			expectedMTLS:               true,
+			expectedInsecureSkipVerify: false,
+		},
+		{
+			name:                      "cacert-only-enables-server-verification-without-mtls",
+			initialInsecureSkipVerify: false,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"cacert": []byte("ca-bundle"),
+				},
+			},
+			expectedCACert:             "ca-bundle",
+			expectedMTLS:               false,
+			expectedInsecureSkipVerify: false,
+		},
+		{
+			name:                      "does-not-override-explicit-insecure-skip-verify",
+			initialInsecureSkipVerify: true,
+			secret: &core.Secret{
+				Data: map[string][]byte{
+					"cacert": []byte("ca-bundle"),
+				},
+			},
+			expectedCACert:             "ca-bundle",
+			expectedMTLS:               false,
+			expectedInsecureSkipVerify: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &NCMConfig{InsecureSkipVerify: tt.initialInsecureSkipVerify}
+			if err := config.AddTLSData(tt.secret); err != nil {
+				t.Fatalf("AddTLSData() returned unexpected error: %v", err)
+			}
+			if config.CACert != tt.expectedCACert {
+				t.Errorf("CACert = %q, want %q", config.CACert, tt.expectedCACert)
+			}
+			if config.MTLS != tt.expectedMTLS {
+				t.Errorf("MTLS = %v, want %v", config.MTLS, tt.expectedMTLS)
+			}
+			if config.InsecureSkipVerify != tt.expectedInsecureSkipVerify {
+				t.Errorf("InsecureSkipVerify = %v, want %v", config.InsecureSkipVerify, tt.expectedInsecureSkipVerify)
+			}
+		})
+	}
+}
+
 func TestInjectNamespace(t *testing.T) {
 	tests := []struct {
 		name                  string

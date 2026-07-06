@@ -135,7 +135,7 @@ func Initialise(issuerSpec *ncmv1.IssuerSpec) *NCMConfig {
 		CACert:                "",
 		Key:                   nil,
 		Cert:                  nil,
-		InsecureSkipVerify:    true,
+		InsecureSkipVerify:    false,
 		MTLS:                  false,
 	}
 
@@ -145,6 +145,7 @@ func Initialise(issuerSpec *ncmv1.IssuerSpec) *NCMConfig {
 		config.HTTPClientTimeout = time.Duration(p.HTTPClientTimeout.Nanoseconds())
 		config.HealthCheckerInterval = time.Duration(p.HealthCheckerInterval.Nanoseconds())
 		config.AuthNamespacedName.Namespace, config.AuthNamespacedName.Name = p.AuthRef.Namespace, p.AuthRef.Name
+		config.InsecureSkipVerify = p.InsecureSkipVerify
 		if p.TLSRef != nil {
 			config.TLSNamespacedName.Namespace, config.TLSNamespacedName.Name = p.TLSRef.Namespace, p.TLSRef.Name
 		}
@@ -174,7 +175,6 @@ func (cfg *NCMConfig) AddTLSData(secret *core.Secret) error {
 	} else {
 		cfg.CACert = ""
 	}
-	cfg.InsecureSkipVerify = cfg.CACert == ""
 
 	if key, ok := secret.Data["key"]; ok {
 		// Store the key PEM data directly in memory
