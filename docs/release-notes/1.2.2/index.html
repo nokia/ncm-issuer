@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../1.2.2/">
+        <link rel="prev" href="../../documentation/troubleshooting/">
       
       
-        <link rel="next" href="../1.2.0/">
+        <link rel="next" href="../1.2.1/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>1.2.1 - ncm-issuer</title>
+        <title>1.2.2 - ncm-issuer</title>
       
     
     
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              1.2.1
+              1.2.2
             
           </span>
         </div>
@@ -265,7 +265,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../1.2.2/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -932,34 +932,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../1.2.2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    1.2.2
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -979,7 +951,7 @@
   <span class="md-ellipsis">
     
   
-    1.2.1
+    1.2.2
   
 
     
@@ -997,7 +969,7 @@
   <span class="md-ellipsis">
     
   
-    1.2.1
+    1.2.2
   
 
     
@@ -1023,10 +995,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#improvements-and-fixes" class="md-nav__link">
+  <a href="#security-fixes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Improvements and fixes
+        Security fixes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other changes
       
     </span>
   </a>
@@ -1037,6 +1031,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.2.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1.2.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1440,10 +1462,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#improvements-and-fixes" class="md-nav__link">
+  <a href="#security-fixes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Improvements and fixes
+        Security fixes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other changes
       
     </span>
   </a>
@@ -1471,19 +1515,38 @@
 
 
 <h1 id="whats-changed">What's changed</h1>
-<p>ncm-issuer 1.2.1 is a security and reliability focused release that hardens the controller to the Pod Security Standards "restricted" profile (non-root, read-only rootfs, all capabilities dropped), makes issuer health checks trustworthy and moves images to ghcr.io/nokia with multi-arch (amd64/arm64) support. It also adds Kubernetes 1.36 support with Go 1.26.4.</p>
-<h2 id="improvements-and-fixes">Improvements and fixes</h2>
+<p>ncm-issuer 1.2.2 is a security hardening release addressing vulnerabilities reported by <strong>Claude Mythos Preview</strong> scan (Nokia is part of <strong>Project Glasswing</strong> as it builds and maintains critical software infrastructure).</p>
+<h3 id="security-fixes">Security fixes</h3>
 <ul>
-<li><strong>Fixed NCM REST API health check</strong> to actually probe the <code>/v1/cas</code> endpoint with authentication and to treat only <code>2xx</code> responses as healthy. Previously the probe targeted the base URL and considered any non-<code>5xx</code> response (including authentication failures and other <code>4xx</code>) as healthy, which masked misconfigured endpoints and credentials</li>
-<li><strong>Gated <code>Issuer</code> / <code>ClusterIssuer</code> <code>Ready</code> condition on a synchronous health probe</strong> during reconciliation. An unreachable or misconfigured NCM REST API is now surfaced immediately as <code>Ready=False</code> with reason <code>Error</code> and a descriptive message instead of being marked <code>Ready=True</code> until the first periodic check (which by default could take up to one minute)</li>
-<li><strong>Hardened the controller container to Pod Security Standards "restricted"</strong> by default. The CSR PEM is now streamed directly into the NCM multipart upload instead of being round-tripped through a temporary file under <code>/tmp</code>, which removes a data-leakage surface and lets the chart ship with <code>readOnlyRootFilesystem: true</code>, <code>capabilities.drop: [ALL]</code>, <code>allowPrivilegeEscalation: false</code> and <code>seccompProfile: RuntimeDefault</code> on the controller container, plus <code>seccompProfile: RuntimeDefault</code> at the pod level</li>
-<li><strong>Split chart <code>securityContext</code> into pod-level and container-level blocks</strong>. Pod-level fields now live under <code>.Values.podSecurityContext</code>, container-level fields for the controller stay under <code>.Values.securityContext</code>. The troubleshooting sidecar gets its own <code>.Values.sidecar.securityContext</code> that drops all capabilities and re-adds only <code>NET_RAW</code>, <code>NET_ADMIN</code> and <code>SYS_PTRACE</code> so <code>tcpdump</code> and <code>strace</code> keep working under a non-root user. <strong>Breaking</strong>: chart overrides that previously set <code>.Values.securityContext</code> to control both pod-level and container-level fields will need to be split accordingly</li>
-<li>Updated <code>ncm-issuer-utils</code> troubleshooting image to apply matching file capabilities (<code>cap_net_raw,cap_net_admin+ep</code> on <code>tcpdump</code>, <code>cap_sys_ptrace+ep</code> on <code>strace</code>) so the non-root sidecar user can actually use them without granting the whole container privileged caps</li>
-<li><strong>Published multi-architecture container images for <code>linux/amd64</code> and <code>linux/arm64</code></strong>. The release workflow now builds and pushes a multi-arch manifest, and the <code>Dockerfile</code> cross-compiles the manager binary for the target platform (<code>TARGETOS</code>/<code>TARGETARCH</code>) instead of hardcoding <code>amd64</code>. This enables running ncm-issuer on ARM64 nodes such as AWS Graviton, ARM bare metal and Apple Silicon dev clusters</li>
-<li><strong>Moved the default container registry from a Docker Hub namespace to the Nokia-owned GitHub Container Registry (<code>ghcr.io/nokia</code>)</strong>. The Helm chart now defaults <code>image.repository</code> to <code>ghcr.io/nokia/ncm-issuer</code> and the troubleshooting sidecar to <code>ghcr.io/nokia/ncm-issuer-utils</code>. The release workflow publishes both images to <code>ghcr.io/nokia</code> using the built-in <code>GITHUB_TOKEN</code> instead of Docker Hub credentials. The troubleshooting sidecar is now rebuilt on every release so it ships with up-to-date OS packages. <strong>Migration</strong>: pull images from <code>ghcr.io/nokia/ncm-issuer</code>. Deployments that already override <code>image.repository</code> are unaffected</li>
-<li>Added support for <strong>Kubernetes</strong> <code>1.36</code> (supported versions: <code>1.26 - 1.36</code>)</li>
-<li>Updated <code>go.mod</code> dependencies: <strong>Kubernetes API</strong> to <code>0.36</code>, <strong>controller-runtime</strong> to <code>0.24.1</code>, <strong>cert-manager</strong> to <code>1.20.3</code></li>
-<li>Upgraded <strong>Go</strong> version used for building the binary and Docker image from <code>1.25.6</code> to <code>1.26.4</code></li>
+<li><strong>Fixed cross-namespace Secret exfiltration via a namespace-scoped <code>Issuer</code></strong> (CWE-639, HIGH). A namespaced <code>Issuer</code> could set <code>provisioner.authRef.namespace</code> or <code>provisioner.tlsRef.namespace</code> to a Secret in another namespace, and because the controller holds cluster-wide <code>secrets</code> read permissions it would read and use those credentials. Namespace-scoped <code>Issuer</code> resources now always resolve their auth and TLS Secret references within their own namespace and ignore any user-supplied namespace. <code>ClusterIssuer</code> behavior is unchanged</li>
+<li><strong>HTTPS server certificate verification is now enabled by default</strong> (CWE-295, MEDIUM / LOW). See the breaking change note below. Verification is only disabled when the new <code>provisioner.insecureSkipVerify</code> field is explicitly set to <code>true</code>, and the mTLS client certificate is always presented independently of the verification decision</li>
+<li><strong>Fixed the TLS trust configuration being bypassed for the backup NCM API</strong> (CWE-295, LOW). When <code>provisioner.mainAPI</code> used plain <code>http://</code> while <code>provisioner.backupAPI</code> used <code>https://</code>, the CA pinning and mTLS client certificate were not applied to the backup connection. The trust configuration now applies whenever either endpoint uses <code>https://</code></li>
+<li><strong>Stopped the end-to-end test failure artifact from bundling the mTLS private key and other secret material</strong> (CWE-532, MEDIUM). The internal <code>e2e-collect-logs</code> CI action archived the whole <code>data/</code> directory, which included the PEM client key and cert, the CA bundle plus the NCM host injected from CI secrets. It now collects only <code>data/logs</code>. This is a CI/pipeline fix and does not change the released controller</li>
+<li><strong>Hardened the GitHub release workflow against shell injection</strong> (CWE-78, LOW). The <code>pages</code> and <code>package</code> jobs interpolated the release <code>name</code>, <code>body</code> and <code>tag_name</code> directly into shell scripts, so a crafted release could execute arbitrary commands on the runner with a write-capable token. Those fields are now passed through environment variables and treated as data. The <code>pages</code> job also runs with an explicit minimal <code>contents: write</code> permission. This is a CI/pipeline fix and does not change the released controller</li>
+<li><strong>Bounded the CA-chain traversal and NCM API response reads to prevent denial of service</strong> (CWE-835, LOW). When building the certificate chain the controller followed issuer references in an unbounded loop, so a malicious or misconfigured NCM API could keep it walking forever, and every API response body was read into memory without a size limit. The traversal now stops at a maximum depth and rejects cycles, and response bodies are capped at 8 MiB</li>
+</ul>
+<h3 id="breaking-changes"><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> Breaking changes</h3>
+<p><strong>HTTPS connections to the NCM REST API now verify the server certificate by default.</strong></p>
+<p>Before <code>1.2.2</code>, an <code>Issuer</code> / <code>ClusterIssuer</code> whose <code>provisioner.mainAPI</code> (or <code>provisioner.backupAPI</code>) used
+<code>https://</code> <strong>silently skipped NCM server certificate verification</strong> in two situations: when no <code>provisioner.tlsRef</code>
+was configured and when the referenced Secret omitted the <code>cacert</code> entry. From <code>1.2.2</code> these connections are verified
+by default (against the <code>cacert</code> when it is provided, otherwise against the system trust store), and the mTLS client
+certificate is always presented regardless of the verification mode.</p>
+<p><strong>Who is affected:</strong> any deployment that talks to the NCM REST API over <code>https://</code> using a certificate signed by a
+private CA whose bundle was not supplied as <code>cacert</code>. After upgrading, the controller will now fail its health probe
+for such an issuer and report <code>Ready=False</code> with reason <code>Error</code> instead of connecting insecurely.</p>
+<p><strong>What to do before upgrading (pick one):</strong></p>
+<ul>
+<li><strong>Recommended:</strong> add the CA bundle as the <code>cacert</code> entry of the Secret referenced by <code>provisioner.tlsRef</code> (see <a href="README.md#tls-without-client-authentication">TLS without client authentication</a>). Verification then pins to that bundle.</li>
+<li>If the NCM certificate is issued by a CA already in the container's system trust store, no change is needed. Verification succeeds automatically.</li>
+<li><strong>Not recommended (testing only):</strong> set <code>provisioner.insecureSkipVerify: true</code> to explicitly restore the previous no-verification behavior.</li>
+</ul>
+<p>This change also closes a related gap where the TLS trust configuration was not applied to a <code>https://</code> backup API when
+the main API used plain <code>http://</code>. The trust configuration (and any <code>insecureSkipVerify</code> opt-in) now applies to every
+<code>https://</code> NCM endpoint, main or backup.</p>
+<h3 id="other-changes">Other changes</h3>
+<ul>
+<li><strong>The <code>ncm-issuer-utils</code> troubleshooting sidecar image is now attached to each GitHub release as a downloadable docker load-able tarball</strong> (<code>ncm-issuer-utils-&lt;version&gt;.tgz</code>). Previously the sidecar image was only pushed to <code>ghcr.io/nokia/ncm-issuer-utils</code>, so users in air-gapped or registry-restricted environments could not obtain it alongside the main <code>ncm-issuer</code> release tarball. Load it with <code>docker load -i ncm-issuer-utils-&lt;version&gt;.tgz</code>. Like the main image tarball it is built for <code>linux/amd64</code>; multi-arch images remain available from <code>ghcr.io</code></li>
 </ul>
 
 
