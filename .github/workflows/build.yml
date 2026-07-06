@@ -35,6 +35,22 @@ jobs:
         run: |
           ${{ github.workspace }}/bin/golangci-lint run --out-format=colored-line-number --config=.golangci.yml
 
+  actionlint:
+    name: "lint workflows"
+    needs: go-versions
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: "setup go"
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
+
+      - name: "run actionlint"
+        run: make lint-actions
+
   unit:
     name: "unit tests"
     needs: go-versions
