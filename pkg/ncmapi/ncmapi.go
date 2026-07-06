@@ -213,10 +213,19 @@ func NewClient(cfg *cfg.NCMConfig, log logr.Logger) (*Client, error) {
 	return c, nil
 }
 
+// isHTTPS reports whether the given NCM API URL uses the HTTPS scheme.
+func isHTTPS(rawURL string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(rawURL)), "https")
+}
+
 // configureHTTPClient configures http.Client used for connection
 // to NCM API according to NCM config.
 func configureHTTPClient(cfg *cfg.NCMConfig) (*http.Client, error) {
-	if !strings.HasPrefix(cfg.MainAPI, "https") {
+	// The main and backup NCM API share a single client, so the TLS trust
+	// configuration (CA pinning, mTLS client cert) and any explicit
+	// InsecureSkipVerify must be built whenever either endpoint uses HTTPS,
+	// not only when the main API does.
+	if !isHTTPS(cfg.MainAPI) && !isHTTPS(cfg.BackupAPI) {
 		client := &http.Client{
 			Timeout: cfg.HTTPClientTimeout,
 		}

@@ -349,6 +349,42 @@ func TestNewClientCreation(t *testing.T) {
 			},
 		},
 		{
+			// When only the backup endpoint is HTTPS (main API is
+			// plain HTTP), the shared client must still get the TLS trust config
+			// (CA pinning plus mTLS client cert) so it is not bypassed for the
+			// backup API.
+			name: "ncm-client-backup-https-gets-tls-config",
+			config: &cfg.NCMConfig{
+				MainAPI:               "http://ncm-server.local",
+				BackupAPI:             "https://ncm-backup-server.local",
+				Username:              "ncm-user",
+				Password:              "ncm-user-password",
+				HTTPClientTimeout:     10 * time.Second,
+				HealthCheckerInterval: time.Minute,
+				CACert:                rootCA,
+				MTLS:                  true,
+				Cert:                  []byte(certPEM),
+				Key:                   []byte(keyPEM),
+			},
+			err: nil,
+			expectedClient: &Client{
+				mainAPI:   NewServerURL("http://ncm-server.local"),
+				backupAPI: NewServerURL("https://ncm-backup-server.local"),
+				user:      "ncm-user",
+				password:  "ncm-user-password",
+				client: &http.Client{
+					Timeout: 10 * time.Second,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							RootCAs:      CACertPool,
+							Certificates: []tls.Certificate{clientCert},
+						},
+					},
+				},
+				log: testr.New(t),
+			},
+		},
+		{
 			// mTLS material without a CA bundle must still present the client
 			// certificate and keep server verification enabled via the system
 			// trust store (RootCAs nil, InsecureSkipVerify false).
