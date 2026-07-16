@@ -19,18 +19,25 @@ runs:
       run: |
         NS=${{ inputs.namespace }}
         mkdir -p data/logs
-        sudo microk8s.kubectl get namespaces > data/logs/get_namespaces.log
-        sudo microk8s.kubectl get po -A > data/logs/get_pods.log
-        sudo microk8s.kubectl describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log
-        sudo microk8s.kubectl get secrets -n ncm-issuer > data/logs/get_secrets.log
-        sudo microk8s.kubectl get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log
-        sudo microk8s.kubectl describe issuer.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/describe_issuer.log
-        sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'` > data/logs/ncm-issuer.log
-        sudo microk8s.kubectl -n cert-manager logs `sudo microk8s.kubectl get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}'` > data/logs/cert-manager.log
-        sudo microk8s.kubectl get certificaterequest -n $NS > data/logs/get_csr.log
-        sudo microk8s.kubectl describe certificaterequest ncm-cert -n $NS > data/logs/describe_csr.log
-        sudo microk8s.kubectl get certificate -n $NS > data/logs/get_certificate.log
-        sudo microk8s.kubectl describe certificate ncm-cert -n $NS > data/logs/describe_certificate.log
+        if ! sudo snap list microk8s >/dev/null 2>&1; then
+          echo "microk8s snap is not installed; cluster was never provisioned, skipping kubectl collection" | tee data/logs/no-cluster.log
+        else
+          KUBECTL="sudo microk8s.kubectl"
+          $KUBECTL get namespaces > data/logs/get_namespaces.log 2>&1 || true
+          $KUBECTL get po -A > data/logs/get_pods.log 2>&1 || true
+          $KUBECTL describe pods ncm-issuer -n ncm-issuer > data/logs/describe_ncm-issuer.log 2>&1 || true
+          $KUBECTL get secrets -n ncm-issuer > data/logs/get_secrets.log 2>&1 || true
+          $KUBECTL get issuers.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/get_issuers.log 2>&1 || true
+          $KUBECTL describe issuer.certmanager.ncm.nokia.com -n ncm-issuer > data/logs/describe_issuer.log 2>&1 || true
+          ISSUER_POD=$($KUBECTL get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          [ -n "$ISSUER_POD" ] && $KUBECTL -n ncm-issuer logs "$ISSUER_POD" > data/logs/ncm-issuer.log 2>&1 || true
+          CERTMGR_POD=$($KUBECTL get pods -n cert-manager -l app=cert-manager -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          [ -n "$CERTMGR_POD" ] && $KUBECTL -n cert-manager logs "$CERTMGR_POD" > data/logs/cert-manager.log 2>&1 || true
+          $KUBECTL get certificaterequest -n $NS > data/logs/get_csr.log 2>&1 || true
+          $KUBECTL describe certificaterequest ncm-cert -n $NS > data/logs/describe_csr.log 2>&1 || true
+          $KUBECTL get certificate -n $NS > data/logs/get_certificate.log 2>&1 || true
+          $KUBECTL describe certificate ncm-cert -n $NS > data/logs/describe_certificate.log 2>&1 || true
+        fi
         mkdir -p ${{ github.workspace }}/artifact/upload ${{ github.workspace }}/artifact/data
         # data/ also holds files populated from CI secrets (the PEM client key,
         # client cert, CA bundle plus the NCM host injected into ncm-issuer.yml).
@@ -44,3 +51,4 @@ runs:
       with:
         name: ${{ inputs.artifact-name }}
         path: ${{ github.workspace }}/artifact/upload/
+        retention-days: 14
