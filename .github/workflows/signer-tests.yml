@@ -286,3 +286,4 @@ jobs:
       with:
         name: logs-clusterissuer.tar.gz
         path: ${{ github.workspace }}/artifact/upload/
+        retention-days: 14
