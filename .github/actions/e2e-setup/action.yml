@@ -23,8 +23,23 @@ runs:
     - name: "install microk8s"
       shell: bash
       run: |
-        sudo snap install microk8s --classic --channel=${{ inputs.k8s-version }}/stable
-        sudo microk8s status --wait-ready
+        # snap install of microk8s intermittently fails to start
+        # snap.microk8s.daemon-containerd on GitHub runners; purge and retry.
+        for attempt in 1 2 3; do
+          echo "microk8s install attempt $attempt/3"
+          if sudo snap install microk8s --classic --channel=${{ inputs.k8s-version }}/stable && sudo microk8s status --wait-ready --timeout 300; then
+            echo "microk8s is ready"
+            break
+          fi
+          if [ "$attempt" -eq 3 ]; then
+            echo "::error::microk8s failed to install and become ready after 3 attempts"
+            sudo journalctl -xeu snap.microk8s.daemon-containerd.service --no-pager | tail -80 || true
+            exit 1
+          fi
+          echo "microk8s not ready; purging and retrying"
+          sudo snap remove microk8s --purge || true
+          sleep 15
+        done
         sudo microk8s enable helm3
         sudo microk8s enable dns
         echo K8S_VERSION=$(sudo microk8s.kubectl version 2>/dev/null|grep -Po 'Server Version: \K.*' -m 1) >> $GITHUB_ENV
