@@ -58,6 +58,30 @@ func (cm *PendingCSRsMap) Get(namespace, certName string) *PendingCSR {
 	return pendingCSR
 }
 
+// Load seeds a pending CSR from externally persisted state, keeping any fresher in-memory entry so a rehydration never lowers the check counter.
+func (cm *PendingCSRsMap) Load(namespace, certName, href string, checked int) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	key := prepareCSRsMapKey(namespace, certName)
+	if _, ok := cm.pendingCSRs[key]; ok {
+		return
+	}
+	if checked < 1 {
+		checked = 1
+	}
+	cm.pendingCSRs[key] = &PendingCSR{href: href, checked: checked}
+}
+
+// GetState returns the stored href and check counter for a pending CSR together with whether an entry exists.
+func (cm *PendingCSRsMap) GetState(namespace, certName string) (string, int, bool) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	if pendingCSR, ok := cm.pendingCSRs[prepareCSRsMapKey(namespace, certName)]; ok {
+		return pendingCSR.href, pendingCSR.checked, true
+	}
+	return "", 0, false
+}
+
 func (cm *PendingCSRsMap) Increment(namespace, certName string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
