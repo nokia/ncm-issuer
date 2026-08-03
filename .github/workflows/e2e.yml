@@ -24,7 +24,16 @@ jobs:
       - run: go version
       - name: "build ncm-issuer image and save to docker image"
         run: |
-          make docker-build
+          for attempt in 1 2 3; do
+            echo "docker build attempt $attempt/3"
+            make docker-build && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::docker build failed after 3 attempts"
+              exit 1
+            fi
+            echo "docker build failed (likely registry timeout); retrying"
+            sleep 20
+          done
           docker save ncm-issuer > ncm-issuer-image.tar
           echo "ncm-issuer image built and saved to ncm-issuer-image.tar"
       - name: "Upload ncm-issuer image"
