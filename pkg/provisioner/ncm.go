@@ -125,6 +125,19 @@ func NewProvisioner(ncmCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error
 	return p, nil
 }
 
+// LoadPendingCSR rehydrates the in-memory pending CSR store from externally persisted state so a controller restart or leader change resumes polling the existing CSR instead of sending a duplicate to NCM.
+func (p *Provisioner) LoadPendingCSR(namespace, certName, href string, checked int) {
+	if href == "" {
+		return
+	}
+	p.pendingCSRs.Load(namespace, certName, href, checked)
+}
+
+// GetPendingCSR returns the current pending CSR href and check counter for a certificate so the caller can persist them across restarts.
+func (p *Provisioner) GetPendingCSR(namespace, certName string) (string, int, bool) {
+	return p.pendingCSRs.GetState(namespace, certName)
+}
+
 // Sign uses NCMClient to communicate with NCM API to sign CertificateRequest.
 // NCM policy defines few statuses for CSR, which must be correctly handled
 // by ncm-issuer. Thus, CSR status in NCM is checked every time to deduce current
