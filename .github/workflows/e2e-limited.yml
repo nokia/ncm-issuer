@@ -22,7 +22,7 @@ jobs:
     needs: go-versions
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
       - run: go version
       - name: "build ncm-issuer image and save to docker image"
         run: |
