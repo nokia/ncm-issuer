@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.2.3 (Chart: 1.2.3, Image: 1.2.3) - TBD
+- **Fixed duplicate CSRs being created in NCM after a controller restart or leader change**. A certificate request still awaiting CSR approval in NCM is now tracked across restarts, so ncm-issuer resumes waiting on the existing CSR instead of submitting a new one. The 24 hour window for approving a CSR manually is no longer reset either
+- The `<certificate-name>-details` Secret now also holds bookkeeping entries while a CSR awaits approval in NCM. They are managed automatically by ncm-issuer and removed once the certificate is issued or the request is rejected
+
 ## Version 1.2.2 (Chart: 1.2.2, Image: 1.2.2) - 06 Jul 2026
 
 ncm-issuer 1.2.2 is a security hardening release addressing vulnerabilities reported by **Claude Mythos Preview** scan (Nokia is part of **Project Glasswing** as it builds and maintains critical software infrastructure).
