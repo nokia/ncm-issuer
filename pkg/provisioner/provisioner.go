@@ -26,4 +26,6 @@ type ExternalProvisioner interface {
 	PreventRenewal() bool
 	CheckHealth() error
 	Retire()
+	LoadPendingCSR(namespace, certName, href string, checked int)
+	GetPendingCSR(namespace, certName string) (string, int, bool)
 }
