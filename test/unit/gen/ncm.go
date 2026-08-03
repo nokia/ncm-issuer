@@ -25,6 +25,8 @@ type FakeProvisioner struct {
 	RenewFn          func() ([]byte, []byte, string, error)
 	PreventRenewalFn func() bool
 	CheckHealthFn    func() error
+	LoadPendingCSRFn func(namespace, certName, href string, checked int)
+	GetPendingCSRFn  func(namespace, certName string) (string, int, bool)
 }
 
 func NewFakeProvisioner(mods ...func(fakeProvisioner *FakeProvisioner)) *FakeProvisioner {
@@ -83,6 +85,14 @@ func SetFakeProvisionerCheckHealthError(err error) func(*FakeProvisioner) {
 	}
 }
 
+func SetFakeProvisionerPendingCSR(href string, checked int) func(*FakeProvisioner) {
+	return func(fp *FakeProvisioner) {
+		fp.GetPendingCSRFn = func(string, string) (string, int, bool) {
+			return href, checked, href != ""
+		}
+	}
+}
+
 func (fp *FakeProvisioner) Sign(*cmapi.CertificateRequest) ([]byte, []byte, string, error) {
 	return fp.SignFn()
 }
@@ -100,6 +110,19 @@ func (fp *FakeProvisioner) CheckHealth() error {
 		return nil
 	}
 	return fp.CheckHealthFn()
+}
+
+func (fp *FakeProvisioner) LoadPendingCSR(namespace, certName, href string, checked int) {
+	if fp.LoadPendingCSRFn != nil {
+		fp.LoadPendingCSRFn(namespace, certName, href, checked)
+	}
+}
+
+func (fp *FakeProvisioner) GetPendingCSR(namespace, certName string) (string, int, bool) {
+	if fp.GetPendingCSRFn != nil {
+		return fp.GetPendingCSRFn(namespace, certName)
+	}
+	return "", 0, false
 }
 
 func (fp *FakeProvisioner) Retire() {}
