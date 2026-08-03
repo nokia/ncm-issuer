@@ -2168,3 +2168,159 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		})
 	}
 }
+
+// TestCertificateRequestPendingCSRPersistence verifies that a pending CSR
+// survives across reconciles: its href and check counter are persisted in the
+// <cert>-details secret and rehydrated into the provisioner so a controller
+// restart or leader change does not resend the CSR to NCM.
+func TestCertificateRequestPendingCSRPersistence(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, ncmv1.AddToScheme(scheme))
+	require.NoError(t, cmapi.AddToScheme(scheme))
+	require.NoError(t, v1.AddToScheme(scheme))
+
+	namespacedName := types.NamespacedName{Namespace: "ncm-ns", Name: "cr"}
+	issuerName := types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"}
+	detailsName := types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-cert-details"}
+
+	generateCSR := func() []byte {
+		keyBytes, _ := rsa.GenerateKey(rand.Reader, 2048)
+		template := &x509.CertificateRequest{
+			Subject:            pkix.Name{CommonName: "ncm-cert.local"},
+			SignatureAlgorithm: x509.SHA256WithRSA,
+		}
+		csrBytes, _ := x509.CreateCertificateRequest(rand.Reader, template, keyBytes)
+		return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+	}
+
+	baseObjects := func() []client.Object {
+		cr := &cmapi.CertificateRequest{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   "ncm-ns",
+				Name:        "cr",
+				Annotations: map[string]string{cmapi.CertificateNameKey: "ncm-cert"},
+			},
+			Spec: cmapi.CertificateRequestSpec{
+				IssuerRef: cmmeta.IssuerReference{Name: "ncm-issuer", Kind: Issuer, Group: ncmv1.GroupVersion.Group},
+				Request:   generateCSR(),
+			},
+			Status: cmapi.CertificateRequestStatus{
+				Conditions: []cmapi.CertificateRequestCondition{
+					{Type: cmapi.CertificateRequestConditionApproved, Status: cmmeta.ConditionTrue},
+					{Type: cmapi.CertificateRequestConditionReady, Status: cmmeta.ConditionUnknown},
+				},
+			},
+		}
+		issuer := &ncmv1.Issuer{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			Spec: ncmv1.IssuerSpec{
+				CAName: "ncmCA",
+				Provisioner: &ncmv1.NCMProvisioner{
+					MainAPI:               "https://ncm-server.local:8081",
+					AuthRef:               &v1.SecretReference{Namespace: "ncm-ns", Name: "ncm-auth-secret"},
+					HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+				},
+			},
+			Status: ncmv1.IssuerStatus{
+				Conditions: []ncmv1.IssuerCondition{{Type: ncmv1.IssuerConditionReady, Status: ncmv1.ConditionTrue}},
+			},
+		}
+		authSecret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "ncm-ns", Name: "ncm-auth-secret"},
+			Data:       map[string][]byte{"username": []byte("ncm-user"), "usrPassword": []byte("ncm-user-password")},
+		}
+		crt := &cmapi.Certificate{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "ncm-ns", Name: "ncm-cert"},
+			Spec: cmapi.CertificateSpec{
+				CommonName: "ncm-cert.local",
+				IssuerRef:  cmmeta.IssuerReference{Name: "ncm-issuer", Kind: Issuer, Group: ncmv1.GroupVersion.Group},
+				SecretName: "ncm-cert-tls",
+			},
+		}
+		return []client.Object{cr, issuer, authSecret, crt}
+	}
+
+	// The controller-runtime fake client does not run the apiserver StringData to
+	// Data conversion, so read both when asserting persisted values.
+	readKey := func(s *v1.Secret, key string) string {
+		if v, ok := s.Data[key]; ok && len(v) > 0 {
+			return string(v)
+		}
+		return s.StringData[key]
+	}
+
+	newController := func(fakeClient client.Client, pm *provisioner.ProvisionersMap) *CertificateRequestReconciler {
+		return &CertificateRequestReconciler{
+			Client:       fakeClient,
+			Scheme:       scheme,
+			Clock:        clock.RealClock{},
+			Recorder:     record.NewFakeRecorder(10),
+			Provisioners: pm,
+			Log:          testr.New(t),
+		}
+	}
+
+	t.Run("persists pending CSR state in details secret", func(t *testing.T) {
+		pendingHref := "https://ncm-server.local:8081/v1/requests/42"
+		fp := gen.NewFakeProvisioner(
+			gen.SetFakeProvisionerSignError(provisioner.ErrCSRNotAccepted),
+			gen.SetFakeProvisionerPendingCSR(pendingHref, 7),
+		)
+		pm := provisioner.NewProvisionersMap()
+		pm.AddOrReplace(issuerName, fp)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(baseObjects()...).
+			WithStatusSubresource(&cmapi.CertificateRequest{}).
+			Build()
+
+		result, err := newController(fakeClient, pm).Reconcile(context.TODO(), reconcile.Request{NamespacedName: namespacedName})
+		require.NoError(t, err)
+		require.Equal(t, CSRRequeueTime, result.RequeueAfter)
+
+		details := &v1.Secret{}
+		require.NoError(t, fakeClient.Get(context.TODO(), detailsName, details))
+		require.Equal(t, pendingHref, readKey(details, pendingCSRHrefKey))
+		require.Equal(t, "7", readKey(details, pendingCSRCheckedKey))
+		require.NotEmpty(t, readKey(details, pendingCSRLastCheckedAtKey))
+	})
+
+	t.Run("rehydrates pending CSR from details secret", func(t *testing.T) {
+		seededHref := "https://ncm-server.local:8081/v1/requests/99"
+		var gotHref string
+		var gotChecked int
+		var loadCalled bool
+		fp := gen.NewFakeProvisioner(gen.SetFakeProvisionerSignError(provisioner.ErrCSRNotAccepted))
+		fp.LoadPendingCSRFn = func(_, _, href string, checked int) {
+			loadCalled = true
+			gotHref = href
+			gotChecked = checked
+		}
+		fp.GetPendingCSRFn = func(_, _ string) (string, int, bool) {
+			return seededHref, gotChecked, true
+		}
+		pm := provisioner.NewProvisionersMap()
+		pm.AddOrReplace(issuerName, fp)
+
+		objects := append(baseObjects(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "ncm-ns", Name: "ncm-cert-details"},
+			Data: map[string][]byte{
+				pendingCSRHrefKey:    []byte(seededHref),
+				pendingCSRCheckedKey: []byte("3"),
+			},
+		})
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(objects...).
+			WithStatusSubresource(&cmapi.CertificateRequest{}).
+			Build()
+
+		_, err := newController(fakeClient, pm).Reconcile(context.TODO(), reconcile.Request{NamespacedName: namespacedName})
+		require.NoError(t, err)
+		require.True(t, loadCalled, "expected LoadPendingCSR to rehydrate persisted state")
+		require.Equal(t, seededHref, gotHref)
+		require.Equal(t, 3, gotChecked)
+	})
+}
