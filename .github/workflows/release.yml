@@ -156,10 +156,17 @@ jobs:
         RELEASE_BODY: ${{ github.event.release.body }}
       run: |
         mkdir -p ./docs/release-notes
+        # GitHub release bodies may contain CRLF so strip CR before writing docs
+        RELEASE_TAG="${RELEASE_TAG//$'\r'/}"
+        RELEASE_NAME="${RELEASE_NAME//$'\r'/}"
+        RELEASE_BODY="${RELEASE_BODY//$'\r'/}"
+        export RELEASE_NAME
         release_file="./docs/release-notes/${RELEASE_TAG}.md"
-        printf -- '---\ntitle: %s\n---\n\n' "$RELEASE_NAME" > "$release_file"
-        printf '%s\n' "$RELEASE_BODY" >> "$release_file"
-        awk '{ print } /^nav:$/ { print "    - " ENVIRON["RELEASE_NAME"] ".md" }' docs/release-notes/.pages > docs/release-notes/.pages.tmp
+        {
+          printf -- '---\ntitle: %s\n---\n\n' "$RELEASE_NAME"
+          printf '%s\n' "$RELEASE_BODY"
+        } | tr -d '\r' > "$release_file"
+        awk '{ print } /^nav:$/ { print "    - " ENVIRON["RELEASE_NAME"] ".md" }' docs/release-notes/.pages | tr -d '\r' > docs/release-notes/.pages.tmp
         mv docs/release-notes/.pages.tmp docs/release-notes/.pages
 
     - uses: stefanzweifel/git-auto-commit-action@v7
