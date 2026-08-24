@@ -26,14 +26,6 @@ rules:
     - list
     - watch
 - apiGroups:
-    - cert-manager.io
-  resources:
-    - secrets
-  verbs:
-    - get
-    - update
-    - create
-- apiGroups:
   - cert-manager.io
   resources:
   - certificaterequests/status
@@ -47,8 +39,6 @@ rules:
   - clusterissuers
   - issuers
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
@@ -82,16 +72,6 @@ rules:
   - get
   - list
   - patch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
 - apiGroups:
   - coordination.k8s.io
   resources:
