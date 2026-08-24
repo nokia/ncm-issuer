@@ -68,7 +68,9 @@ type CertificateRequestReconciler struct {
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile will read and validate a NCM Insta Issuer resource associated to the
 // CertificateRequest resource, and it will sign the CertificateRequest with the
