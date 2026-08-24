@@ -7,10 +7,19 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
+  - create
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - cert-manager.io
@@ -29,6 +38,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - certmanager.ncm.nokia.com
   resources:
