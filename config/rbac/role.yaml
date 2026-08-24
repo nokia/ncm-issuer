@@ -35,8 +35,6 @@ rules:
   - clusterissuers
   - issuers
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
