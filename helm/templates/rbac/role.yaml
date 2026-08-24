@@ -69,8 +69,6 @@ rules:
   - events
   verbs:
   - create
-  - get
-  - list
   - patch
 - apiGroups:
   - coordination.k8s.io
