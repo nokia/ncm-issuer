@@ -3,6 +3,7 @@
 ## Version 1.2.3 (Chart: 1.2.3, Image: 1.2.3) - TBD
 - **Fixed duplicate CSRs being created in NCM after a controller restart or leader change**. A certificate request still awaiting CSR approval in NCM is now tracked across restarts, so ncm-issuer resumes waiting on the existing CSR instead of submitting a new one. The 24 hour window for approving a CSR manually is no longer reset either
 - The `<certificate-name>-details` Secret now also holds bookkeeping entries while a CSR awaits approval in NCM. They are managed automatically by ncm-issuer and removed once the certificate is issued or the request is rejected
+- **Tightened Helm ClusterRole permissions** to match what the controller actually uses. Unused `Issuer`/`ClusterIssuer` `create`/`delete` verbs, unused ConfigMap writes and a dead `cert-manager.io` secrets rule (Secrets belong to the core API, not `cert-manager.io`) are no longer granted. Leader election still uses `coordination.k8s.io` Leases. Core Secret `get`/`list`/`watch`/`create`/`update` is unchanged so certificate-details Secret persistence still works
 
 ## Version 1.2.2 (Chart: 1.2.2, Image: 1.2.2) - 06 Jul 2026
 
