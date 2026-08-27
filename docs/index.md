@@ -10,7 +10,7 @@ title: Home
 [![e2e](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml)
 
 <p align="center">
-   <img src="./assets/ncm-issuer-gopher.png" alt="ncm-issuer-gopher" width="20%"/>
+   <img src="./assets/ncm-issuer-gopher.png" alt="ncm-issuer-gopher" width="25%"/>
 </p>
 
 ## What is ncm-issuer?
