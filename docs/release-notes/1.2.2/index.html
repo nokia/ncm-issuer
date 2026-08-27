@@ -1537,7 +1537,7 @@ private CA whose bundle was not supplied as <code>cacert</code>. After upgrading
 for such an issuer and report <code>Ready=False</code> with reason <code>Error</code> instead of connecting insecurely.</p>
 <p><strong>What to do before upgrading (pick one):</strong></p>
 <ul>
-<li><strong>Recommended:</strong> add the CA bundle as the <code>cacert</code> entry of the Secret referenced by <code>provisioner.tlsRef</code> (see <a href="README.md#tls-without-client-authentication">TLS without client authentication</a>). Verification then pins to that bundle.</li>
+<li><strong>Recommended:</strong> add the CA bundle as the <code>cacert</code> entry of the Secret referenced by <code>provisioner.tlsRef</code> (see <a href="https://github.com/nokia/ncm-issuer/blob/1.2.2/README.md#tls-without-client-authentication">TLS without client authentication</a>). Verification then pins to that bundle.</li>
 <li>If the NCM certificate is issued by a CA already in the container's system trust store, no change is needed. Verification succeeds automatically.</li>
 <li><strong>Not recommended (testing only):</strong> set <code>provisioner.insecureSkipVerify: true</code> to explicitly restore the previous no-verification behavior.</li>
 </ul>
