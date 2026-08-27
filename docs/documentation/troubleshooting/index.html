@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/ncm-issuer-logo.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -27,7 +27,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1574,10 +1574,10 @@
 <h2 id="getting-ncm-issuer-logs">Getting ncm-issuer logs</h2>
 <p>In case of any problem, besides checking the status of created resources,
 you can also check the <code>ncm-issuer</code> pod logs:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ncm-issuer<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span><span class="sb">`</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>ncm-issuer<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="sb">`</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ncm-issuer<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span><span class="sb">`</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>ncm-issuer<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.items[0].metadata.name}'</span><span class="sb">`</span>
 </span></code></pre></div>
 <p>If you deployed troubleshooting sidecar as well, you can check the <code>ncm-issuer</code> pod logs this way:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ncm-issuer<span class="w"> </span>logs<span class="w"> </span>-c<span class="w"> </span>ncm-issuer<span class="w"> </span>-f<span class="w"> </span><span class="sb">`</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>ncm-issuer<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="sb">`</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ncm-issuer<span class="w"> </span>logs<span class="w"> </span>-c<span class="w"> </span>ncm-issuer<span class="w"> </span>-f<span class="w"> </span><span class="sb">`</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>ncm-issuer<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.items[0].metadata.name}'</span><span class="sb">`</span>
 </span></code></pre></div>
 <h2 id="setting-logging-verbosity-level">Setting logging verbosity level</h2>
 <p>In the case of increasing logging verbosity level change the <code>logging.logLevel</code> in <code>values.yaml</code> to
@@ -1623,9 +1623,9 @@ besides fixing the underlying connectivity or configuration.</p>
 <p>If your cluster has no direct internet/egress connectivity to the NCM instance, configure an HTTP(S) proxy.</p>
 <p>If you install using Helm, set standard proxy environment variables via chart values:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">proxy</span><span class="p">:</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">httpsProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://proxy.example:3128&quot;</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">httpProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://proxy.example:3128&quot;</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">noProxy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;localhost,127.0.0.1,.cluster.local&quot;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">httpsProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"http://proxy.example:3128"</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">httpProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"http://proxy.example:3128"</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">noProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"localhost,127.0.0.1,.cluster.local"</span>
 </span></code></pre></div>
 <p>Under the hood this sets <code>HTTP_PROXY</code> / <code>HTTPS_PROXY</code> / <code>NO_PROXY</code> (and lowercase equivalents) which are
 honored by Go's HTTP client (including HTTPS via CONNECT).</p>
@@ -1729,7 +1729,7 @@ honored by Go's HTTP client (including HTTPS via CONNECT).</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
