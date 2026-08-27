@@ -26,14 +26,14 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 * [Resource requirements](#resource-requirements)
 * [Installation and configuration](#installation-and-configuration)
   * [Installing using Helm](#installing-using-helm)
-    * [Using own (local or remote) registry](#using-own--local-or-remote--registry)
+    * [Using own (local or remote) registry](#using-own-local-or-remote-registry)
     * [Configuration](#configuration)
-      * [NCM REST API credentials](#ncm-api-credentials)
+      * [NCM REST API credentials](#ncm-rest-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
       * [TLS with client authentication](#tls-with-client-authentication)
       * [Server certificate verification](#server-certificate-verification)
       * [Using an outbound HTTP(S) proxy](#using-an-outbound-https-proxy)
-* [Custom resource definitions (CRDs)](#custom-resource-definitions--crds-)
+* [Custom resource definitions (CRDs)](#custom-resource-definitions-crds)
   * [Issuer resource](#issuer-resource)
   * [ClusterIssuer resource](#clusterissuer-resource)
   * [Issuer and ClusterIssuer fields overview](#issuer-and-clusterissuer-fields-overview)
@@ -72,6 +72,8 @@ The following resource requirements are based on the default configuration for n
 * Certificate request frequency
 * NCM API response times
 * Logging verbosity level
+
+## Installation and configuration
 
 ### Installing using Helm
 
