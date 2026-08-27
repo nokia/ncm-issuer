@@ -142,4 +142,4 @@ Saved image should appear in the path `./builds/ncm-issuer-images/`.
 
 ## Outbound HTTP(S) proxy
 
-If the cluster has no direct egress to the NCM instance, you can configure proxy environment variables via the Helm chart; see [Troubleshooting — Using an outbound HTTP(S) proxy](../troubleshooting.md#using-an-outbound-https-proxy).
+If the cluster has no direct egress to the NCM instance, you can configure proxy environment variables via the Helm chart; see [Troubleshooting - Using an outbound HTTP(S) proxy](troubleshooting.md#using-an-outbound-https-proxy).
