@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -60,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -77,7 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
