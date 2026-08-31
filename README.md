@@ -62,7 +62,7 @@ objects instead:
 The private key is generated in the cluster by cert-manager. It is never sent to NCM.
 
 For the full walkthrough, including who owns which step and answers to common deployment questions, see
-[How it works](https://nokia.github.io/ncm-issuer/documentation/how-it-works/) in the documentation.
+[How it works](https://nokia.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
 
 ## Prerequisites
 
