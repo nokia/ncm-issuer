@@ -1,4 +1,5 @@
 nav:
+    - how-it-works.md
     - installation.md
     - configuration.md
     - CRDs
