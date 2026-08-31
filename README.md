@@ -22,6 +22,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 
 ## Table of contents
 
+* [How it works](#how-it-works)
 * [Prerequisites](#prerequisites)
 * [Resource requirements](#resource-requirements)
 * [Installation and configuration](#installation-and-configuration)
@@ -42,6 +43,26 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
   * [Signing certificate](#signing-certificate)
   * [Renewing or re-enrolling certificate](#renewing-or-re-enrolling-certificate)
 * [Troubleshooting](#troubleshooting)
+
+## How it works
+
+cert-manager manages the certificate lifecycle in Kubernetes but it cannot talk to NCM. ncm-issuer adds
+that capability as an [external issuer](https://cert-manager.io/docs/contributing/external-issuers/),
+the extension mechanism cert-manager provides for certificate authorities that are not built into it.
+
+The two components never call each other. Both are Kubernetes controllers, so they exchange Kubernetes
+objects instead:
+
+1. You apply a `Certificate` with `issuerRef.group` set to `certmanager.ncm.nokia.com`.
+2. cert-manager generates a private key, builds a CSR and creates an approved `CertificateRequest`.
+3. ncm-issuer picks up requests addressed to its own group, sends the CSR to the NCM REST API and writes
+   the signed certificate back into the status of that same `CertificateRequest`.
+4. cert-manager stores the result in the `Secret` named by `spec.secretName` and later starts renewal.
+
+The private key is generated in the cluster by cert-manager. It is never sent to NCM.
+
+For the full walkthrough, including who owns which step and answers to common deployment questions, see
+[How it works](https://nokia.github.io/ncm-issuer/documentation/how-it-works/) in the documentation.
 
 ## Prerequisites
 
