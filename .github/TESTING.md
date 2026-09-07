@@ -19,7 +19,7 @@ The workflows separate two independent concerns:
 
 | Trigger | Workflow | Scope |
 |:--|:--|:--|
-| Pull request or push to `main` or a `release-*` branch | `build.yml` | lint, workflow lint, unit tests, binary build |
+| Pull request or push to `main` or a `release-*` branch | `build.yml` | lint, workflow lint, action pinning, unit tests, binary build |
 | Pull request or non-main branch | `e2e-limited.yml` | one fast smoke |
 | Push to `main` | `e2e.yml` | feature tests plus a small signer smoke matrix |
 | Nightly (02:00 UTC) and manual dispatch | `e2e-nightly.yml` | full compatibility diagonal plus all feature tests |
@@ -55,3 +55,18 @@ does not block the nightly run.
 Common steps (provision microk8s, install cert-manager and tooling, load the image, collect
 diagnostics on failure) are factored into composite actions under `.github/actions/` so the
 individual workflows stay small and consistent.
+
+## Adding a third-party action
+
+Third-party actions must be referenced by full commit SHA with the version in a trailing
+comment, because a tag like `@v7` can be repointed at any commit. `make lint-actions-pinned`
+enforces this and runs in the `build.yml` lint job. After adding an action by tag, run:
+
+```bash
+make pinact
+PINACT_GITHUB_TOKEN=<token> ./bin/pinact run
+```
+
+That rewrites the reference to the SHA the tag currently points at and appends the version
+comment. Dependabot then keeps both the SHA and the comment up to date. References to local
+actions and reusable workflows under `./.github/` stay as paths and are not pinned.
