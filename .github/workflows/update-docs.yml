@@ -24,6 +24,8 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         ref: main
+        # Nothing pushes before the gh-pages checkout below re-authenticates.
+        persist-credentials: false
 
     - name: Install Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -46,6 +48,9 @@ jobs:
       with:
         ref: gh-pages
         clean: false
+        # The git-auto-commit steps below push the rendered site and the packaged charts using
+        # the credentials this checkout leaves in the workspace.
+        persist-credentials: true
 
     - name: Move files to the pages gh-pages
       run: |

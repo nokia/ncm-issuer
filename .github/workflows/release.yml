@@ -15,6 +15,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "get ncm-issuer image version"
         run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
@@ -52,6 +54,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "get ncm-issuer image version"
         run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
@@ -85,6 +89,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "resolve tarball name"
         run: |
@@ -111,6 +117,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "resolve tarball path"
         run: |
@@ -139,6 +147,9 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         ref: main
+        # The git-auto-commit step below pushes the release notes using the credentials this
+        # checkout leaves in the workspace, so they must stay persisted here.
+        persist-credentials: true
 
     - name: Install Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -187,6 +198,9 @@ jobs:
       with:
         ref: gh-pages
         clean: false
+        # The git-auto-commit steps below push the rendered site and the packaged charts using
+        # the credentials this checkout leaves in the workspace.
+        persist-credentials: true
 
     - name: Move files to the pages gh-pages
       run: |

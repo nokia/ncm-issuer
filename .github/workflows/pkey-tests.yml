@@ -35,6 +35,8 @@ jobs:
         keysize: [256, 384, 521]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup
@@ -152,6 +154,8 @@ jobs:
         keysize: [2048, 4096]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup
