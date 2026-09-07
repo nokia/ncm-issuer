@@ -1,51 +1,12 @@
-run:
-  timeout: 5m
-
-linters-settings:
-  dupl:
-    threshold: 100
-
-  errcheck:
-    check-type-assertions: true
-
-  gocritic:
-    disabled-checks:
-      - ifElseChain
-      - wrapperFunc
-
-  govet:
-    disable:
-      - fieldalignment
-    enable:
-      - shadow
-
-  nakedret:
-    max-func-lines: 0
-
-  nolintlint:
-    allow-no-explanation:
-      - gocognit
-    require-explanation: true
-    require-specific: true
-    exhaustive:
-      check:
-        - switch
-        - map
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
     - asciicheck
     - bidichk
     - bodyclose
     - dupl
+    - errcheck
     - errname
     - errorlint
     - exhaustive
@@ -54,9 +15,10 @@ linters:
     - goconst
     - gocritic
     - godot
-    - goimports
     - gomoddirectives
     - gosec
+    - govet
+    - ineffassign
     - loggercheck
     - nakedret
     - nilerr
@@ -66,42 +28,94 @@ linters:
     - predeclared
     - promlinter
     - reassign
-    - stylecheck
+    - staticcheck
     - unconvert
     - unparam
+    - unused
     - usestdlibvars
     - wastedassign
     - whitespace
-
+  settings:
+    dupl:
+      threshold: 100
+    errcheck:
+      check-type-assertions: true
+    exhaustive:
+      check:
+        - switch
+        - map
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+        - wrapperFunc
+    govet:
+      enable:
+        - shadow
+      disable:
+        - fieldalignment
+    nakedret:
+      max-func-lines: 0
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-no-explanation:
+        - gocognit
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - godot
+        source: (noinspection|TODO)
+      - linters:
+          - gocritic
+        source: //noinspection
+      - linters:
+          - bodyclose
+          - dupl
+          - errcheck
+          - goconst
+          - gosec
+          - unused
+        path: _test\.go
+      # GetEventRecorderFor is deprecated in controller-runtime 0.24 or newer but
+      # it still works. Migration to the new events.EventRecorder API is deferred.
+      # staticcheck SA1019 detection for this cross-package deprecation depends on
+      # the analysis cache state, so it is excluded here rather than with an inline
+      # //nolint:staticcheck directive that nolintlint reports as unused whenever
+      # SA1019 does not fire.
+      - linters:
+          - staticcheck
+        path: (^|/)main\.go$
+        text: SA1019.*GetEventRecorderFor
+    paths:
+      - .git
+      - .github
+      - api
+      - config
+      - hack
+      - helm
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-dirs:
-    - .git
-    - .github
-    - api
-    - config
-    - hack
-    - helm
   max-same-issues: 50
-  exclude-rules:
-    - source: "(noinspection|TODO)"
-      linters: [ godot ]
-    - source: "//noinspection"
-      linters: [ gocritic ]
-    - path: "_test\\.go"
-      linters:
-        - errcheck
-        - bodyclose
-        - dupl
-        - goconst
-        - gosec
-        - unused
-    # GetEventRecorderFor is deprecated in controller-runtime 0.24 or newer but
-    # it still works. Migration to the new events.EventRecorder API is deferred.
-    # staticcheck SA1019 detection for this cross-package deprecation depends on
-    # the analysis cache state, so it is excluded here rather than with an inline
-    # //nolint:staticcheck directive that nolintlint reports as unused whenever
-    # SA1019 does not fire.
-    - path: "(^|/)main\\.go$"
-      linters:
-        - staticcheck
-      text: "SA1019.*GetEventRecorderFor"
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - .git
+      - .github
+      - api
+      - config
+      - hack
+      - helm
+      - third_party$
+      - builtin$
+      - examples$
