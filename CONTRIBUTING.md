@@ -36,6 +36,7 @@ You need:
 | `make vuln` | Report known vulnerabilities reachable from this module |
 | `make check-version` | Check that the version in the code, the chart and the release notes agree |
 | `make set-version VERSION=x.y.z` | Set that version across the code and the chart |
+| `make check-notices` | Check that `THIRD_PARTY_NOTICES.md` matches the direct dependencies in `go.mod` |
 | `make docker-build` | Build the container image |
 | `make help` | List every target |
 
@@ -116,4 +117,6 @@ A maintainer may push follow-up commits to your branch or ask you to split a pul
 
 ## Licence
 
-ncm-issuer is licensed under [Apache 2.0](LICENSE). By contributing you agree that your contribution is provided under that licence. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) records the licences of the dependencies it links, so update it when you add or remove a direct dependency.
+ncm-issuer is licensed under [Apache 2.0](LICENSE). By contributing you agree that your contribution is provided under that licence.
+
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) records the licences of the dependencies it links. Update it whenever you add, remove or bump a direct dependency, including in a dependency bump. `make check-notices` compares it against `go.mod` and CI runs the same check, so a stale version or a missing row fails the build. Take the licence from the module's own `LICENSE` file, which `make vendor` writes into `vendor/`.
