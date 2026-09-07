@@ -1,5 +1,18 @@
 version: 2
 updates:
+  # Go dependencies in the root go.mod. One group per run keeps the Kubernetes, controller-runtime
+  # and cert-manager libraries in a single pull request, since they only build against a matching
+  # k8s.io minor version and have to move together.
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: "build"
+
   # GitHub Actions used in .github/workflows/*.yml (auto-discovered)
   - package-ecosystem: "github-actions"
     directory: "/"
