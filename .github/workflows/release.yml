@@ -3,6 +3,9 @@ on:
   release:
     types: [published]
 
+# Every job below grants exactly the scopes it needs, so nothing is granted by default.
+permissions: {}
+
 jobs:
   docker:
     name: "publish release on GitHub Container Registry"
