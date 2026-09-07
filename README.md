@@ -43,6 +43,8 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
   * [Signing certificate](#signing-certificate)
   * [Renewing or re-enrolling certificate](#renewing-or-re-enrolling-certificate)
 * [Troubleshooting](#troubleshooting)
+* [Getting help](#getting-help)
+* [Contributing](#contributing)
 
 ## How it works
 
@@ -531,5 +533,20 @@ the desired value and update your deployment. To get all possible log messages, 
 
 There is also the possibility of using sidecar for troubleshooting purposes - just change the value of
 `sidecar.enabled` to **true** in `values.yaml` and update your deployment.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Getting help
+
+[SUPPORT.md](SUPPORT.md) lists where to ask and what to include in a bug report. Security
+vulnerabilities go through the private process in [SECURITY.md](SECURITY.md) rather than a public
+issue.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Contributing
+
+Pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the development setup, the build
+and test commands, the coding conventions and how a change gets reviewed.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
