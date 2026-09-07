@@ -18,6 +18,21 @@ bin/
 # packaged release tarballs produced by `make pack-app`
 ncm-issuer-*.tar.gz
 
+# Rendered mkdocs output and packaged Helm charts. Both are built in CI and published to the
+# gh-pages branch, so they must never be committed back onto main. mkdocs treats anything inside
+# docs/ as a page or a static file, so a stray build here gets published as dead weight.
+site/
+*.tgz
+charts/
+docs/**/*.html
+docs/404.html
+docs/sitemap.xml
+docs/sitemap.xml.gz
+docs/search/
+docs/assets/javascripts/
+docs/assets/stylesheets/
+docs/assets/images/favicon.png
+
 # Dependency directories
 vendor/
 
