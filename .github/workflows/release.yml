@@ -140,6 +140,36 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: gh release upload "$RELEASE_TAG" "${{ env.ASSET }}" --clobber
 
+  sbom:
+    name: "attach an SBOM to the release"
+    runs-on: ubuntu-latest
+    # The SBOM describes the image that was just published, so it has to run after it exists.
+    needs: docker
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "get ncm-issuer image version"
+        run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
+
+      - name: "generate the image SBOM"
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: ghcr.io/nokia/ncm-issuer:${{ env.TAG }}
+          format: spdx-json
+          output-file: ncm-issuer-${{ env.TAG }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: "upload the SBOM to the release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" "ncm-issuer-${{ env.TAG }}.spdx.json" --clobber
+
   pages:
     name: Build mkdocs and helm charts
     runs-on: ubuntu-latest
