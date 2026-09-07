@@ -21,6 +21,11 @@ on:
         required: false
         default: "1.20.3"
 
+# These tests only read the repository. Declaring it here keeps the grant minimal no matter
+# which workflow calls this one.
+permissions:
+  contents: read
+
 jobs:
   client-auth-test:
     name: "tls with client auth"

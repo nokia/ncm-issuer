@@ -3,10 +3,22 @@ name: Update GitHub Pages Documentation
 on:
   workflow_dispatch:
 
+permissions: {}
+
+# Queue overlapping runs rather than cancelling one, so a partial commit is never left on
+# gh-pages.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   pages:
     name: Build mkdocs and helm charts
     runs-on: ubuntu-latest
+    # The two git-auto-commit steps below push the rendered site and the packaged charts to
+    # the gh-pages branch.
+    permissions:
+      contents: write
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

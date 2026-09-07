@@ -4,6 +4,15 @@ on:
     - cron: "0 2 * * *"
   workflow_dispatch:
 
+# Every job only reads the repository. The reusable workflows called below inherit this and
+# cannot widen it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   go-versions:
     name: "lookup go versions"

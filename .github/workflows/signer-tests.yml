@@ -16,6 +16,11 @@ on:
         required: false
         default: false
 
+# These tests only read the repository. Declaring it here keeps the grant minimal no matter
+# which workflow calls this one.
+permissions:
+  contents: read
+
 jobs:
   setup-matrix:
     name: "select compatibility matrix"
