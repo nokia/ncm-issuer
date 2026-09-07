@@ -1,0 +1,51 @@
+name: codeql
+on:
+  push:
+    branches:
+      - main
+      - 'release-*'
+  pull_request:
+  # New queries ship with the CodeQL bundle, so a weekly run can surface a finding in code that
+  # has not changed.
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: "codeql analysis"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # CodeQL autobuild uses whichever toolchain is on the runner, so pin it to the one the
+      # project builds with to keep the analysis and the release build in step.
+      - name: "setup go"
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: "initialize codeql"
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          languages: go
+          build-mode: autobuild
+          queries: security-and-quality
+
+      - name: "analyze"
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: "/language:go"
