@@ -182,43 +182,54 @@ ACTIONLINT_VERSION          ?= v1.7.12
 PINACT_VERSION              ?= v4.1.1
 
 # Each stamp file name carries the version it was installed for, so bumping a tool version
-# reinstalls the binary instead of leaving an older one in place.
-GOLANGCI_LINT_STAMP = $(LOCALBIN)/.golangci-lint-$(GOLANGCI_LINT_VERSION).stamp
-ACTIONLINT_STAMP    = $(LOCALBIN)/.actionlint-$(ACTIONLINT_VERSION).stamp
-PINACT_STAMP        = $(LOCALBIN)/.pinact-$(PINACT_VERSION).stamp
+# reinstalls the binary instead of leaving an older one in place. $(LOCALBIN) is an order-only
+# prerequisite because installing any one tool updates the directory mtime, which would
+# otherwise invalidate every other tool's stamp.
+KUSTOMIZE_STAMP      = $(LOCALBIN)/.kustomize-$(KUSTOMIZE_VERSION).stamp
+CONTROLLER_GEN_STAMP = $(LOCALBIN)/.controller-gen-$(CONTROLLER_TOOLS_VERSION).stamp
+ENVTEST_STAMP        = $(LOCALBIN)/.setup-envtest-$(ENVTEST_VERSION).stamp
+GOLANGCI_LINT_STAMP  = $(LOCALBIN)/.golangci-lint-$(GOLANGCI_LINT_VERSION).stamp
+ACTIONLINT_STAMP     = $(LOCALBIN)/.actionlint-$(ACTIONLINT_VERSION).stamp
+PINACT_STAMP         = $(LOCALBIN)/.pinact-$(PINACT_VERSION).stamp
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-kustomize: $(KUSTOMIZE)
-$(KUSTOMIZE): $(LOCALBIN)
-	echo "Installing kustomize into $(LOCALBIN)"
+kustomize: $(KUSTOMIZE_STAMP)
+$(KUSTOMIZE_STAMP): | $(LOCALBIN)
+	mkdir -p "$(LOCALBIN)"
+	echo "Installing kustomize $(KUSTOMIZE_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
+	touch "$@"
 
-controller-gen: $(CONTROLLER_GEN)
-$(CONTROLLER_GEN): $(LOCALBIN)
-	echo "Installing controller-gen into $(LOCALBIN)"
+controller-gen: $(CONTROLLER_GEN_STAMP)
+$(CONTROLLER_GEN_STAMP): | $(LOCALBIN)
+	mkdir -p "$(LOCALBIN)"
+	echo "Installing controller-gen $(CONTROLLER_TOOLS_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	touch "$@"
 
-envtest: $(ENVTEST)
-$(ENVTEST): $(LOCALBIN)
-	echo "Installing envtest into $(LOCALBIN)"
+envtest: $(ENVTEST_STAMP)
+$(ENVTEST_STAMP): | $(LOCALBIN)
+	mkdir -p "$(LOCALBIN)"
+	echo "Installing envtest $(ENVTEST_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION)
+	touch "$@"
 
 golangci-lint: $(GOLANGCI_LINT_STAMP)
-$(GOLANGCI_LINT_STAMP): $(LOCALBIN)
+$(GOLANGCI_LINT_STAMP): | $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
 	echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	touch "$@"
 
 actionlint: $(ACTIONLINT_STAMP)
-$(ACTIONLINT_STAMP): $(LOCALBIN)
+$(ACTIONLINT_STAMP): | $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
 	echo "Installing actionlint $(ACTIONLINT_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
 	touch "$@"
 
 pinact: $(PINACT_STAMP)
-$(PINACT_STAMP): $(LOCALBIN)
+$(PINACT_STAMP): | $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
 	echo "Installing pinact $(PINACT_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install github.com/suzuki-shunsuke/pinact/v4/cmd/pinact@$(PINACT_VERSION)
