@@ -489,6 +489,12 @@ If you require a true renew-with-same-key flow, set `.spec.privateKey.rotationPo
 renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
 to **true** in `Issuer` or `ClusterIssuer` definition.
 
+**NOTE:** ncm-issuer records the issued certificate in the `<certificate-name>-details` Secret and uses that
+reference to renew the right certificate in NCM. Before renewing it checks that the referenced certificate still
+carries the identity being requested. If it does not, because the `Certificate` subject or SANs changed or because
+the Secret was edited, ncm-issuer re-enrolls instead of renewing and records a `CertIDRejected` event on the
+`CertificateRequest`.
+
 You can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
 In case you use [cmctl](https://cert-manager.io/docs/reference/cmctl/):
