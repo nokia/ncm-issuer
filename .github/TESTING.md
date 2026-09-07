@@ -105,6 +105,21 @@ That rewrites the reference to the SHA the tag currently points at and appends t
 comment. Dependabot then keeps both the SHA and the comment up to date. References to local
 actions and reusable workflows under `./.github/` stay as paths and are not pinned.
 
+## Base images
+
+Base images carry both a version tag and a digest, as in `alpine:3.24.1@sha256:...`. Docker
+resolves the digest and treats the tag as documentation, so the build is reproducible even though
+the upstream tag keeps moving. Dependabot watches both Dockerfiles and updates the tag and the
+digest together.
+
+Pin the digest of the multi-architecture index, not of one architecture's manifest, or the
+`linux/arm64` release build will fail to find a matching image. Requesting the manifest with an
+index media type returns the right one:
+
+```bash
+docker buildx imagetools inspect alpine:3.24.1
+```
+
 ## Checkout credentials and token permissions
 
 Every workflow declares a top-level `permissions` block and any job needing more than
