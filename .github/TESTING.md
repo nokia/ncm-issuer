@@ -146,6 +146,25 @@ make set-version VERSION=1.2.4
 every pull request, so a half-finished bump fails the build instead of shipping a chart that
 references an image tag that was never published.
 
+## Third-party notices
+
+`THIRD_PARTY_NOTICES.md` lists every direct dependency with its pinned version and licence, which
+goes stale as soon as a dependency bump lands. `make check-notices` compares it against `go.mod`,
+and the same `versions` job runs it on every pull request.
+
+A direct dependency is a `require` without an `// indirect` marker, and each one needs exactly one
+table row whose link text is the module path, whose second column is the version from `go.mod` and
+whose third column names a licence. The check fails on a module that is undocumented, one still
+documented after it left `go.mod`, a version that no longer matches and a row with no licence.
+
+Which table a module belongs in is derived rather than trusted: a module imported by any file other
+than a `_test.go` is linked into the released binary and belongs under the runtime heading, and
+everything else is test-only. That reads tracked Go files with `git grep`, so the check needs no Go
+toolchain and downloads no modules.
+
+Nothing is rewritten, since the `Use` column is written by hand. Take the licence for a new
+dependency from the module's own `LICENSE` file, which `make vendor` writes into `vendor/`.
+
 ## Checkout credentials and token permissions
 
 Every workflow declares a top-level `permissions` block and any job needing more than
