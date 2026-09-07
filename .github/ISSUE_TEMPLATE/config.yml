@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or configuration help
+    url: https://github.com/nokia/ncm-issuer/discussions
+    about: Ask how to configure ncm-issuer, or float an idea before opening a feature request.
+  - name: Security vulnerability
+    url: https://github.com/nokia/ncm-issuer/security/advisories/new
+    about: Report privately through a GitHub security advisory. Never use a public issue.
+  - name: Documentation
+    url: https://nokia.github.io/ncm-issuer/
+    about: Installation, configuration, CRD reference and troubleshooting guides.
+  - name: Nokia support
+    url: https://www.nokia.com/networks/security-portfolio/netguard/certificate-manager/
+    about: For NCM itself, or for a production problem covered by a Nokia support contract.

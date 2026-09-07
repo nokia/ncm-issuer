@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest a new capability or an improvement to an existing one
+labels: ["type: feature request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you are still shaping the idea, open a
+        [Discussion](https://github.com/nokia/ncm-issuer/discussions) first. Requests that change the
+        `Issuer` or `ClusterIssuer` API are easier to agree there before any code is written.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched the open and closed issues and found no match.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what stops you today? Describe the situation rather than the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like to happen
+      description: Include the chart value, CRD field or command line flag you have in mind, if you have one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Include any workaround you are using now.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Controller behaviour
+        - Issuer or ClusterIssuer API
+        - Helm chart
+        - Metrics or observability
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to open a pull request for this.

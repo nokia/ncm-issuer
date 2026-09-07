@@ -1,0 +1,117 @@
+name: Bug report
+description: Report a reproducible problem with ncm-issuer
+labels: ["type: bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not use this form for security vulnerabilities. Follow
+        [SECURITY.md](https://github.com/nokia/ncm-issuer/blob/main/SECURITY.md) and report privately.
+
+        For questions and configuration help, use
+        [Discussions](https://github.com/nokia/ncm-issuer/discussions) instead.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched the open and closed issues and found no match.
+          required: true
+        - label: I reproduced this on the latest release.
+          required: true
+        - label: I removed certificates, private keys, credentials and internal hostnames from everything I pasted below.
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The behaviour you observed, including any error message.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Install the chart with these values ...
+        2. Apply this Issuer ...
+        3. Request a Certificate ...
+        4. The CertificateRequest stays in state ...
+    validations:
+      required: true
+
+  - type: input
+    id: ncm-issuer-version
+    attributes:
+      label: ncm-issuer version
+      description: Both the Helm chart and the image version.
+      placeholder: chart 1.2.2, image 1.2.2
+    validations:
+      required: true
+
+  - type: input
+    id: cert-manager-version
+    attributes:
+      label: cert-manager version
+      placeholder: v1.20.0
+    validations:
+      required: true
+
+  - type: input
+    id: kubernetes-version
+    attributes:
+      label: Kubernetes version and distribution
+      description: From `kubectl version`. Include the distribution, for example kind, microk8s, EKS or OpenShift.
+      placeholder: v1.35.0, kind
+    validations:
+      required: true
+
+  - type: textarea
+    id: issuer-spec
+    attributes:
+      label: Issuer or ClusterIssuer spec
+      description: Redact secret names you consider sensitive, along with credentials and internal hostnames.
+      render: yaml
+
+  - type: textarea
+    id: resource-status
+    attributes:
+      label: Resource status
+      description: |
+        Output of the commands that show where enrollment stopped, for example:
+
+        ```
+        kubectl get ncmissuers -A
+        kubectl describe certificaterequest <name> -n <namespace>
+        ```
+      render: shell
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Controller logs
+      description: |
+        Collect with:
+
+        ```
+        kubectl -n ncm-issuer logs -l app=ncm-issuer --tail=200
+        ```
+
+        Set `logging.logLevel` to `3` in `values.yaml` and redeploy if the default output is not detailed enough.
+      render: shell
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else
+      description: Proxy setup, network policies, an NCM configuration detail or a workaround you found.
