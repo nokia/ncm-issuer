@@ -1,10 +1,21 @@
 # Release Notes
 
 ## Version 1.2.3 (Chart: 1.2.3, Image: 1.2.3) - TBD
+
+### Security fixes
+
+- **The NCM `cert-id` used at renewal is now bound to the certificate being renewed** (CWE-639). The id lives in the `<certificate-name>-details` Secret, which any user with Secret write access in that namespace can change. A rewritten id made the controller send an authenticated renewal to an NCM path of the attacker's choosing, using the operator's NCM credentials, which could renew or disclose a certificate belonging to someone else. The stored id is now checked to be a plain NCM resource path, and the certificate it refers to must carry the identity requested in the CSR, both verified before anything is changed in NCM. A rejected id no longer fails issuance. The controller logs the rejection, raises a `CertIDRejected` event and enrolls again, which can only produce a certificate for the request being processed. As a side effect a `Certificate` whose subject or SANs changed is now re-enrolled rather than renewed, which is what the changed spec asks for
+
+### Bug fixes and improvements
+
 - **Fixed duplicate CSRs being created in NCM after a controller restart or leader change**. A certificate request still awaiting CSR approval in NCM is now tracked across restarts, so ncm-issuer resumes waiting on the existing CSR instead of submitting a new one. The 24 hour window for approving a CSR manually is no longer reset either
 - The `<certificate-name>-details` Secret now also holds bookkeeping entries while a CSR awaits approval in NCM. They are managed automatically by ncm-issuer and removed once the certificate is issued or the request is rejected
 - **Tightened Helm ClusterRole permissions** to match what the controller actually uses. Unused `Issuer`/`ClusterIssuer` `create`/`delete` verbs, unused ConfigMap writes, unused Event `get`/`list` and a dead `cert-manager.io` secrets rule (Secrets belong to the core API, not `cert-manager.io`) are no longer granted. Leader election still uses `coordination.k8s.io` Leases. Core Secret `get`/`list`/`watch`/`create`/`update` is unchanged so certificate-details Secret persistence still works
 - **Aligned kustomize RBAC with the same least-privilege set**. The manager ClusterRole now allows Certificate `get`/`list`/`watch`, Secret `create`/`update` and Event `create`/`patch` that the controller already needs. Unused ConfigMap verbs were removed from the leader-election Role
+
+### Other changes
+
+- **Added a security policy** (`SECURITY.md`) describing how to report a vulnerability privately, through GitHub private vulnerability reporting or Nokia PSIRT
 
 ## Version 1.2.2 (Chart: 1.2.2, Image: 1.2.2) - 06 Jul 2026
 
