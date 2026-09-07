@@ -1,0 +1,13 @@
+# The controller image copies only the Go module files and the Go source, so nothing else belongs
+# in the build context. Without this the whole working tree is sent to the daemon, which locally
+# means bin/, builds/, vendor/ and .git as well.
+#
+# This excludes everything and then re-includes exactly what the Dockerfile copies, so adding a
+# COPY without adding it here fails the build rather than quietly growing the context.
+*
+
+!go.mod
+!go.sum
+!main.go
+!api
+!pkg
