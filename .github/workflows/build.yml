@@ -39,14 +39,11 @@ jobs:
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
-      - name: "install golangci-lint"
-        run: |
-          mkdir -p ${{ github.workspace }}/bin
-          GOBIN=${{ github.workspace }}/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+      - name: "verify golangci-lint configuration"
+        run: make lint-config
 
       - name: "run golangci-lint"
-        run: |
-          ${{ github.workspace }}/bin/golangci-lint run --out-format=colored-line-number --config=.golangci.yml
+        run: make lint
 
   actionlint:
     name: "lint workflows"
