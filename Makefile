@@ -89,6 +89,9 @@ set-version: ## Set the version everywhere, as in "make set-version VERSION=1.2.
 	@test -n "$(VERSION)" || { echo 'usage: make set-version VERSION=1.2.4' >&2; exit 1; }
 	./hack/version.sh set "$(VERSION)"
 
+check-notices: ## Verify THIRD_PARTY_NOTICES.md matches the direct dependencies in go.mod
+	./hack/notices.sh check
+
 ##@ Build
 
 build: vendor generate fmt vet ## Build manager binary
