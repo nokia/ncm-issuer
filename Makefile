@@ -40,7 +40,7 @@ fmt: ## Run go fmt
 	go fmt ./...
 
 vet: ## Run go vet
-	go vet ./... > govet-report.out
+	go vet ./...
 
 # Keyed on the file "go mod vendor" rewrites rather than on the vendor/ directory, which make
 # would treat as up to date for ever once it exists, leaving a stale vendor tree behind after a
@@ -51,8 +51,7 @@ vendor/modules.txt: go.mod go.sum
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet envtest ## Run tests
-	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile coverage.out -v > coverage_report.out
-	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -json > report.json
+	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile coverage.out
 
 lint: golangci-lint ## Run golangci-lint
 	"$(GOLANGCI_LINT)" run

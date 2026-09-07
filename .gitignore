@@ -31,12 +31,8 @@ go.work.sum
 # Intelij settings folder
 .idea/
 
-# Test reports and coverage
-report.json
+# Coverage profile written by `make test`
 coverage.out
-
-# diagnostic messages from go vet
-govet-report.out
 
 # dotenv files
 .env*
