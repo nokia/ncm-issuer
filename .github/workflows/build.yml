@@ -1,7 +1,18 @@
 name: build
 on:
+  # Pull requests are the gate for contributed changes, including those from forks. Pushes are
+  # limited to the branches that releases are cut from, so a branch with an open pull request is
+  # not built twice for the same commit.
   push:
+    branches:
+      - main
+      - 'release-*'
+  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   go-versions:
