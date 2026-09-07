@@ -77,6 +77,12 @@ lint-actions: actionlint ## Lint GitHub Actions workflows with actionlint
 lint-actions-pinned: pinact ## Verify GitHub Actions are pinned to commit SHAs
 	"$(PINACT)" run --check --no-api --fix=false
 
+# govulncheck resolves modules itself and does not read vendor/, so -mod=mod keeps it working in a
+# tree where "make build" has already vendored. It reports only vulnerabilities on a code path the
+# binary can actually reach, so a finding here is worth acting on.
+vuln: govulncheck ## Report known vulnerabilities reachable from this module
+	GOFLAGS=-mod=mod "$(GOVULNCHECK)" ./...
+
 ##@ Build
 
 build: vendor generate fmt vet ## Build manager binary
@@ -176,6 +182,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ACTIONLINT ?= $(LOCALBIN)/actionlint
 PINACT ?= $(LOCALBIN)/pinact
+GOVULNCHECK ?= $(LOCALBIN)/govulncheck
 
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
@@ -184,6 +191,7 @@ ENVTEST_VERSION             ?= release-0.24
 GOLANGCI_LINT_VERSION       ?= v2.13.2
 ACTIONLINT_VERSION          ?= v1.7.12
 PINACT_VERSION              ?= v4.1.1
+GOVULNCHECK_VERSION         ?= v1.7.0
 
 # Each stamp file name carries the version it was installed for, so bumping a tool version
 # reinstalls the binary instead of leaving an older one in place. $(LOCALBIN) is an order-only
@@ -195,6 +203,7 @@ ENVTEST_STAMP        = $(LOCALBIN)/.setup-envtest-$(ENVTEST_VERSION).stamp
 GOLANGCI_LINT_STAMP  = $(LOCALBIN)/.golangci-lint-$(GOLANGCI_LINT_VERSION).stamp
 ACTIONLINT_STAMP     = $(LOCALBIN)/.actionlint-$(ACTIONLINT_VERSION).stamp
 PINACT_STAMP         = $(LOCALBIN)/.pinact-$(PINACT_VERSION).stamp
+GOVULNCHECK_STAMP    = $(LOCALBIN)/.govulncheck-$(GOVULNCHECK_VERSION).stamp
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 kustomize: $(KUSTOMIZE_STAMP)
@@ -237,6 +246,13 @@ $(PINACT_STAMP): | $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
 	echo "Installing pinact $(PINACT_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install github.com/suzuki-shunsuke/pinact/v4/cmd/pinact@$(PINACT_VERSION)
+	touch "$@"
+
+govulncheck: $(GOVULNCHECK_STAMP)
+$(GOVULNCHECK_STAMP): | $(LOCALBIN)
+	mkdir -p "$(LOCALBIN)"
+	echo "Installing govulncheck $(GOVULNCHECK_VERSION) into $(LOCALBIN)"
+	GOBIN="$(abspath $(LOCALBIN))" go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 	touch "$@"
 
 pack-app: docker-save
