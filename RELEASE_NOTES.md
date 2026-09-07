@@ -19,7 +19,7 @@
 - **Added a security policy** (`SECURITY.md`) describing how to report a vulnerability privately, through GitHub private vulnerability reporting or Nokia PSIRT
 - **Lint, workflow lint, unit tests and the binary build now run on every pull request**, including pull requests from forks. These checks previously ran only on branch pushes, so a fork pull request was never linted, tested or built
 - **Dependabot now proposes weekly updates for the Go dependencies in `go.mod`**, grouped into a single pull request so the Kubernetes, controller-runtime and cert-manager libraries move together. It previously covered only GitHub Actions and Docker base images
-- **Every third-party GitHub Action is now pinned to a commit SHA, and each workflow grants only the token permissions its jobs need**. A mutable tag such as `@v7` can be repointed at any commit, which matters here because the release workflow can publish container images and upload release assets. CI now fails if an unpinned action is added. This is a CI/pipeline change and does not change the released controller
+- **Every third-party GitHub Action is now pinned to a commit SHA and each workflow grants only the token permissions its jobs need**. A mutable tag such as `@v7` can be repointed at any commit, which matters here because the release workflow can publish container images and upload release assets. Checkout steps no longer leave the workflow token in the build workspace, apart from the three that have to push documentation and charts. CI now fails if an unpinned action is added. This is a CI/pipeline change and does not change the released controller
 
 ## Version 1.2.2 (Chart: 1.2.2, Image: 1.2.2) - 06 Jul 2026
 
