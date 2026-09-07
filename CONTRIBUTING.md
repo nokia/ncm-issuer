@@ -80,12 +80,14 @@ CodeQL, govulncheck and a Trivy image scan run on every pull request. If a depen
 
 ## Documentation
 
-User-facing documentation lives in `README.md` and `docs/`, and is published to <https://nokia.github.io/ncm-issuer/> from `main`. Update it in the same pull request as the change it describes. To preview the site:
+User-facing documentation lives in `README.md` and `docs/`. CI builds the site from `main` and pushes it to the `gh-pages` branch, which is served at <https://nokia.github.io/ncm-issuer/>. Update the documentation in the same pull request as the change it describes. To preview the site:
 
 ```bash
 pip install mkdocs-material mkdocs-awesome-pages-plugin
 mkdocs serve
 ```
+
+Commit sources only. `mkdocs build` writes to `site/`, which is ignored along with rendered HTML and packaged charts, because mkdocs publishes anything left inside `docs/` as part of the site.
 
 Add an entry to `RELEASE_NOTES.md` for anything a user can observe.
 
@@ -114,4 +116,4 @@ A maintainer may push follow-up commits to your branch or ask you to split a pul
 
 ## Licence
 
-ncm-issuer is licensed under [Apache 2.0](LICENSE). By contributing you agree that your contribution is provided under that licence.
+ncm-issuer is licensed under [Apache 2.0](LICENSE). By contributing you agree that your contribution is provided under that licence. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) records the licences of the dependencies it links, so update it when you add or remove a direct dependency.
