@@ -50,11 +50,14 @@ test: manifests generate fmt vet envtest ## Run tests
 	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile coverage.out -v > coverage_report.out
 	KUBEBUILDER_ASSETS="$$("$(ENVTEST)" use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -json > report.json
 
-lint: golangci-lint ## Run golangci-lint & yamllint
+lint: golangci-lint ## Run golangci-lint
 	"$(GOLANGCI_LINT)" run
 
 lint-fix: golangci-lint ## Run golangci-lint and fix issues
 	"$(GOLANGCI_LINT)" run --fix
+
+lint-config: golangci-lint ## Verify .golangci.yml against the linter's own schema
+	"$(GOLANGCI_LINT)" config verify
 
 # actionlint automatically pipes every workflow "run:" script through shellcheck
 # when shellcheck is present (it is on CI). The existing e2e workflows have many
@@ -167,8 +170,13 @@ ACTIONLINT ?= $(LOCALBIN)/actionlint
 KUSTOMIZE_VERSION           ?= v5.6.0
 CONTROLLER_TOOLS_VERSION    ?= v0.19.0
 ENVTEST_VERSION             ?= release-0.24
-GOLANGCI_LINT_VERSION       ?= v1.64.8
+GOLANGCI_LINT_VERSION       ?= v2.13.2
 ACTIONLINT_VERSION          ?= v1.7.12
+
+# Each stamp file name carries the version it was installed for, so bumping a tool version
+# reinstalls the binary instead of leaving an older one in place.
+GOLANGCI_LINT_STAMP = $(LOCALBIN)/.golangci-lint-$(GOLANGCI_LINT_VERSION).stamp
+ACTIONLINT_STAMP    = $(LOCALBIN)/.actionlint-$(ACTIONLINT_VERSION).stamp
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 kustomize: $(KUSTOMIZE)
@@ -186,21 +194,19 @@ $(ENVTEST): $(LOCALBIN)
 	echo "Installing envtest into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION)
 
-golangci-lint: $(GOLANGCI_LINT)
-$(GOLANGCI_LINT): $(LOCALBIN)
+golangci-lint: $(GOLANGCI_LINT_STAMP)
+$(GOLANGCI_LINT_STAMP): $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
-	if [ ! -f "$(GOLANGCI_LINT)" ]; then \
-		echo "Installing golangci-lint into $(LOCALBIN)"; \
-		GOBIN="$(abspath $(LOCALBIN))" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}; \
-	fi
+	echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION) into $(LOCALBIN)"
+	GOBIN="$(abspath $(LOCALBIN))" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	touch "$@"
 
-actionlint: $(ACTIONLINT)
-$(ACTIONLINT): $(LOCALBIN)
+actionlint: $(ACTIONLINT_STAMP)
+$(ACTIONLINT_STAMP): $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
-	if [ ! -f "$(ACTIONLINT)" ]; then \
-		echo "Installing actionlint into $(LOCALBIN)"; \
-		GOBIN="$(abspath $(LOCALBIN))" go install github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}; \
-	fi
+	echo "Installing actionlint $(ACTIONLINT_VERSION) into $(LOCALBIN)"
+	GOBIN="$(abspath $(LOCALBIN))" go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
+	touch "$@"
 
 pack-app: docker-save
 	rm -rf "builds/$(APP_NAME)" && mkdir -p "builds/$(APP_NAME)/images" "builds/$(APP_NAME)/charts/$(APP_NAME)/"
