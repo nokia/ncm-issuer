@@ -19,7 +19,7 @@ The workflows separate two independent concerns:
 
 | Trigger | Workflow | Scope |
 |:--|:--|:--|
-| Pull request or push to `main` or a `release-*` branch | `build.yml` | lint, workflow lint, action pinning, unit tests, binary build |
+| Pull request or push to `main` or a `release-*` branch | `build.yml` | lint, workflow lint, action pinning, version consistency, unit tests, binary build |
 | Pull request or non-main branch | `e2e-limited.yml` | one fast smoke |
 | Push to `main` | `e2e.yml` | feature tests plus a small signer smoke matrix |
 | Nightly (02:00 UTC) and manual dispatch | `e2e-nightly.yml` | full compatibility diagonal plus all feature tests |
@@ -119,6 +119,32 @@ index media type returns the right one:
 ```bash
 docker buildx imagetools inspect alpine:3.24.1
 ```
+
+## Version numbers
+
+The release version is written in several files, and `main.go` is the one that counts: both the
+Makefile and `release.yml` read `chartVersion` and `imageVersion` from it to tag images and name
+release tarballs. Everything else has to agree with it.
+
+| File | Holds | Expected to be |
+|:--|:--|:--|
+| `main.go` | `chartVersion`, `imageVersion` | the source |
+| `helm/Chart.yaml` | `appVersion` | `imageVersion` |
+| `helm/Chart.yaml` | `version` | `chartVersion` plus a `-chart` suffix |
+| `helm/values.yaml` | both image `tag` keys | `imageVersion` |
+| `ncm-issuer-utils/ncm-issuer-utils.yaml` | the sidecar image tag | `imageVersion` |
+| `RELEASE_NOTES.md` | the topmost `## Version` heading | `chartVersion` and `imageVersion` |
+
+To bump a release, rewrite the code and the chart in one step, then write the release notes section
+by hand, since a new release adds a section rather than renaming the previous one:
+
+```bash
+make set-version VERSION=1.2.4
+```
+
+`make check-version` reports anything out of step and the `versions` job in `build.yml` runs it on
+every pull request, so a half-finished bump fails the build instead of shipping a chart that
+references an image tag that was never published.
 
 ## Checkout credentials and token permissions
 
