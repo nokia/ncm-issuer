@@ -42,7 +42,11 @@ fmt: ## Run go fmt
 vet: ## Run go vet
 	go vet ./... > govet-report.out
 
-vendor:
+# Keyed on the file "go mod vendor" rewrites rather than on the vendor/ directory, which make
+# would treat as up to date for ever once it exists, leaving a stale vendor tree behind after a
+# dependency bump.
+vendor: vendor/modules.txt
+vendor/modules.txt: go.mod go.sum
 	GOWORK=off go mod vendor
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
