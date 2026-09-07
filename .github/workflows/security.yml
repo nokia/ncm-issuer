@@ -1,0 +1,111 @@
+name: security
+on:
+  push:
+    branches:
+      - main
+      - 'release-*'
+  pull_request:
+  # A dependency or a base image package can become vulnerable without anything changing here, so
+  # these scans run on a schedule as well as on changes.
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-versions:
+    name: "lookup go versions"
+    runs-on: ubuntu-latest
+    outputs:
+      go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: arnested/go-version-action@83df3d2be676ba748e3c243a7f996e76c28cff23 # v2.1.7
+        id: versions
+
+  govulncheck:
+    name: "dependency vulnerabilities"
+    needs: go-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: "setup go"
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
+
+      - name: "report reachable vulnerabilities"
+        run: make vuln
+
+  image:
+    name: "container image scan"
+    needs: go-versions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: "setup go"
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ needs.go-versions.outputs.go-mod-version }}
+
+      - name: "build the ncm-issuer image"
+        run: |
+          for attempt in 1 2 3; do
+            echo "docker build attempt $attempt/3"
+            make docker-build && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::docker build failed after 3 attempts"
+              exit 1
+            fi
+            echo "docker build failed (likely registry timeout); retrying"
+            sleep 20
+          done
+
+      # make docker-build tags the image with the version from main.go, so ask docker for the tag
+      # rather than recomputing it here.
+      - name: "resolve the built image reference"
+        id: image
+        run: echo "ref=$(docker images ncm-issuer --format '{{.Repository}}:{{.Tag}}' | head -n 1)" >> "$GITHUB_OUTPUT"
+
+      - name: "scan the image"
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.image.outputs.ref }}
+          ignore-unfixed: true
+          format: sarif
+          output: trivy.sarif
+
+      # A fork pull request runs with a read-only token and cannot write security events, so the
+      # Security tab is fed from the branch and scheduled runs instead.
+      - name: "publish the scan results"
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
+
+      # Reported separately so the job log shows what failed and the step above still publishes a
+      # full result set regardless of severity.
+      - name: "fail on fixable high severity findings"
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.image.outputs.ref }}
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          format: table
