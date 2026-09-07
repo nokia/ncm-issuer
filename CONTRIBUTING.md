@@ -33,6 +33,7 @@ You need:
 | `make lint-config` | Validate `.golangci.yml` against the linter's own schema |
 | `make lint-actions` | Lint the workflows with actionlint |
 | `make lint-actions-pinned` | Check that every action is pinned to a commit SHA |
+| `make vuln` | Report known vulnerabilities reachable from this module |
 | `make docker-build` | Build the container image |
 | `make help` | List every target |
 
@@ -66,6 +67,10 @@ Third-party actions must be pinned to a full commit SHA with the version in a tr
 * the full suite on `main` and on demand.
 
 Neither needs credentials, so both run on pull requests from forks. [`.github/TESTING.md`](.github/TESTING.md) documents the suites and the compatibility matrix.
+
+## Dependency and image scanning
+
+CodeQL, govulncheck and a Trivy image scan run on every pull request. If a dependency bump is what fixes a finding, include it in your pull request. Run `make vuln` locally to see what govulncheck reports, and see [Security scanning](.github/TESTING.md#security-scanning) for what each scan covers and what makes it fail.
 
 ## Documentation
 
