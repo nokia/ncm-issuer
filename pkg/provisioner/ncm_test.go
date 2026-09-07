@@ -17,8 +17,15 @@ limitations under the License.
 package provisioner
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"sync"
 	"testing"
@@ -64,17 +71,65 @@ var (
 		CAList:     []ncmapi.CAResponse{crt1, crt2, crt3},
 	}
 
+	// Renewal now compares the CSR identity against the certificate the cert-id points
+	// to, so these fixtures have to be real X.509 material.
+	renewedCertID  = "https://ncm-server.local/certificates/L34FC3RT"
+	csrPEM         = mustGenerateCSR("ncm-cert.local", []string{"ncm-cert.local"})
+	matchingCrtPEM = mustGenerateCert("ncm-cert.local", []string{"ncm-cert.local"})
+	foreignCrtPEM  = mustGenerateCert("other-tenant.local", []string{"other-tenant.local"})
+
 	cr = cmapi.CertificateRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "ncm-ns",
 		},
 		Spec: cmapi.CertificateRequestSpec{
-			Request: []byte("-----BEGIN CERTIFICATE-----\nR3Qu3St...\n-----END CERTIFICATE-----\n"),
+			Request: csrPEM,
 		},
 	}
 
 	errFailedGetCAs = errors.New("failed to get CAs")
 )
+
+// mustGenerateCSR builds a PEM encoded CSR for the given identity.
+func mustGenerateCSR(commonName string, dnsNames []string) []byte {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+
+	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
+		Subject:  pkix.Name{CommonName: commonName},
+		DNSNames: dnsNames,
+	}, key)
+	if err != nil {
+		panic(err)
+	}
+
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+}
+
+// mustGenerateCert builds a PEM encoded self-signed certificate for the given identity.
+func mustGenerateCert(commonName string, dnsNames []string) []byte {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: commonName},
+		DNSNames:     dnsNames,
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		panic(err)
+	}
+
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+}
 
 func TestFindCA(t *testing.T) {
 	type testCase struct {
@@ -879,6 +934,7 @@ func TestRenew(t *testing.T) {
 	type testCase struct {
 		name        string
 		cr          *cmapi.CertificateRequest
+		certID      string
 		p           *Provisioner
 		err         error
 		expectedCA  []byte
@@ -886,7 +942,20 @@ func TestRenew(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		ca, tls, _, err := tc.p.Renew(&cr, "cert-id")
+		certID := tc.certID
+		if certID == "" {
+			certID = renewedCertID
+		}
+
+		ca, tls, _, err := tc.p.Renew(&cr, certID)
+
+		if tc.err != nil && err == nil {
+			t.Fatalf("%s failed; expected error containing %s; got none", tc.name, tc.err.Error())
+		}
+
+		if errors.Is(tc.err, ErrCertIDMismatch) && !errors.Is(err, ErrCertIDMismatch) {
+			t.Fatalf("%s failed; expected a cert-id mismatch error; got %v", tc.name, err)
+		}
 
 		if tc.err != nil && err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
 			t.Errorf("%s failed; expected error containing %s; want %s", tc.name, err.Error(), tc.err.Error())
@@ -937,7 +1006,7 @@ func TestRenew(t *testing.T) {
 					gen.NoErrorFakeClientGetCA(),
 					gen.NoErrorFakeClientSendCSR(),
 					gen.NoErrorFakeClientDownloadCertificate(),
-					gen.NoErrorFakeClientDownloadCertificateInPEM(),
+					gen.SetFakeClientDownloadCertificateInPEMFor(map[string][]byte{"L34FC3RT": matchingCrtPEM}),
 					gen.SetFakeClientRenewCertificateError(errors.New("cannot established connection"))),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
@@ -963,7 +1032,7 @@ func TestRenew(t *testing.T) {
 					gen.NoErrorFakeClientGetCA(),
 					gen.NoErrorFakeClientSendCSR(),
 					gen.NoErrorFakeClientDownloadCertificate(),
-					gen.NoErrorFakeClientDownloadCertificateInPEM(),
+					gen.SetFakeClientDownloadCertificateInPEMFor(map[string][]byte{"L34FC3RT": matchingCrtPEM}),
 					gen.SetFakeClientRenewCertificate("L34FC3RT")),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
@@ -973,7 +1042,64 @@ func TestRenew(t *testing.T) {
 			},
 			err:         nil,
 			expectedCA:  []byte("-----BEGIN CERTIFICATE-----\nMn012Se...\n-----END CERTIFICATE-----\n"),
-			expectedTLS: []byte("-----BEGIN CERTIFICATE-----\nL34FC3RT...\n-----END CERTIFICATE-----\n"),
+			expectedTLS: matchingCrtPEM,
+		},
+		{
+			// A cert-id rewritten to point at somebody else's certificate must be
+			// rejected before the renewal request is sent to NCM.
+			name:   "renew-rejected-foreign-cert-id",
+			cr:     &cr,
+			certID: "https://ncm-server.local/certificates/F0R31GN",
+			p: &Provisioner{
+				NCMConfig: &cfg.NCMConfig{
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
+				},
+				NCMClient: gen.NewFakeClient(
+					gen.SetFakeClientGetCAs(CAsResponse),
+					gen.NoErrorFakeClientGetCA(),
+					gen.NoErrorFakeClientSendCSR(),
+					gen.NoErrorFakeClientDownloadCertificate(),
+					gen.SetFakeClientDownloadCertificateInPEMFor(map[string][]byte{"F0R31GN": foreignCrtPEM}),
+					gen.SetFakeClientRenewCertificateError(errors.New("renewal must not be attempted"))),
+				pendingCSRs: &PendingCSRsMap{
+					pendingCSRs: map[string]*PendingCSR{},
+					mu:          sync.RWMutex{},
+				},
+				log: testr.New(t),
+			},
+			err:         ErrCertIDMismatch,
+			expectedCA:  []byte(""),
+			expectedTLS: []byte(""),
+		},
+		{
+			// A cert-id rewritten to an arbitrary API path must not reach NCM either.
+			name:   "renew-rejected-injected-path",
+			cr:     &cr,
+			certID: "https://ncm-server.local/v1/cas/../../requests/S0M31D",
+			p: &Provisioner{
+				NCMConfig: &cfg.NCMConfig{
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
+				},
+				NCMClient: gen.NewFakeClient(
+					gen.SetFakeClientGetCAs(CAsResponse),
+					gen.NoErrorFakeClientGetCA(),
+					gen.NoErrorFakeClientSendCSR(),
+					gen.NoErrorFakeClientDownloadCertificate(),
+					gen.SetFakeClientDownloadCertificateInPEMFor(map[string][]byte{"L34FC3RT": matchingCrtPEM}),
+					gen.SetFakeClientRenewCertificateError(errors.New("renewal must not be attempted"))),
+				pendingCSRs: &PendingCSRsMap{
+					pendingCSRs: map[string]*PendingCSR{},
+					mu:          sync.RWMutex{},
+				},
+				log: testr.New(t),
+			},
+			err:         ErrCertIDMismatch,
+			expectedCA:  []byte(""),
+			expectedTLS: []byte(""),
 		},
 	}
 
