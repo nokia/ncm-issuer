@@ -67,6 +67,12 @@ lint-config: golangci-lint ## Verify .golangci.yml against the linter's own sche
 lint-actions: actionlint ## Lint GitHub Actions workflows with actionlint
 	"$(ACTIONLINT)" -shellcheck=
 
+# A mutable tag such as @v4 can be repointed at any commit, so a pinned SHA is the only immutable
+# way to reference a third-party action. "--no-api" checks the reference shape offline, which needs
+# no GitHub token and cannot be rate limited. Run "pinact run" to pin anything this reports.
+lint-actions-pinned: pinact ## Verify GitHub Actions are pinned to commit SHAs
+	"$(PINACT)" run --check --no-api --fix=false
+
 ##@ Build
 
 build: vendor generate fmt vet ## Build manager binary
@@ -165,6 +171,7 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ACTIONLINT ?= $(LOCALBIN)/actionlint
+PINACT ?= $(LOCALBIN)/pinact
 
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
@@ -172,11 +179,13 @@ CONTROLLER_TOOLS_VERSION    ?= v0.19.0
 ENVTEST_VERSION             ?= release-0.24
 GOLANGCI_LINT_VERSION       ?= v2.13.2
 ACTIONLINT_VERSION          ?= v1.7.12
+PINACT_VERSION              ?= v4.1.1
 
 # Each stamp file name carries the version it was installed for, so bumping a tool version
 # reinstalls the binary instead of leaving an older one in place.
 GOLANGCI_LINT_STAMP = $(LOCALBIN)/.golangci-lint-$(GOLANGCI_LINT_VERSION).stamp
 ACTIONLINT_STAMP    = $(LOCALBIN)/.actionlint-$(ACTIONLINT_VERSION).stamp
+PINACT_STAMP        = $(LOCALBIN)/.pinact-$(PINACT_VERSION).stamp
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 kustomize: $(KUSTOMIZE)
@@ -206,6 +215,13 @@ $(ACTIONLINT_STAMP): $(LOCALBIN)
 	mkdir -p "$(LOCALBIN)"
 	echo "Installing actionlint $(ACTIONLINT_VERSION) into $(LOCALBIN)"
 	GOBIN="$(abspath $(LOCALBIN))" go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
+	touch "$@"
+
+pinact: $(PINACT_STAMP)
+$(PINACT_STAMP): $(LOCALBIN)
+	mkdir -p "$(LOCALBIN)"
+	echo "Installing pinact $(PINACT_VERSION) into $(LOCALBIN)"
+	GOBIN="$(abspath $(LOCALBIN))" go install github.com/suzuki-shunsuke/pinact/v4/cmd/pinact@$(PINACT_VERSION)
 	touch "$@"
 
 pack-app: docker-save

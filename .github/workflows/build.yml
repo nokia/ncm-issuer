@@ -65,6 +65,9 @@ jobs:
       - name: "run actionlint"
         run: make lint-actions
 
+      - name: "verify actions are pinned to commit SHAs"
+        run: make lint-actions-pinned
+
   unit:
     name: "unit tests"
     needs: go-versions
