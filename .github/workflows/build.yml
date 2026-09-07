@@ -21,8 +21,8 @@ jobs:
     outputs:
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: arnested/go-version-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: arnested/go-version-action@83df3d2be676ba748e3c243a7f996e76c28cff23 # v2.1.7
         id: versions
 
   golangci:
@@ -33,9 +33,9 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: "setup go"
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -52,9 +52,9 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: "setup go"
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -66,9 +66,9 @@ jobs:
     needs: go-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: "setup go"
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -83,9 +83,9 @@ jobs:
     needs: go-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: "setup go"
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
