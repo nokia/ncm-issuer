@@ -70,3 +70,15 @@ PINACT_GITHUB_TOKEN=<token> ./bin/pinact run
 That rewrites the reference to the SHA the tag currently points at and appends the version
 comment. Dependabot then keeps both the SHA and the comment up to date. References to local
 actions and reusable workflows under `./.github/` stay as paths and are not pinned.
+
+## Checkout credentials and token permissions
+
+Every workflow declares a top-level `permissions` block and any job needing more than
+repository read access declares that itself. `release.yml` and `update-docs.yml` start from
+`permissions: {}` because their jobs each need a different scope.
+
+Checkout steps set `persist-credentials: false`, so the workflow token is not left in the
+workspace for later steps to read. Three checkouts set it to `true` instead and say why in a
+comment: both checkouts in the `pages` job of `release.yml` and the `gh-pages` checkout in
+`update-docs.yml`. The `git-auto-commit-action` steps that follow them push using exactly those
+credentials, so removing the setting from any of the three breaks publishing.
