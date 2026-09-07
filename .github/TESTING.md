@@ -1,7 +1,7 @@
 # Testing and CI
 
-This document describes how the end to end (e2e) workflows are organised and which
-Kubernetes and cert-manager versions we test against.
+This document describes how the pull request checks and the end to end (e2e) workflows are
+organised and which Kubernetes and cert-manager versions we test against.
 
 ## Philosophy
 
@@ -19,6 +19,7 @@ The workflows separate two independent concerns:
 
 | Trigger | Workflow | Scope |
 |:--|:--|:--|
+| Pull request or push to `main` or a `release-*` branch | `build.yml` | lint, workflow lint, unit tests, binary build |
 | Pull request or non-main branch | `e2e-limited.yml` | one fast smoke |
 | Push to `main` | `e2e.yml` | feature tests plus a small signer smoke matrix |
 | Nightly (02:00 UTC) and manual dispatch | `e2e-nightly.yml` | full compatibility diagonal plus all feature tests |
