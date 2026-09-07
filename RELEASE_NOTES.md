@@ -17,6 +17,8 @@
 ### Other changes
 
 - **Added a security policy** (`SECURITY.md`) describing how to report a vulnerability privately, through GitHub private vulnerability reporting or Nokia PSIRT
+- **Lint, workflow lint, unit tests and the binary build now run on every pull request**, including pull requests from forks. These checks previously ran only on branch pushes, so a fork pull request was never linted, tested or built
+- **Dependabot now proposes weekly updates for the Go dependencies in `go.mod`**, grouped into a single pull request so the Kubernetes, controller-runtime and cert-manager libraries move together. It previously covered only GitHub Actions and Docker base images
 
 ## Version 1.2.2 (Chart: 1.2.2, Image: 1.2.2) - 06 Jul 2026
 
