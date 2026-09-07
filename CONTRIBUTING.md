@@ -34,6 +34,8 @@ You need:
 | `make lint-actions` | Lint the workflows with actionlint |
 | `make lint-actions-pinned` | Check that every action is pinned to a commit SHA |
 | `make vuln` | Report known vulnerabilities reachable from this module |
+| `make check-version` | Check that the version in the code, the chart and the release notes agree |
+| `make set-version VERSION=x.y.z` | Set that version across the code and the chart |
 | `make docker-build` | Build the container image |
 | `make help` | List every target |
 
@@ -48,6 +50,10 @@ make manifests generate
 ```
 
 Do not hand-edit `config/crd/bases/` or any `zz_generated.*.go`.
+
+## Version numbers
+
+The release version is repeated in `main.go`, the Helm chart and the sidecar manifest, and CI fails if they disagree. Use `make set-version VERSION=x.y.z` rather than editing them one at a time, then add the matching `RELEASE_NOTES.md` section by hand. [`.github/TESTING.md`](.github/TESTING.md#version-numbers) lists which file has to match which value.
 
 ## Coding conventions
 
