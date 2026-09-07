@@ -23,6 +23,9 @@ The workflows separate two independent concerns:
 | Pull request or non-main branch | `e2e-limited.yml` | one fast smoke |
 | Push to `main` | `e2e.yml` | feature tests plus a small signer smoke matrix |
 | Nightly (02:00 UTC) and manual dispatch | `e2e-nightly.yml` | full compatibility diagonal plus all feature tests |
+| Pull request, push to `main` or a `release-*` branch, and weekly | `codeql.yml` | CodeQL security and quality queries for Go |
+| Pull request, push to `main` or a `release-*` branch, and weekly | `security.yml` | reachable Go vulnerabilities, container image scan |
+| Push to `main`, a branch protection change, and weekly | `scorecard.yml` | OpenSSF Scorecard supply chain rating |
 
 ## Compatibility matrix
 
@@ -55,6 +58,37 @@ does not block the nightly run.
 Common steps (provision microk8s, install cert-manager and tooling, load the image, collect
 diagnostics on failure) are factored into composite actions under `.github/actions/` so the
 individual workflows stay small and consistent.
+
+## Security scanning
+
+Four scans run on their own schedules as well as on changes, because a dependency or a base image
+package can become vulnerable without anything in the repository changing.
+
+| Scan | Covers | Fails the job when |
+|:--|:--|:--|
+| `make vuln` (govulncheck) | Go dependencies | a vulnerability is reachable from this module's code |
+| Trivy | the built container image, including Alpine packages | a fixable `HIGH` or `CRITICAL` is present |
+| CodeQL | the Go source | a security or quality query matches |
+| Scorecard | repository and release configuration | never, it only reports a rating |
+
+`make vuln` is the one to run locally. It reports only vulnerabilities on a call path the binary
+can actually reach, so a finding is usually worth acting on rather than suppressing. Fix it by
+bumping the module that carries it, then rerun. Vulnerabilities in modules that are required but
+not called are listed for information and do not fail the build.
+
+Trivy is run twice in the same job: once to produce the full SARIF result set for the Security tab,
+then once more restricted to fixable high severity findings, which is the run that can fail the
+job. `ignore-unfixed` is set, so a vulnerability with no upstream fix is reported but does not
+block a pull request.
+
+Results are published to code scanning, and Trivy and CodeQL findings appear under
+[Security](https://github.com/nokia/ncm-issuer/security). A pull request from a fork runs with a
+read-only token and cannot write security events, so for those the findings are visible in the job
+log only and the Security tab is fed by the branch and scheduled runs instead.
+
+Every release also gets an SPDX SBOM of the published image, generated from
+`ghcr.io/nokia/ncm-issuer:<tag>` and attached to the GitHub release by the `sbom` job in
+`release.yml`.
 
 ## Adding a third-party action
 
