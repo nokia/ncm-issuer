@@ -83,6 +83,13 @@ lint-actions-pinned: pinact ## Verify GitHub Actions are pinned to commit SHAs
 vuln: govulncheck ## Report known vulnerabilities reachable from this module
 	GOFLAGS=-mod=mod "$(GOVULNCHECK)" ./...
 
+check-version: ## Verify the version literals in the code, the chart and the release notes agree
+	./hack/version.sh check
+
+set-version: ## Set the version everywhere, as in "make set-version VERSION=1.2.4"
+	@test -n "$(VERSION)" || { echo 'usage: make set-version VERSION=1.2.4' >&2; exit 1; }
+	./hack/version.sh set "$(VERSION)"
+
 ##@ Build
 
 build: vendor generate fmt vet ## Build manager binary
