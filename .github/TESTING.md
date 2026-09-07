@@ -120,6 +120,12 @@ index media type returns the right one:
 docker buildx imagetools inspect alpine:3.24.1
 ```
 
+The controller image also runs `apk --no-cache upgrade` on top of its pinned base. Alpine publishes
+package fixes faster than it rebuilds its images, so even a current digest can contain OS packages
+that already have a fix waiting in the repository, which the image scan then reports as fixable. The
+upgrade clears those, at the cost of resolving the package set at build time rather than fixing it
+by the digest alone.
+
 ## Version numbers
 
 The release version is written in several files, and `main.go` is the one that counts: both the
