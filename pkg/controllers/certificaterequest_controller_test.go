@@ -2039,6 +2039,131 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
 		},
 		{
+			// A rewritten cert-id must not fail the request. The controller drops the
+			// renewal and enrols again, which can only produce a certificate for this
+			// request.
+			name:           "issuer-rejected-cert-id-falls-back-to-reenrollment",
+			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "cr"},
+			issuerName:     types.NamespacedName{Namespace: "ncm-ns", Name: "ncm-issuer"},
+			objects: []client.Object{
+				func() *cmapi.CertificateRequest {
+					cr := &cmapi.CertificateRequest{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ncm-ns",
+							Name:      "cr",
+						},
+						Spec: cmapi.CertificateRequestSpec{
+							IssuerRef: cmmeta.IssuerReference{
+								Name:  "ncm-issuer",
+								Kind:  Issuer,
+								Group: ncmv1.GroupVersion.Group,
+							},
+							Request: generateCSR(),
+						},
+						Status: cmapi.CertificateRequestStatus{
+							Conditions: []cmapi.CertificateRequestCondition{
+								{
+									Type:   cmapi.CertificateRequestConditionApproved,
+									Status: cmmeta.ConditionTrue,
+								},
+								{
+									Type:   cmapi.CertificateRequestConditionReady,
+									Status: cmmeta.ConditionUnknown,
+								},
+							},
+						},
+					}
+					cr.Annotations = map[string]string{
+						cmapi.CertificateNameKey: "ncm-cert",
+					}
+					return cr
+				}(),
+				&ncmv1.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-issuer",
+					},
+					Spec: ncmv1.IssuerSpec{
+						CAName: "ncmCA",
+						Provisioner: &ncmv1.NCMProvisioner{
+							MainAPI: "https://ncm-server.local:8081",
+							AuthRef: &v1.SecretReference{
+								Namespace: "ncm-ns",
+								Name:      "ncm-auth-secret",
+							},
+							HealthCheckerInterval: metav1.Duration{Duration: time.Minute},
+						},
+					},
+					Status: ncmv1.IssuerStatus{
+						Conditions: []ncmv1.IssuerCondition{
+							{
+								Type:   ncmv1.IssuerConditionReady,
+								Status: ncmv1.ConditionTrue,
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-auth-secret",
+					},
+					Data: map[string][]byte{
+						"username":    []byte("ncm-user"),
+						"usrPassword": []byte("ncm-user-password"),
+					},
+				},
+				&cmapi.Certificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-cert",
+					},
+					Spec: cmapi.CertificateSpec{
+						CommonName: "ncm-cert.local",
+						IssuerRef: cmmeta.IssuerReference{
+							Name:  "ncm-issuer",
+							Kind:  Issuer,
+							Group: ncmv1.GroupVersion.Group,
+						},
+						PrivateKey: &cmapi.CertificatePrivateKey{
+							RotationPolicy: cmapi.RotationPolicyNever,
+						},
+						SecretName: "ncm-cert-tls",
+					},
+					Status: cmapi.CertificateStatus{
+						Revision: func() *int {
+							value := 1
+							return &value
+						}(),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-cert-tls",
+					},
+					Data: map[string][]byte{
+						"tls": []byte("random-bytes"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ncm-ns",
+						Name:      "ncm-cert-details",
+					},
+					Data: map[string][]byte{
+						"cert-id": []byte("https://ncm-server.local/certificates/F0R31GN"),
+					},
+				},
+			},
+			provisioner: gen.NewFakeProvisioner(
+				gen.SetFakeProvisionerRenewError(provisioner.ErrCertIDMismatch),
+				gen.SetFakeProvisionerSign([]byte("ca"), []byte("tls"), "fresh-id"),
+				gen.SetFakeProvisionerPreventRenewal(false)),
+			expectedConditionStatus: cmmeta.ConditionTrue,
+			expectedConditionReason: cmapi.CertificateRequestReasonIssued,
+		},
+		{
 			name:           "cluster-issuer-success-renew",
 			namespacedName: types.NamespacedName{Namespace: "ncm-ns", Name: "cr"},
 			issuerName:     types.NamespacedName{Namespace: "", Name: "ncm-cluster-issuer"},
