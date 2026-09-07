@@ -210,19 +210,22 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var ca, tls []byte
 	var certID string
 
+	renewing := isQualified && crtIDSecret != nil && !p.PreventRenewal()
+	certIDRejected := false
+
 	// Determine operation metadata early so that we can log it consistently for
 	// both success and failure paths.
 	operation := "sign"
 	operationType := "initial-enrollment"
 	if crt.Status.Revision != nil && *crt.Status.Revision >= 1 {
 		operationType = "reenrollment"
-		if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
+		if renewing {
 			operation = "renew"
 			operationType = "renewal"
 		}
 	}
 
-	if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
+	if renewing {
 		log.V(1).Info("Renewing certificate",
 			"certificateName", cr.Annotations[cmapi.CertificateNameKey],
 			"operation", operation,
@@ -232,7 +235,25 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			"issuerRefNamespace", issuerName.Namespace,
 		)
 		ca, tls, certID, err = p.Renew(cr, string(crtIDSecret.Data[certIDSecretKey]))
-		if err != nil {
+		if errors.Is(err, provisioner.ErrCertIDMismatch) {
+			// The cert-id lives in a secret the requester can write, and this one does
+			// not belong to the certificate being renewed, so it cannot be used to pick
+			// what to renew in NCM. Re-enrol instead, which can only ever produce a
+			// certificate for this request.
+			log.Error(err, "Refusing to renew with the stored cert-id, falling back to re-enrollment",
+				"certificateName", cr.Annotations[cmapi.CertificateNameKey],
+				"issuerRefKind", cr.Spec.IssuerRef.Kind,
+				"issuerRefName", cr.Spec.IssuerRef.Name,
+				"issuerRefNamespace", issuerName.Namespace,
+			)
+			r.Recorder.Event(cr, core.EventTypeWarning, "CertIDRejected",
+				"Stored cert-id does not belong to this certificate, falling back to re-enrollment")
+
+			renewing = false
+			certIDRejected = true
+			operation = "sign"
+			operationType = "reenrollment"
+		} else if err != nil {
 			if errorContains(err, "not reachable NCM API") {
 				log.Error(err, "Could not established connection to any NCM API",
 					"operation", operation,
@@ -256,12 +277,16 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 
-		crtIDSecret = GetCertIDSecret(req.Namespace, crtSecretName, certID)
-		if err = r.Update(ctx, crtIDSecret); err != nil {
-			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
-			return ctrl.Result{}, err
+		if renewing {
+			crtIDSecret = GetCertIDSecret(req.Namespace, crtSecretName, certID)
+			if err = r.Update(ctx, crtIDSecret); err != nil {
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
+				return ctrl.Result{}, err
+			}
 		}
-	} else {
+	}
+
+	if !renewing {
 		certName := cr.Annotations[cmapi.CertificateNameKey]
 
 		// Rehydrate any pending CSR persisted in the details secret so a controller
@@ -293,7 +318,9 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			desired := map[string]string{}
 			if err == nil && certID != "" {
 				desired[certIDSecretKey] = certID
-			} else if crtIDSecret != nil {
+			} else if crtIDSecret != nil && !certIDRejected {
+				// A cert-id that was just rejected is not carried forward, otherwise the
+				// rewritten value would survive in the secret until the next issuance.
 				if id := string(crtIDSecret.Data[certIDSecretKey]); id != "" {
 					desired[certIDSecretKey] = id
 				}
