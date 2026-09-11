@@ -180,9 +180,9 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         ref: main
-        # The git-auto-commit step below pushes the release notes using the credentials this
-        # checkout leaves in the workspace, so they must stay persisted here.
-        persist-credentials: true
+        # Nothing pushes to main from this job, so the token is not left in the workspace. The
+        # gh-pages checkout below re-authenticates for the two pushes that do happen.
+        persist-credentials: false
 
     - name: Install Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -193,31 +193,11 @@ jobs:
       run: |
         pip install mkdocs-material mkdocs-awesome-pages-plugin
 
-    - name: Create release notes file
-      env:
-        RELEASE_TAG: ${{ github.event.release.tag_name }}
-        RELEASE_NAME: ${{ github.event.release.name }}
-        RELEASE_BODY: ${{ github.event.release.body }}
-      run: |
-        mkdir -p ./docs/release-notes
-        # GitHub release bodies may contain CRLF so strip CR before writing docs
-        RELEASE_TAG="${RELEASE_TAG//$'\r'/}"
-        RELEASE_NAME="${RELEASE_NAME//$'\r'/}"
-        RELEASE_BODY="${RELEASE_BODY//$'\r'/}"
-        export RELEASE_NAME
-        release_file="./docs/release-notes/${RELEASE_TAG}.md"
-        {
-          printf -- '---\ntitle: %s\n---\n\n' "$RELEASE_NAME"
-          printf '%s\n' "$RELEASE_BODY"
-        } | tr -d '\r' > "$release_file"
-        awk '{ print } /^nav:$/ { print "    - " ENVIRON["RELEASE_NAME"] ".md" }' docs/release-notes/.pages | tr -d '\r' > docs/release-notes/.pages.tmp
-        mv docs/release-notes/.pages.tmp docs/release-notes/.pages
-
-    - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
-      with:
-        commit_message: Write release notes to documentation
-        file_pattern: './docs/release-notes'
-        skip_checkout: true
+    # The page for this release has to be on main already, because the site is built from main and
+    # the release pull request is what carries it. Fail here rather than publish a site whose
+    # release notes are missing.
+    - name: Verify the release notes page is present
+      run: ./hack/release-notes.sh check
 
     - name: Build MkDocs Configuration
       run: |
