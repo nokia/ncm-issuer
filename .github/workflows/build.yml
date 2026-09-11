@@ -75,12 +75,12 @@ jobs:
         run: make lint-actions-pinned
 
   versions:
-    name: "check versions and notices"
+    name: "check versions, notices and release notes"
     permissions:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      # Both checks parse the tree with awk and git grep, so this job deliberately sets up no Go
+      # These checks parse the tree with awk and git grep, so this job deliberately sets up no Go
       # toolchain and downloads no modules.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,6 +91,9 @@ jobs:
 
       - name: "verify the third-party notices match go.mod"
         run: make check-notices
+
+      - name: "verify the documentation release notes page is in step"
+        run: make check-release-notes
 
   unit:
     name: "unit tests"
