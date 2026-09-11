@@ -17,6 +17,7 @@ limitations under the License.
 package provisioner
 
 import (
+	"bytes"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -254,7 +255,7 @@ func (p *Provisioner) PreventRenewal() bool {
 	return p.NCMConfig.ReenrollmentOnRenew
 }
 
-// verifyCertIDBelongsToRequest validates the stored cert-id and confirms that the NCM certificate it addresses was issued for the identity in cr, returning the resource path to renew.
+// verifyCertIDBelongsToRequest validates the stored cert-id and confirms that the NCM certificate it addresses is the one cr renews, returning the resource path to renew.
 func (p *Provisioner) verifyCertIDBelongsToRequest(cr *cmapi.CertificateRequest, certID string) (string, error) {
 	certURLPath, err := ncmapi.ValidateCertHref(certID)
 	if err != nil {
@@ -263,7 +264,7 @@ func (p *Provisioner) verifyCertIDBelongsToRequest(cr *cmapi.CertificateRequest,
 
 	csr, err := ncmutil.DecodeX509CertificateRequestBytes(cr.Spec.Request)
 	if err != nil {
-		return "", fmt.Errorf("%w: cannot decode the CSR to compare identities: %w", ErrCertIDMismatch, err)
+		return "", fmt.Errorf("%w: cannot decode the CSR to compare it with the referenced certificate: %w", ErrCertIDMismatch, err)
 	}
 
 	// A plain read of the referenced certificate. It tells us whether the cert-id still
@@ -278,11 +279,43 @@ func (p *Provisioner) verifyCertIDBelongsToRequest(cr *cmapi.CertificateRequest,
 		return "", fmt.Errorf("%w: cert-id does not address a certificate: %w", ErrCertIDMismatch, err)
 	}
 
-	if err := certCoversCSRIdentity(existingCerts[0], csr); err != nil {
+	if err := certMatchesRenewalRequest(existingCerts[0], csr); err != nil {
 		return "", fmt.Errorf("%w: %w", ErrCertIDMismatch, err)
 	}
 
 	return certURLPath, nil
+}
+
+// certMatchesRenewalRequest reports whether cert is the certificate that csr renews, requiring the same public key and every requested identity.
+func certMatchesRenewalRequest(cert *x509.Certificate, csr *x509.CertificateRequest) error {
+	// The key check is what actually ties the two together. Renewal only runs for a
+	// private key rotation policy of "Never", so a genuine renewal always presents the
+	// key of the certificate being renewed. Subject and SANs alone would not do,
+	// because whoever creates the request also chooses what the CSR asks for.
+	if err := certHasCSRPublicKey(cert, csr); err != nil {
+		return err
+	}
+
+	return certCoversCSRIdentity(cert, csr)
+}
+
+// certHasCSRPublicKey reports whether cert carries the public key of csr.
+func certHasCSRPublicKey(cert *x509.Certificate, csr *x509.CertificateRequest) error {
+	certPublicKey, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+	if err != nil {
+		return fmt.Errorf("cannot serialise the public key of the referenced certificate: %w", err)
+	}
+
+	csrPublicKey, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
+	if err != nil {
+		return fmt.Errorf("cannot serialise the public key of the CSR: %w", err)
+	}
+
+	if !bytes.Equal(certPublicKey, csrPublicKey) {
+		return errors.New("referenced certificate carries a different public key than the CSR")
+	}
+
+	return nil
 }
 
 // certCoversCSRIdentity reports whether cert carries every identity requested in csr, tolerating additional names that NCM may add on its own.
