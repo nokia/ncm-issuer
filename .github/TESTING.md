@@ -160,6 +160,29 @@ make set-version VERSION=1.2.4
 every pull request, so a half-finished bump fails the build instead of shipping a chart that
 references an image tag that was never published.
 
+## Release notes on the documentation site
+
+The site needs one page per release under `docs/release-notes`, listed in that directory's `.pages`
+navigation. `RELEASE_NOTES.md` already holds the text, so the page is generated from it:
+
+```bash
+make sync-release-notes
+```
+
+That writes `docs/release-notes/<version>.md` from the matching `## Version` section and lists it
+first in the navigation. Run it after the release notes section is final and commit the result with
+the release, because the page has to be on `main` before a release is published.
+
+`make check-release-notes` fails when the page is missing or has drifted from `RELEASE_NOTES.md`.
+The `versions` job runs it on every pull request, and `release.yml` runs it again before building
+the site, so a release cannot publish a documentation site whose notes are absent.
+
+The site is built from `main`, which is why the page is committed rather than generated during the
+release. `release.yml` used to write it from the GitHub release body and push it to `main` itself,
+which a ruleset requiring pull requests rejects: the push runs as `github-actions[bot]`, and that
+identity cannot be added to a ruleset bypass list because it is a system actor rather than an
+addressable app.
+
 ## Third-party notices
 
 `THIRD_PARTY_NOTICES.md` lists every direct dependency with its pinned version and licence, which
