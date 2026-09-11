@@ -34,6 +34,13 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "build"
+    ignore:
+      # Keep the builder on the Go 1.26 line so it matches the go directive in go.mod and
+      # the Go version the pinned golangci-lint was built against. Patch releases within
+      # 1.26 still come through, which is where the toolchain security fixes land. Raise
+      # this bound deliberately when moving to a newer Go line, together with go.mod.
+      - dependency-name: "golang"
+        versions: [">= 1.27"]
 
   # Base image in the troubleshooting sidecar Dockerfile
   - package-ecosystem: "docker"
