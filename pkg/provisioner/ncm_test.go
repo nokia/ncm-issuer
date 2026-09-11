@@ -71,12 +71,21 @@ var (
 		CAList:     []ncmapi.CAResponse{crt1, crt2, crt3},
 	}
 
-	// Renewal now compares the CSR identity against the certificate the cert-id points
-	// to, so these fixtures have to be real X.509 material.
-	renewedCertID  = "https://ncm-server.local/certificates/L34FC3RT"
-	csrPEM         = mustGenerateCSR("ncm-cert.local", []string{"ncm-cert.local"})
-	matchingCrtPEM = mustGenerateCert("ncm-cert.local", []string{"ncm-cert.local"})
-	foreignCrtPEM  = mustGenerateCert("other-tenant.local", []string{"other-tenant.local"})
+	// Renewal compares the CSR against the certificate the cert-id points to, so these
+	// fixtures have to be real X.509 material.
+	renewedCertID = "https://ncm-server.local/certificates/L34FC3RT"
+
+	// A genuine renewal keeps the private key, so the CSR and the certificate being
+	// renewed share one key pair.
+	renewalKey     = mustGenerateKey()
+	csrPEM         = mustEncodeCSR(renewalKey, "ncm-cert.local")
+	matchingCrtPEM = mustEncodeCert(renewalKey, "ncm-cert.local")
+
+	// Same identity as the CSR but a different key pair. This is a rewritten cert-id
+	// that copies the subject and SANs of somebody else's certificate.
+	sameIdentityOtherKeyCrtPEM = mustEncodeCert(mustGenerateKey(), "ncm-cert.local")
+
+	foreignCrtPEM = mustEncodeCert(mustGenerateKey(), "other-tenant.local")
 
 	cr = cmapi.CertificateRequest{
 		ObjectMeta: metav1.ObjectMeta{
@@ -90,16 +99,20 @@ var (
 	errFailedGetCAs = errors.New("failed to get CAs")
 )
 
-// mustGenerateCSR builds a PEM encoded CSR for the given identity.
-func mustGenerateCSR(commonName string, dnsNames []string) []byte {
+// mustGenerateKey builds an ECDSA key pair for test fixtures.
+func mustGenerateKey() *ecdsa.PrivateKey {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
+	return key
+}
 
+// mustEncodeCSR builds a PEM encoded CSR for the given key and identity.
+func mustEncodeCSR(key *ecdsa.PrivateKey, commonName string) []byte {
 	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
 		Subject:  pkix.Name{CommonName: commonName},
-		DNSNames: dnsNames,
+		DNSNames: []string{commonName},
 	}, key)
 	if err != nil {
 		panic(err)
@@ -108,17 +121,12 @@ func mustGenerateCSR(commonName string, dnsNames []string) []byte {
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
 }
 
-// mustGenerateCert builds a PEM encoded self-signed certificate for the given identity.
-func mustGenerateCert(commonName string, dnsNames []string) []byte {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		panic(err)
-	}
-
+// mustEncodeCert builds a PEM encoded self-signed certificate for the given key and identity.
+func mustEncodeCert(key *ecdsa.PrivateKey, commonName string) []byte {
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject:      pkix.Name{CommonName: commonName},
-		DNSNames:     dnsNames,
+		DNSNames:     []string{commonName},
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().Add(time.Hour),
 	}
@@ -1062,6 +1070,36 @@ func TestRenew(t *testing.T) {
 					gen.NoErrorFakeClientSendCSR(),
 					gen.NoErrorFakeClientDownloadCertificate(),
 					gen.SetFakeClientDownloadCertificateInPEMFor(map[string][]byte{"F0R31GN": foreignCrtPEM}),
+					gen.SetFakeClientRenewCertificateError(errors.New("renewal must not be attempted"))),
+				pendingCSRs: &PendingCSRsMap{
+					pendingCSRs: map[string]*PendingCSR{},
+					mu:          sync.RWMutex{},
+				},
+				log: testr.New(t),
+			},
+			err:         ErrCertIDMismatch,
+			expectedCA:  []byte(""),
+			expectedTLS: []byte(""),
+		},
+		{
+			// GHSA-472p-2cfj-h7h7. The requester writes their own CSR, so copying the
+			// subject and SANs of a certificate they do not own must not be enough to
+			// aim the renewal at it.
+			name:   "renew-rejected-same-identity-different-key",
+			cr:     &cr,
+			certID: "https://ncm-server.local/certificates/C0P13D",
+			p: &Provisioner{
+				NCMConfig: &cfg.NCMConfig{
+					HTTPClientTimeout:     10 * time.Second,
+					HealthCheckerInterval: time.Minute,
+					CAID:                  "Mn012Se",
+				},
+				NCMClient: gen.NewFakeClient(
+					gen.SetFakeClientGetCAs(CAsResponse),
+					gen.NoErrorFakeClientGetCA(),
+					gen.NoErrorFakeClientSendCSR(),
+					gen.NoErrorFakeClientDownloadCertificate(),
+					gen.SetFakeClientDownloadCertificateInPEMFor(map[string][]byte{"C0P13D": sameIdentityOtherKeyCrtPEM}),
 					gen.SetFakeClientRenewCertificateError(errors.New("renewal must not be attempted"))),
 				pendingCSRs: &PendingCSRsMap{
 					pendingCSRs: map[string]*PendingCSR{},
