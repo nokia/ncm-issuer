@@ -92,6 +92,12 @@ set-version: ## Set the version everywhere, as in "make set-version VERSION=1.2.
 check-notices: ## Verify THIRD_PARTY_NOTICES.md matches the direct dependencies in go.mod
 	./hack/notices.sh check
 
+check-release-notes: ## Verify the docs/release-notes page for the current version matches RELEASE_NOTES.md
+	./hack/release-notes.sh check
+
+sync-release-notes: ## Write the docs/release-notes page for the current version from RELEASE_NOTES.md
+	./hack/release-notes.sh sync
+
 ##@ Build
 
 build: vendor generate fmt vet ## Build manager binary
