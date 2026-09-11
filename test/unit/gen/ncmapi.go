@@ -169,6 +169,23 @@ func NoErrorFakeClientDownloadCertificateInPEM() func(*FakeClient) {
 	}
 }
 
+// SetFakeClientDownloadCertificateInPEMFor returns the given PEM for the certificate identifiers it knows and falls back to the placeholder PEM for the rest, so a test can hand out real certificates only where it needs them.
+func SetFakeClientDownloadCertificateInPEMFor(certsInPEM map[string][]byte) func(*FakeClient) {
+	return func(fc *FakeClient) {
+		fc.DownloadCertificateInPEMFn = func(path string) ([]byte, error) {
+			crtIdentifier := func() string {
+				s := strings.Split(path, "/")
+				return s[len(s)-1]
+			}()
+
+			if certInPEM, ok := certsInPEM[crtIdentifier]; ok {
+				return certInPEM, nil
+			}
+			return []byte(fmt.Sprintf("-----BEGIN CERTIFICATE-----\n%s...\n-----END CERTIFICATE-----\n", crtIdentifier)), nil
+		}
+	}
+}
+
 func SetFakeClientDownloadCertificateInPEMError(err error) func(*FakeClient) {
 	return func(fc *FakeClient) {
 		fc.DownloadCertificateInPEMFn = func(string) ([]byte, error) {

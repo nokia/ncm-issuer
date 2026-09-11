@@ -43,6 +43,28 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
   * [Signing certificate](#signing-certificate)
   * [Renewing or re-enrolling certificate](#renewing-or-re-enrolling-certificate)
 * [Troubleshooting](#troubleshooting)
+* [Getting help](#getting-help)
+* [Contributing](#contributing)
+
+## How it works
+
+cert-manager manages the certificate lifecycle in Kubernetes but it cannot talk to NCM. ncm-issuer adds
+that capability as an [external issuer](https://cert-manager.io/docs/contributing/external-issuers/),
+the extension mechanism cert-manager provides for certificate authorities that are not built into it.
+
+The two components never call each other. Both are Kubernetes controllers, so they exchange Kubernetes
+objects instead:
+
+1. You apply a `Certificate` with `issuerRef.group` set to `certmanager.ncm.nokia.com`.
+2. cert-manager generates a private key, builds a CSR and creates an approved `CertificateRequest`.
+3. ncm-issuer picks up requests addressed to its own group, sends the CSR to the NCM REST API and writes
+   the signed certificate back into the status of that same `CertificateRequest`.
+4. cert-manager stores the result in the `Secret` named by `spec.secretName` and later starts renewal.
+
+The private key is generated in the cluster by cert-manager. It is never sent to NCM.
+
+For the full walkthrough, including who owns which step and answers to common deployment questions, see
+[How it works](https://nokia.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
 
 ## How it works
 
@@ -489,6 +511,12 @@ If you require a true renew-with-same-key flow, set `.spec.privateKey.rotationPo
 renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
 to **true** in `Issuer` or `ClusterIssuer` definition.
 
+**NOTE:** ncm-issuer records the issued certificate in the `<certificate-name>-details` Secret and uses that
+reference to renew the right certificate in NCM. Before renewing it checks that the referenced certificate still
+carries the identity being requested. If it does not, because the `Certificate` subject or SANs changed or because
+the Secret was edited, ncm-issuer re-enrolls instead of renewing and records a `CertIDRejected` event on the
+`CertificateRequest`.
+
 You can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
 In case you use [cmctl](https://cert-manager.io/docs/reference/cmctl/):
@@ -525,5 +553,20 @@ the desired value and update your deployment. To get all possible log messages, 
 
 There is also the possibility of using sidecar for troubleshooting purposes - just change the value of
 `sidecar.enabled` to **true** in `values.yaml` and update your deployment.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Getting help
+
+[SUPPORT.md](SUPPORT.md) lists where to ask and what to include in a bug report. Security
+vulnerabilities go through the private process in [SECURITY.md](SECURITY.md) rather than a public
+issue.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Contributing
+
+Pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the development setup, the build
+and test commands, the coding conventions and how a change gets reviewed.
 
 <p align="right">(<a href="#top">back to top</a>)</p>

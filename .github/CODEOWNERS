@@ -1,0 +1,5 @@
+# Review requests are raised automatically from this file.
+# Only the last matching pattern applies, so a path-specific rule must repeat every owner
+# who should still be asked for that path.
+
+* @misiektoja

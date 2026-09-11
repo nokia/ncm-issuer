@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	apiutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -67,7 +68,9 @@ type CertificateRequestReconciler struct {
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile will read and validate a NCM Insta Issuer resource associated to the
 // CertificateRequest resource, and it will sign the CertificateRequest with the
@@ -207,19 +210,22 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var ca, tls []byte
 	var certID string
 
+	renewing := isQualified && crtIDSecret != nil && !p.PreventRenewal()
+	certIDRejected := false
+
 	// Determine operation metadata early so that we can log it consistently for
 	// both success and failure paths.
 	operation := "sign"
 	operationType := "initial-enrollment"
 	if crt.Status.Revision != nil && *crt.Status.Revision >= 1 {
 		operationType = "reenrollment"
-		if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
+		if renewing {
 			operation = "renew"
 			operationType = "renewal"
 		}
 	}
 
-	if isQualified && crtIDSecret != nil && !p.PreventRenewal() {
+	if renewing {
 		log.V(1).Info("Renewing certificate",
 			"certificateName", cr.Annotations[cmapi.CertificateNameKey],
 			"operation", operation,
@@ -228,8 +234,26 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			"issuerRefName", cr.Spec.IssuerRef.Name,
 			"issuerRefNamespace", issuerName.Namespace,
 		)
-		ca, tls, certID, err = p.Renew(cr, string(crtIDSecret.Data["cert-id"]))
-		if err != nil {
+		ca, tls, certID, err = p.Renew(cr, string(crtIDSecret.Data[certIDSecretKey]))
+		if errors.Is(err, provisioner.ErrCertIDMismatch) {
+			// The cert-id lives in a secret the requester can write, and this one does
+			// not belong to the certificate being renewed, so it cannot be used to pick
+			// what to renew in NCM. Re-enrol instead, which can only ever produce a
+			// certificate for this request.
+			log.Error(err, "Refusing to renew with the stored cert-id, falling back to re-enrollment",
+				"certificateName", cr.Annotations[cmapi.CertificateNameKey],
+				"issuerRefKind", cr.Spec.IssuerRef.Kind,
+				"issuerRefName", cr.Spec.IssuerRef.Name,
+				"issuerRefNamespace", issuerName.Namespace,
+			)
+			r.Recorder.Event(cr, core.EventTypeWarning, "CertIDRejected",
+				"Stored cert-id does not belong to this certificate, falling back to re-enrollment")
+
+			renewing = false
+			certIDRejected = true
+			operation = "sign"
+			operationType = "reenrollment"
+		} else if err != nil {
 			if errorContains(err, "not reachable NCM API") {
 				log.Error(err, "Could not established connection to any NCM API",
 					"operation", operation,
@@ -253,12 +277,28 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 
-		crtIDSecret = GetCertIDSecret(req.Namespace, crtSecretName, certID)
-		if err = r.Update(ctx, crtIDSecret); err != nil {
-			_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
-			return ctrl.Result{}, err
+		if renewing {
+			crtIDSecret = GetCertIDSecret(req.Namespace, crtSecretName, certID)
+			if err = r.Update(ctx, crtIDSecret); err != nil {
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
+				return ctrl.Result{}, err
+			}
 		}
-	} else {
+	}
+
+	if !renewing {
+		certName := cr.Annotations[cmapi.CertificateNameKey]
+
+		// Rehydrate any pending CSR persisted in the details secret so a controller
+		// restart or leader change resumes polling the existing CSR in NCM instead of
+		// sending a new one and creating a duplicate CSR.
+		if crtIDSecret != nil {
+			if href := string(crtIDSecret.Data[pendingCSRHrefKey]); href != "" {
+				checked, _ := strconv.Atoi(string(crtIDSecret.Data[pendingCSRCheckedKey]))
+				p.LoadPendingCSR(req.Namespace, certName, href, checked)
+			}
+		}
+
 		log.V(1).Info("Signing certificate",
 			"certificateName", cr.Annotations[cmapi.CertificateNameKey],
 			"operation", operation,
@@ -268,6 +308,34 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			"issuerRefNamespace", issuerName.Namespace,
 		)
 		ca, tls, certID, err = p.Sign(cr)
+
+		// Persist the resulting pending CSR state (or the freshly issued cert-id) before
+		// acting on the outcome so a restart between reconciles neither loses the CSR
+		// href nor resets the check counter that enforces SingleCSRCheckLimit.
+		href, checked, hasPending := p.GetPendingCSR(req.Namespace, certName)
+		existingHasPending := crtIDSecret != nil && string(crtIDSecret.Data[pendingCSRHrefKey]) != ""
+		if (err == nil && certID != "") || hasPending || existingHasPending {
+			desired := map[string]string{}
+			if err == nil && certID != "" {
+				desired[certIDSecretKey] = certID
+			} else if crtIDSecret != nil && !certIDRejected {
+				// A cert-id that was just rejected is not carried forward, otherwise the
+				// rewritten value would survive in the secret until the next issuance.
+				if id := string(crtIDSecret.Data[certIDSecretKey]); id != "" {
+					desired[certIDSecretKey] = id
+				}
+			}
+			if hasPending {
+				desired[pendingCSRHrefKey] = href
+				desired[pendingCSRCheckedKey] = strconv.Itoa(checked)
+				desired[pendingCSRLastCheckedAtKey] = r.Clock.Now().UTC().Format(time.RFC3339)
+			}
+			if perr := r.upsertDetailsSecret(ctx, req.Namespace, crtSecretName, crtIDSecret, desired); perr != nil {
+				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to persist certificate details secret err: %v", perr)
+				return ctrl.Result{}, perr
+			}
+		}
+
 		if err != nil {
 			switch {
 			case errorContains(err, "not reachable NCM API"):
@@ -323,18 +391,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 				)
 				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to sign certificate err: %v", err)
 				return ctrl.Result{}, nil
-			}
-		}
-
-		if crtIDSecret != nil {
-			if err = r.Update(ctx, GetCertIDSecret(req.Namespace, crtSecretName, certID)); err != nil {
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to update secret err: %v", err)
-				return ctrl.Result{}, err
-			}
-		} else {
-			if err = r.Create(ctx, GetCertIDSecret(req.Namespace, crtSecretName, certID)); err != nil {
-				_ = r.setStatus(ctx, cr, cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Failed to create secret err: %v", err)
-				return ctrl.Result{}, err
 			}
 		}
 	}
@@ -506,6 +562,29 @@ func (r *CertificateRequestReconciler) setStatus(ctx context.Context, cr *cmapi.
 		return err
 	}
 	return nil
+}
+
+// upsertDetailsSecret writes desired as the complete contents of the <cert>-details secret, creating it when absent and replacing its data when present, so obsolete keys such as a cleared pending CSR do not linger.
+func (r *CertificateRequestReconciler) upsertDetailsSecret(ctx context.Context, namespace, name string, existing *core.Secret, desired map[string]string) error {
+	if existing == nil {
+		if len(desired) == 0 {
+			return nil
+		}
+		secret := &core.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      name,
+			},
+			StringData: desired,
+			Type:       core.SecretTypeOpaque,
+		}
+		return r.Create(ctx, secret)
+	}
+
+	updated := existing.DeepCopy()
+	updated.Data = nil
+	updated.StringData = desired
+	return r.Update(ctx, updated)
 }
 
 func (r *CertificateRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {

@@ -5,7 +5,16 @@ on:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
-    
+
+# Every job only reads the repository. The reusable workflows called below inherit this and
+# cannot widen it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   go-versions:
     name: "lookup go versions"
@@ -13,16 +22,20 @@ jobs:
     outputs:
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: arnested/go-version-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: arnested/go-version-action@83df3d2be676ba748e3c243a7f996e76c28cff23 # v2.1.7
         id: versions
   build-image:
     name: "build ncm-issuer docker image"
     runs-on: ubuntu-latest
     needs: go-versions
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       - run: go version
       - name: "build ncm-issuer image and save to docker image"
         run: |
@@ -39,7 +52,7 @@ jobs:
           docker save ncm-issuer > ncm-issuer-image.tar
           echo "ncm-issuer image built and saved to ncm-issuer-image.tar"
       - name: "Upload ncm-issuer image"
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ncm-issuer-image
           path: ncm-issuer-image.tar

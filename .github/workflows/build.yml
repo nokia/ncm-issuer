@@ -1,7 +1,22 @@
 name: build
 on:
+  # Pull requests are the gate for contributed changes, including those from forks. Pushes are
+  # limited to the branches that releases are cut from, so a branch with an open pull request is
+  # not built twice for the same commit.
   push:
+    branches:
+      - main
+      - 'release-*'
+  pull_request:
   workflow_dispatch:
+
+# Jobs that need more than repository read access declare it themselves.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   go-versions:
@@ -10,8 +25,10 @@ jobs:
     outputs:
       go-mod-version: ${{ steps.versions.outputs.go-mod-version }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: arnested/go-version-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: arnested/go-version-action@83df3d2be676ba748e3c243a7f996e76c28cff23 # v2.1.7
         id: versions
 
   golangci:
@@ -22,20 +39,19 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
-      - name: "install golangci-lint"
-        run: |
-          mkdir -p ${{ github.workspace }}/bin
-          GOBIN=${{ github.workspace }}/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+      - name: "verify golangci-lint configuration"
+        run: make lint-config
 
       - name: "run golangci-lint"
-        run: |
-          ${{ github.workspace }}/bin/golangci-lint run --out-format=colored-line-number --config=.golangci.yml
+        run: make lint
 
   actionlint:
     name: "lint workflows"
@@ -44,23 +60,48 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
       - name: "run actionlint"
         run: make lint-actions
 
+      - name: "verify actions are pinned to commit SHAs"
+        run: make lint-actions-pinned
+
+  versions:
+    name: "check versions and notices"
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      # Both checks parse the tree with awk and git grep, so this job deliberately sets up no Go
+      # toolchain and downloads no modules.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "verify the version literals agree"
+        run: make check-version
+
+      - name: "verify the third-party notices match go.mod"
+        run: make check-notices
+
   unit:
     name: "unit tests"
     needs: go-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 
@@ -75,9 +116,11 @@ jobs:
     needs: go-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: "setup go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.go-versions.outputs.go-mod-version }}
 

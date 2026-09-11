@@ -82,6 +82,20 @@ func IssuerHasConditionAndReasonAndMessage(status ncmv1.IssuerStatus, c ncmv1.Is
 	return false
 }
 
+const (
+	// certIDSecretKey is the key in the <cert>-details secret holding the issued certificate id.
+	certIDSecretKey = "cert-id"
+
+	// pendingCSRHrefKey is the key in the <cert>-details secret holding the href of a CSR still awaiting acceptance in NCM.
+	pendingCSRHrefKey = "pending-csr-href"
+
+	// pendingCSRCheckedKey is the key in the <cert>-details secret holding how many times the pending CSR status has been polled.
+	pendingCSRCheckedKey = "pending-csr-checked"
+
+	// pendingCSRLastCheckedAtKey is the key in the <cert>-details secret holding the RFC3339 timestamp of the last pending CSR status poll.
+	pendingCSRLastCheckedAtKey = "pending-csr-last-checked-at"
+)
+
 func GetCertIDSecret(namespace string, name string, certID string) *v1.Secret {
 	secret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -89,7 +103,7 @@ func GetCertIDSecret(namespace string, name string, certID string) *v1.Secret {
 			Name:      name,
 		},
 		StringData: map[string]string{
-			"cert-id": certID,
+			certIDSecretKey: certID,
 		},
 		Type: v1.SecretTypeOpaque,
 	}

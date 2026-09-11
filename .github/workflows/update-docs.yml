@@ -3,18 +3,32 @@ name: Update GitHub Pages Documentation
 on:
   workflow_dispatch:
 
+permissions: {}
+
+# Queue overlapping runs rather than cancelling one, so a partial commit is never left on
+# gh-pages.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   pages:
     name: Build mkdocs and helm charts
     runs-on: ubuntu-latest
+    # The two git-auto-commit steps below push the rendered site and the packaged charts to
+    # the gh-pages branch.
+    permissions:
+      contents: write
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         ref: main
+        # Nothing pushes before the gh-pages checkout below re-authenticates.
+        persist-credentials: false
 
     - name: Install Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: 3.x
 
@@ -30,10 +44,13 @@ jobs:
       run: helm package helm/
 
     - name: Checkout to gh-pages
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         ref: gh-pages
         clean: false
+        # The git-auto-commit steps below push the rendered site and the packaged charts using
+        # the credentials this checkout leaves in the workspace.
+        persist-credentials: true
 
     - name: Move files to the pages gh-pages
       run: |
@@ -43,13 +60,13 @@ jobs:
     - name: Index charts
       run: helm repo index ./charts
 
-    - uses: stefanzweifel/git-auto-commit-action@v7
+    - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
       with:
         commit_message: Update documentation
         file_pattern: './docs'
         skip_checkout: true
 
-    - uses: stefanzweifel/git-auto-commit-action@v7
+    - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
       with:
         commit_message: Update helm charts
         file_pattern: './charts'

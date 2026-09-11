@@ -21,12 +21,19 @@ on:
         required: false
         default: "1.20.3"
 
+# These tests only read the repository. Declaring it here keeps the grant minimal no matter
+# which workflow calls this one.
+permissions:
+  contents: read
+
 jobs:
   client-auth-test:
     name: "tls with client auth"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup

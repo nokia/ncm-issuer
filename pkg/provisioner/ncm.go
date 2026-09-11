@@ -17,8 +17,11 @@ limitations under the License.
 package provisioner
 
 import (
+	"bytes"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -26,6 +29,7 @@ import (
 	"github.com/nokia/ncm-issuer/pkg/cfg"
 	"github.com/nokia/ncm-issuer/pkg/ncmapi"
 	crtmetrics "github.com/nokia/ncm-issuer/pkg/provisioner/metrics"
+	ncmutil "github.com/nokia/ncm-issuer/pkg/util"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -51,6 +55,12 @@ var (
 	ErrCSRNotAccepted        = errors.New("CSR has not been accepted yet")
 	ErrCSRRejected           = errors.New("CSR has been rejected")
 	ErrCSRCheckLimitExceeded = errors.New("CSR has not been accepted for too long")
+
+	// ErrCertIDMismatch reports that the stored cert-id cannot be used to renew the
+	// requested certificate, either because it is malformed or because it refers to a
+	// certificate issued for a different identity. Callers are expected to fall back to
+	// a fresh enrollment.
+	ErrCertIDMismatch = errors.New("stored cert-id does not refer to a certificate issued for this request")
 )
 
 // ProvisionersMap stores prepared (NCM API Client is configured) and ready to
@@ -123,6 +133,19 @@ func NewProvisioner(ncmCfg *cfg.NCMConfig, log logr.Logger) (*Provisioner, error
 		log: log,
 	}
 	return p, nil
+}
+
+// LoadPendingCSR rehydrates the in-memory pending CSR store from externally persisted state so a controller restart or leader change resumes polling the existing CSR instead of sending a duplicate to NCM.
+func (p *Provisioner) LoadPendingCSR(namespace, certName, href string, checked int) {
+	if href == "" {
+		return
+	}
+	p.pendingCSRs.Load(namespace, certName, href, checked)
+}
+
+// GetPendingCSR returns the current pending CSR href and check counter for a certificate so the caller can persist them across restarts.
+func (p *Provisioner) GetPendingCSR(namespace, certName string) (string, int, bool) {
+	return p.pendingCSRs.GetState(namespace, certName)
 }
 
 // Sign uses NCMClient to communicate with NCM API to sign CertificateRequest.
@@ -201,7 +224,14 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 		return nil, nil, "", err
 	}
 
-	certURLPath, _ := ncmapi.GetPathFromCertHref(certID)
+	// The cert-id lives in a Secret in the requester's own namespace, so it must be
+	// checked before it is used to address NCM. Doing this ahead of the renewal keeps a
+	// rewritten cert-id from reaching the state-changing call at all.
+	certURLPath, err := p.verifyCertIDBelongsToRequest(cr, certID)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
 	renewCertResp, err := p.NCMClient.RenewCertificate(certURLPath, cr.Spec.Duration, p.NCMConfig.ProfileID)
 	crtmetrics.CertificateRenewalTotal.Inc()
 	if err != nil {
@@ -223,6 +253,128 @@ func (p *Provisioner) Renew(cr *cmapi.CertificateRequest, certID string) ([]byte
 
 func (p *Provisioner) PreventRenewal() bool {
 	return p.NCMConfig.ReenrollmentOnRenew
+}
+
+// verifyCertIDBelongsToRequest validates the stored cert-id and confirms that the NCM certificate it addresses is the one cr renews, returning the resource path to renew.
+func (p *Provisioner) verifyCertIDBelongsToRequest(cr *cmapi.CertificateRequest, certID string) (string, error) {
+	certURLPath, err := ncmapi.ValidateCertHref(certID)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrCertIDMismatch, err)
+	}
+
+	csr, err := ncmutil.DecodeX509CertificateRequestBytes(cr.Spec.Request)
+	if err != nil {
+		return "", fmt.Errorf("%w: cannot decode the CSR to compare it with the referenced certificate: %w", ErrCertIDMismatch, err)
+	}
+
+	// A plain read of the referenced certificate. It tells us whether the cert-id still
+	// belongs to this request before anything is modified in NCM.
+	existingCertInPEM, err := p.NCMClient.DownloadCertificateInPEM(certURLPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to download the certificate referenced by cert-id, its href: %s, err: %w", certID, err)
+	}
+
+	existingCerts, err := ncmutil.DecodeX509CertificateBytes(existingCertInPEM)
+	if err != nil {
+		return "", fmt.Errorf("%w: cert-id does not address a certificate: %w", ErrCertIDMismatch, err)
+	}
+
+	if err := certMatchesRenewalRequest(existingCerts[0], csr); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrCertIDMismatch, err)
+	}
+
+	return certURLPath, nil
+}
+
+// certMatchesRenewalRequest reports whether cert is the certificate that csr renews, requiring the same public key and every requested identity.
+func certMatchesRenewalRequest(cert *x509.Certificate, csr *x509.CertificateRequest) error {
+	// The key check is what actually ties the two together. Renewal only runs for a
+	// private key rotation policy of "Never", so a genuine renewal always presents the
+	// key of the certificate being renewed. Subject and SANs alone would not do,
+	// because whoever creates the request also chooses what the CSR asks for.
+	if err := certHasCSRPublicKey(cert, csr); err != nil {
+		return err
+	}
+
+	return certCoversCSRIdentity(cert, csr)
+}
+
+// certHasCSRPublicKey reports whether cert carries the public key of csr.
+func certHasCSRPublicKey(cert *x509.Certificate, csr *x509.CertificateRequest) error {
+	certPublicKey, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+	if err != nil {
+		return fmt.Errorf("cannot serialise the public key of the referenced certificate: %w", err)
+	}
+
+	csrPublicKey, err := x509.MarshalPKIXPublicKey(csr.PublicKey)
+	if err != nil {
+		return fmt.Errorf("cannot serialise the public key of the CSR: %w", err)
+	}
+
+	if !bytes.Equal(certPublicKey, csrPublicKey) {
+		return errors.New("referenced certificate carries a different public key than the CSR")
+	}
+
+	return nil
+}
+
+// certCoversCSRIdentity reports whether cert carries every identity requested in csr, tolerating additional names that NCM may add on its own.
+func certCoversCSRIdentity(cert *x509.Certificate, csr *x509.CertificateRequest) error {
+	dnsNames := newLowercaseSet(cert.DNSNames)
+	emails := newLowercaseSet(cert.EmailAddresses)
+
+	ips := map[string]struct{}{}
+	for _, ip := range cert.IPAddresses {
+		ips[ip.String()] = struct{}{}
+	}
+
+	uris := map[string]struct{}{}
+	for _, uri := range cert.URIs {
+		uris[uri.String()] = struct{}{}
+	}
+
+	for _, dnsName := range csr.DNSNames {
+		if _, ok := dnsNames[strings.ToLower(dnsName)]; !ok {
+			return fmt.Errorf("referenced certificate does not include the requested DNS name %q", dnsName)
+		}
+	}
+
+	for _, email := range csr.EmailAddresses {
+		if _, ok := emails[strings.ToLower(email)]; !ok {
+			return fmt.Errorf("referenced certificate does not include the requested email address %q", email)
+		}
+	}
+
+	for _, ip := range csr.IPAddresses {
+		if _, ok := ips[ip.String()]; !ok {
+			return fmt.Errorf("referenced certificate does not include the requested IP address %q", ip.String())
+		}
+	}
+
+	for _, uri := range csr.URIs {
+		if _, ok := uris[uri.String()]; !ok {
+			return fmt.Errorf("referenced certificate does not include the requested URI %q", uri.String())
+		}
+	}
+
+	if commonName := csr.Subject.CommonName; commonName != "" {
+		_, isDNSName := dnsNames[strings.ToLower(commonName)]
+		_, isIP := ips[commonName]
+		if !strings.EqualFold(cert.Subject.CommonName, commonName) && !isDNSName && !isIP {
+			return fmt.Errorf("referenced certificate does not include the requested common name %q", commonName)
+		}
+	}
+
+	return nil
+}
+
+// newLowercaseSet returns the values as a set folded to lower case.
+func newLowercaseSet(values []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		set[strings.ToLower(value)] = struct{}{}
+	}
+	return set
 }
 
 // CheckHealth performs a synchronous probe of the underlying NCM API client and

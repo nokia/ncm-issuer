@@ -1,5 +1,34 @@
 # Release Notes
 
+## Version 1.2.3 (Chart: 1.2.3, Image: 1.2.3) - 11 Sep 2026
+
+ncm-issuer 1.2.3 fixes an authorization flaw in certificate renewal, clears a dependency vulnerability reachable from the NCM API client and stops duplicate CSRs reaching NCM after a controller restart.
+
+### Security fixes
+
+- **The NCM `cert-id` used at renewal is now bound to the certificate being renewed** (GHSA-472p-2cfj-h7h7, CWE-862, CWE-441). The id is stored in the `<certificate-name>-details` Secret, so anyone able to write Secrets in that namespace could point a renewal at another NCM certificate and have it returned into their own namespace. Renewal keeps the existing private key, so ncm-issuer now requires the referenced certificate to carry the same public key as the CSR, along with the requested subject and SANs, before it changes anything in NCM. A rejected id no longer fails issuance: ncm-issuer logs it, raises a `CertIDRejected` event and re-enrolls instead. A `Certificate` whose subject or SANs changed is now also re-enrolled rather than renewed; thanks to [Vibusha](https://github.com/vibushasatheeshkumar) for reporting it through coordinated disclosure
+
+- **Updated `golang.org/x/text` to clear a vulnerability reachable from the NCM API client** (GO-2026-5970). Versions before `v0.39.0` can enter an infinite loop on invalid input and could hang a controller request. `golang.org/x/net` (GO-2026-5942) and `go.opentelemetry.io/otel` (GO-2026-5158) were updated in the same pass for code the controller does not call. All three shipped in 1.2.2
+
+- Upgraded **Go** to `1.26.8` for the binary and Docker image, picking up upstream fixes in `crypto/tls`, `encoding/asn1`, `html/template`, `net/http` and the `go` command
+
+### Bug fixes and improvements
+
+- **Fixed duplicate CSRs being created in NCM after a controller restart or leader change**. A CSR still awaiting approval in NCM is now tracked across restarts, so ncm-issuer resumes waiting on it instead of submitting a new one, and the 24 hour manual approval window is no longer reset. The `<certificate-name>-details` Secret holds this bookkeeping and is cleared once the certificate is issued or the request is rejected
+- **Tightened RBAC to what the controller actually uses**, in both the Helm chart and the kustomize manifests. Unused `Issuer`/`ClusterIssuer`, ConfigMap and Event verbs and a dead `cert-manager.io` secrets rule are no longer granted. Leader election and certificate-details Secret persistence are unaffected
+- **Container base images are now pinned by digest**, so a given release always builds on a known base. The controller image previously used `alpine:latest`. Available Alpine package upgrades are applied during the build, because Alpine patches packages faster than it rebuilds images
+
+### Other changes
+
+- **Added a security policy** (`SECURITY.md`) explaining how to report a vulnerability privately, plus contributor and support guides (`CONTRIBUTING.md`, `SUPPORT.md`), issue forms, a pull request template and `CODEOWNERS`. Security reports are directed to the private advisory form rather than a public issue
+- **Added a third-party notices document** (`THIRD_PARTY_NOTICES.md`) listing each direct dependency with its pinned version and licence, and the base images the published containers are built on
+- **Each release now carries an SPDX SBOM of the published container image**, attached to the GitHub release as a `.spdx.json` asset next to the existing tarballs
+- **Widened and hardened CI.** Lint, tests and the build now run on pull requests including those from forks. CodeQL, govulncheck, a Trivy image scan and OpenSSF Scorecard run on pull requests and weekly, with findings in the repository [Security tab](https://github.com/nokia/ncm-issuer/security). Every third-party action is pinned to a commit SHA with minimal token permissions, and Dependabot now also proposes weekly Go dependency updates. These are pipeline changes and do not alter the released controller
+
+### Acknowledgements
+
+Thanks to [Vibusha](https://github.com/vibushasatheeshkumar) for reporting the `cert-id` renewal issue through coordinated disclosure, with a detailed write-up and proof of concept.
+
 ## Version 1.2.2 (Chart: 1.2.2, Image: 1.2.2) - 06 Jul 2026
 
 ncm-issuer 1.2.2 is a security hardening release addressing vulnerabilities reported by **Claude Mythos Preview** scan (Nokia is part of **Project Glasswing** as it builds and maintains critical software infrastructure).
