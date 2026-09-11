@@ -126,6 +126,14 @@ that already have a fix waiting in the repository, which the image scan then rep
 upgrade clears those, at the cost of resolving the package set at build time rather than fixing it
 by the digest alone.
 
+The `golang` builder image is held on the 1.26 line by an `ignore` entry in
+`.github/dependabot.yml`, so only 1.26 patch releases are proposed. The build toolchain has to stay
+in step with the `go` directive in `go.mod`, which is what the workflows read, and with the Go
+version the pinned golangci-lint was built against, since a linter built for an older Go cannot
+read export data written by a newer one. Moving to a newer Go line is therefore a deliberate change
+to `go.mod`, the Dockerfile and that bound together, and it has to happen before the 1.26 line
+stops receiving upstream security fixes, which is when the second Go release after it ships.
+
 ## Version numbers
 
 The release version is written in several files, and `main.go` is the one that counts: both the
