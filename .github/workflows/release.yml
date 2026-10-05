@@ -32,13 +32,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: "set up Docker Buildx"
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: "build and publish"
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ./Dockerfile
@@ -71,13 +71,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: "set up Docker Buildx"
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: "build and publish"
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./ncm-issuer-utils/docker
           file: ./ncm-issuer-utils/docker/Dockerfile
@@ -102,7 +102,7 @@ jobs:
           echo "ASSET=ncm-issuer-${APP_VERSION}-${BUILD_VERSION}.tar.gz" >> $GITHUB_ENV
 
       - name: "set up Docker Buildx"
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: "build release tarball"
         run: make pack-app
@@ -129,7 +129,7 @@ jobs:
           echo "ASSET=builds/ncm-issuer-utils-images/ncm-issuer-utils-${BUILD_VERSION}.tgz" >> $GITHUB_ENV
 
       - name: "set up Docker Buildx"
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: "build troubleshooting sidecar image tarball"
         run: make docker-save-utils
@@ -156,7 +156,7 @@ jobs:
         run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
 
       - name: "generate the image SBOM"
-        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           image: ghcr.io/nokia/ncm-issuer:${{ env.TAG }}
           format: spdx-json
