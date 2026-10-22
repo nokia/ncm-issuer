@@ -4,15 +4,17 @@
 #
 #   check   report whether the page for the current version is missing or stale, exit non-zero if so
 #   sync    write the page for the current version and add its navigation entry
+#   body    print the GitHub release description for the current version
 #
 # The documentation site needs one page per release, and RELEASE_NOTES.md already holds that text,
 # so the page is derived from it rather than written twice. main.go names the version being
-# prepared, as it does for every other version literal.
+# prepared, as it does for every other version literal. The release workflow uses the same text as
+# the description of the draft GitHub release.
 #
-# The page has to be on main before the release workflow builds the site, because the site is built
-# from the default branch and a page that only ever existed on a runner would disappear from the
-# next build. Generating it here means the release pull request carries it and the workflow never
-# has to push to a branch that requires pull requests.
+# The page has to be committed before the release is tagged, because the site is built from the
+# release tag and a page that only ever existed on a runner would disappear from the next build.
+# Generating it here means the release pull request carries it and the workflow never has to push
+# to a branch that requires pull requests.
 
 set -euo pipefail
 
@@ -59,17 +61,25 @@ extract_section() {
 	' "$NOTES" | trim_blank_lines
 }
 
-# Print the documentation page for a version exactly as it belongs on disk
-render_page() {
+# Print the release description for a version, which is also the documentation page without its front matter
+render_body() {
 	local version="$1" section
 	section="$(extract_section "$version")"
 	if [ -z "$section" ]; then
 		echo "error: $NOTES has no '## Version $version' section to publish" >&2
 		exit 1
 	fi
-	printf -- '---\ntitle: %s\n---\n\n' "$version"
 	printf "# What's changed\n\n"
 	printf '%s\n' "$section"
+}
+
+# Print the documentation page for a version exactly as it belongs on disk
+render_page() {
+	local version="$1" body
+	# Captured first so a missing section fails here rather than after the front matter is printed.
+	body="$(render_body "$version")"
+	printf -- '---\ntitle: %s\n---\n\n' "$version"
+	printf '%s\n' "$body"
 }
 
 # Print the navigation entry a version is listed under
@@ -139,8 +149,11 @@ case "${1:-}" in
 	sync)
 		sync
 		;;
+	body)
+		render_body "$(current_version)"
+		;;
 	*)
-		echo "usage: $0 check | sync" >&2
+		echo "usage: $0 check | sync | body" >&2
 		exit 1
 		;;
 esac
