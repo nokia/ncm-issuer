@@ -3,13 +3,13 @@
 
 <div id="top"></div>
 
-[![GitHub Release](https://img.shields.io/github/v/release/nokia/ncm-issuer?style=flat-square&color=blue)](https://github.com/nokia/ncm-issuer/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/nokia/ncm-issuer?style=flat-square&color=magenta)](https://github.com/nokia/ncm-issuer)
-[![Last Commit](https://img.shields.io/github/last-commit/nokia/ncm-issuer?style=flat-square&color=green)](https://github.com/nokia/ncm-issuer/commits/main)
-[![Maintenance](https://img.shields.io/badge/maintenance-active-brightgreen?style=flat-square)](https://github.com/nokia/ncm-issuer)
-[![build](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/build.yml)
-[![e2e](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia/ncm-issuer/actions/workflows/e2e.yml)
-[![OpenSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2Fnokia%2Fncm-issuer&query=%24.score&label=openssf%20scorecard&style=flat-square)](https://scorecard.dev/viewer/?uri=github.com/nokia/ncm-issuer)
+[![GitHub Release](https://img.shields.io/github/v/release/nokia-steward/ncm-issuer?style=flat-square&color=blue)](https://github.com/nokia-steward/ncm-issuer/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/nokia-steward/ncm-issuer?style=flat-square&color=magenta)](https://github.com/nokia-steward/ncm-issuer)
+[![Last Commit](https://img.shields.io/github/last-commit/nokia-steward/ncm-issuer?style=flat-square&color=green)](https://github.com/nokia-steward/ncm-issuer/commits/main)
+[![Maintenance](https://img.shields.io/badge/maintenance-active-brightgreen?style=flat-square)](https://github.com/nokia-steward/ncm-issuer)
+[![build](https://github.com/nokia-steward/ncm-issuer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nokia-steward/ncm-issuer/actions/workflows/build.yml)
+[![e2e](https://github.com/nokia-steward/ncm-issuer/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/nokia-steward/ncm-issuer/actions/workflows/e2e.yml)
+[![OpenSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2Fnokia-steward%2Fncm-issuer&query=%24.score&label=openssf%20scorecard&style=flat-square)](https://scorecard.dev/viewer/?uri=github.com/nokia-steward/ncm-issuer)
 
 <p align="center">
    <img src="./assets/ncm-issuer-logo.png" alt="ncm-issuer-logo" width="35%"/>
@@ -65,7 +65,7 @@ objects instead:
 The private key is generated in the cluster by cert-manager. It is never sent to NCM.
 
 For the full walkthrough, including who owns which step and answers to common deployment questions, see
-[How it works](https://nokia.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
+[How it works](https://nokia-steward.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
 
 ## How it works
 
@@ -85,7 +85,7 @@ objects instead:
 The private key is generated in the cluster by cert-manager. It is never sent to NCM.
 
 For the full walkthrough, including who owns which step and answers to common deployment questions, see
-[How it works](https://nokia.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
+[How it works](https://nokia-steward.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
 
 ## Prerequisites
 
@@ -126,7 +126,7 @@ The easiest way to install ncm-issuer in a Kubernetes cluster is to use Helm. Th
 <img src="./assets/installation.gif" alt="installation"/>
 
 The chart is published on GitHub Pages as a public Helm chart repository at
-`https://nokia.github.io/ncm-issuer/charts` (this URL is consumed by the `helm` CLI which fetches `/index.yaml` from it).
+`https://nokia-steward.github.io/ncm-issuer/charts` (this URL is consumed by the `helm` CLI which fetches `/index.yaml` from it).
 
 Pick one of the three install flows below based on your situation. They are equivalent in the resulting deployment. The first flow does not require cloning the repository.
 
@@ -137,8 +137,10 @@ Pick one of the three install flows below based on your situation. They are equi
 Add the repository:
 
   ```bash
-  $ helm repo add nokia https://nokia.github.io/ncm-issuer/charts
+  $ helm repo add nokia https://nokia-steward.github.io/ncm-issuer/charts
   ```
+
+> If you added the repository before ncm-issuer moved to the `nokia-steward` organization, `helm repo update` fails because the old `https://nokia.github.io/ncm-issuer/charts` URL is gone. Repoint the existing alias with `helm repo add nokia https://nokia-steward.github.io/ncm-issuer/charts --force-update`.
 
 Update the local Helm chart cache:
 
@@ -176,14 +178,14 @@ This produces a file like `ncm-issuer-<chart-version>.tgz` in the current direct
   --create-namespace --namespace ncm-issuer
   ```
 
-You can also download the `.tgz` manually from the chart repository (URLs are listed in [`index.yaml`](https://nokia.github.io/ncm-issuer/charts/index.yaml)) or mirror it to an internal artifact store before installing.
+You can also download the `.tgz` manually from the chart repository (URLs are listed in [`index.yaml`](https://nokia-steward.github.io/ncm-issuer/charts/index.yaml)) or mirror it to an internal artifact store before installing.
 
 #### From a cloned repository (development / customization)
 
 Use this flow if you want to modify the chart sources or build everything from `main`:
 
   ```bash
-  $ git clone https://github.com/nokia/ncm-issuer.git
+  $ git clone https://github.com/nokia-steward/ncm-issuer.git
   $ cd ncm-issuer
   $ helm install \
   ncm-issuer ./helm \
@@ -197,7 +199,7 @@ in the `values.yaml` file in directory that contains Helm files. Then just repea
 mentioned above.
 
   ```bash
-  sed -i "s|ghcr.io/nokia|<your-registry>|g" values.yaml
+  sed -i "s|ghcr.io/nokia-steward|<your-registry>|g" values.yaml
   ```
 
 **:warning: Warning:** Using this command will also change the registry pointing to the image location of troubleshooting sidecar.
