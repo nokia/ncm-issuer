@@ -1,0 +1,171 @@
+# Finishes a release once its draft is published.
+#
+# release.yml builds a release from its tag and leaves it as a draft. Publishing the draft moves the
+# latest tag of both container images to the release and rebuilds the documentation site and the
+# Helm chart repository on gh-pages from the release tag. Both only happen for the highest published
+# version, so publishing an older release never moves latest backwards or replaces the site with
+# older documentation. Dispatching this workflow repeats both for a published release.
+name: publish ncm-issuer release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Published release to finish, for example 1.3.0"
+        required: true
+        type: string
+
+# Every job below grants exactly the scopes it needs, so nothing is granted by default.
+permissions: {}
+
+jobs:
+  prepare:
+    name: "check the published release"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      newest: ${{ steps.newest.outputs.newest }}
+    steps:
+      - name: "resolve the release version"
+        id: release
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${DISPATCH_VERSION:-$RELEASE_TAG}"
+          if ! printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "Release version must be a stable SemVer tag such as 1.3.0, got ${version}" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: "check the release is the highest published version"
+        id: newest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # There is no checkout for gh to infer the repository from.
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          state="$(gh release view "$VERSION" --json isDraft,isPrerelease --jq 'if .isDraft then "draft" elif .isPrerelease then "prerelease" else "published" end')"
+          if [ "$state" != published ]; then
+            echo "Release ${VERSION} is a ${state}, not a published release" >&2
+            exit 1
+          fi
+          tags="$(gh release list --exclude-drafts --exclude-pre-releases --limit 1000 --json tagName --jq '.[].tagName')"
+          highest="$(printf '%s\n' "$tags" | grep -E '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -n 1)"
+          if [ "$highest" = "$VERSION" ]; then
+            echo "newest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::${VERSION} is older than the published ${highest}, so latest and gh-pages are left alone"
+            echo "newest=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  latest:
+    name: "move the latest tag of ${{ matrix.image }}"
+    needs: prepare
+    if: needs.prepare.outputs.newest == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      # One image falling behind should not stop the other from moving.
+      fail-fast: false
+      matrix:
+        include:
+          - image: ncm-issuer
+            environment: ghcr
+          - image: ncm-issuer-utils
+            environment: ghcr-utils
+    environment:
+      name: ${{ matrix.environment }}
+      url: https://github.com/nokia-steward/ncm-issuer/pkgs/container/${{ matrix.image }}
+    permissions:
+      packages: write
+    steps:
+      - name: "login to GitHub Container Registry"
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "set up Docker Buildx"
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # Copies the multi-architecture index the release pushed, so latest is the same image by
+      # digest rather than a rebuild.
+      - name: "point latest at the release"
+        env:
+          IMAGE: ghcr.io/nokia-steward/${{ matrix.image }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: docker buildx imagetools create --tag "${IMAGE}:latest" "${IMAGE}:${VERSION}"
+
+  pages:
+    name: Build mkdocs and helm charts
+    needs: prepare
+    if: needs.prepare.outputs.newest == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Shared with update-docs.yml, so the two never push to gh-pages at the same time. Queued runs
+    # wait rather than cancel, so a partial commit is never left on the branch.
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
+    steps:
+      # The tag rather than main, so the chart and the site match the release even when main has
+      # moved on since it was tagged. release.yml has already checked the release notes page.
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.version }}
+          # Nothing pushes from this checkout. The gh-pages checkout below re-authenticates for the
+          # two pushes that do happen.
+          persist-credentials: false
+
+      - name: Install Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: 3.x
+
+      - name: Install MkDocs and dependencies
+        run: |
+          pip install mkdocs-material mkdocs-awesome-pages-plugin
+
+      - name: Build MkDocs Configuration
+        run: |
+          mkdocs build
+
+      - name: Package charts
+        run: helm package helm/
+
+      - name: Checkout to gh-pages
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+          clean: false
+          # The git-auto-commit steps below push the rendered site and the packaged charts using
+          # the credentials this checkout leaves in the workspace.
+          persist-credentials: true
+
+      - name: Move files to the pages gh-pages
+        run: |
+          mkdir -p ./docs && rm -rf ./docs/* && mv ./site/* ./docs
+          mkdir -p ./charts && mv ./*.tgz ./charts
+
+      - name: Index charts
+        run: helm repo index ./charts
+
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+        with:
+          commit_message: Update documentation
+          file_pattern: './docs'
+          skip_checkout: true
+
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+        with:
+          commit_message: Update helm charts
+          file_pattern: './charts'
+          skip_checkout: true

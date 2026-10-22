@@ -1,14 +1,128 @@
+# Builds a release from its version tag and leaves it as a draft GitHub release for review.
+#
+# Pushing a tag such as 1.3.0 publishes the versioned container images with signed build provenance
+# and creates a draft release whose description is taken from RELEASE_NOTES.md. The draft carries the
+# tarballs, SBOMs, source archives, image provenance bundles, a SHA256SUMS file and a signed
+# provenance bundle for all of them. Nothing else moves until the draft is published by hand, which
+# starts publish.yml. Dispatching this workflow rebuilds an existing tag whose release is still a
+# draft or missing.
 name: release ncm-issuer
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing version tag to build, for example 1.3.0"
+        required: true
+        type: string
 
 # Every job below grants exactly the scopes it needs, so nothing is granted by default.
 permissions: {}
 
+# A second run for the same tag waits for the first rather than racing it to create the draft.
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
+  prepare:
+    name: "check the release tag"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: "resolve the release version"
+        id: release
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version="${DISPATCH_VERSION:-$REF_NAME}"
+          if ! printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "Release version must be a stable SemVer tag such as 1.3.0, got ${version}" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      # Creating a release in the GitHub UI with a new tag pushes that tag and starts this workflow.
+      # Refusing here, before any image is pushed, keeps that release from being overwritten.
+      - name: "refuse to rebuild a published release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # There is no checkout yet for gh to infer the repository from.
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          # Only a release that is genuinely absent may be treated as absent. Any other gh failure
+          # stops the run rather than being taken for one.
+          if lookup="$(gh release view "$VERSION" --json isDraft --jq .isDraft 2>&1)"; then
+            if [ "$lookup" = false ]; then
+              echo "Release ${VERSION} is already published and cannot be rebuilt." >&2
+              echo "Releases are built by pushing the tag, which creates a draft to review and publish." >&2
+              echo "To recover, delete the release and its tag, then push the tag again:" >&2
+              echo "  gh release delete ${VERSION} --cleanup-tag --yes" >&2
+              echo "  git push origin ${VERSION}" >&2
+              exit 1
+            fi
+          elif ! printf '%s\n' "$lookup" | grep -q 'release not found'; then
+            echo "Could not determine whether ${VERSION} is already released: ${lookup}" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ steps.release.outputs.version }}
+          # The full history is needed to check that the tag is on the default branch.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "check the tag is on the default branch"
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          tag_commit="$(git rev-list -n 1 "refs/tags/${VERSION}")"
+          if ! git merge-base --is-ancestor "$tag_commit" "origin/${DEFAULT_BRANCH}"; then
+            echo "Release tag ${VERSION} is not reachable from ${DEFAULT_BRANCH}" >&2
+            exit 1
+          fi
+
+      # The Makefile names images and tarballs after main.go, so a tag that disagrees with it would
+      # publish assets under a different version than the release.
+      - name: "check the tag matches the version in the code"
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          image_version="$(grep -m1 imageVersion main.go | cut -d '"' -f2)"
+          chart_version="$(grep -m1 chartVersion main.go | cut -d '"' -f2)"
+          if [ "$image_version" != "$VERSION" ] || [ "$chart_version" != "$VERSION" ]; then
+            echo "Release tag ${VERSION} does not match main.go (imageVersion ${image_version}, chartVersion ${chart_version})" >&2
+            exit 1
+          fi
+          ./hack/version.sh check
+
+      # publish.yml builds the documentation site from this tag, so its release notes page has to be
+      # in the tagged commit.
+      - name: "check the release notes page is present"
+        run: ./hack/release-notes.sh check
+
+      - name: "build the release description"
+        run: ./hack/release-notes.sh body > release-body.md
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-body
+          path: release-body.md
+          if-no-files-found: error
+          retention-days: 7
+
   docker:
     name: "publish release on GitHub Container Registry"
+    needs: prepare
     runs-on: ubuntu-latest
     environment:
       name: ghcr
@@ -16,13 +130,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # Signing the build provenance attestation with a short lived identity.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: refs/tags/${{ needs.prepare.outputs.version }}
           persist-credentials: false
-
-      - name: "get ncm-issuer image version"
-        run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
 
       - name: "login to GitHub Container Registry"
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -37,17 +152,42 @@ jobs:
       - name: "set up Docker Buildx"
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
+      # Only the version tag is pushed here. publish.yml moves latest once the draft is published.
       - name: "build and publish"
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/nokia-steward/ncm-issuer:latest,ghcr.io/nokia-steward/ncm-issuer:${{ env.TAG }}
+          tags: ghcr.io/nokia-steward/ncm-issuer:${{ needs.prepare.outputs.version }}
+
+      - name: "attest the image build provenance"
+        id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/nokia-steward/ncm-issuer
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      # The bundle is also attached to the release, so the image can be verified offline.
+      - name: "stage the image provenance for the release"
+        env:
+          PROVENANCE_BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: cp "$PROVENANCE_BUNDLE" "ncm-issuer-${VERSION}-provenance.sigstore.json"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-provenance
+          path: ncm-issuer-${{ needs.prepare.outputs.version }}-provenance.sigstore.json
+          if-no-files-found: error
+          retention-days: 7
 
   docker-utils:
     name: "publish troubleshooting sidecar on GitHub Container Registry"
+    needs: prepare
     runs-on: ubuntu-latest
     environment:
       name: ghcr-utils
@@ -55,13 +195,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: refs/tags/${{ needs.prepare.outputs.version }}
           persist-credentials: false
-
-      - name: "get ncm-issuer image version"
-        run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
 
       - name: "login to GitHub Container Registry"
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -77,29 +217,47 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: "build and publish"
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./ncm-issuer-utils/docker
           file: ./ncm-issuer-utils/docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/nokia-steward/ncm-issuer-utils:latest,ghcr.io/nokia-steward/ncm-issuer-utils:${{ env.TAG }}
+          tags: ghcr.io/nokia-steward/ncm-issuer-utils:${{ needs.prepare.outputs.version }}
+
+      - name: "attest the image build provenance"
+        id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/nokia-steward/ncm-issuer-utils
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: "stage the image provenance for the release"
+        env:
+          PROVENANCE_BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: cp "$PROVENANCE_BUNDLE" "ncm-issuer-utils-${VERSION}-provenance.sigstore.json"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: utils-image-provenance
+          path: ncm-issuer-utils-${{ needs.prepare.outputs.version }}-provenance.sigstore.json
+          if-no-files-found: error
+          retention-days: 7
 
   package:
-    name: "build and attach release tarball"
+    name: "build release tarball"
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: refs/tags/${{ needs.prepare.outputs.version }}
           persist-credentials: false
-
-      - name: "resolve tarball name"
-        run: |
-          APP_VERSION=$(grep -m1 chartVersion main.go | cut -d '"' -f2)
-          BUILD_VERSION=$(grep -m1 imageVersion main.go | cut -d '"' -f2)
-          echo "ASSET=ncm-issuer-${APP_VERSION}-${BUILD_VERSION}.tar.gz" >> $GITHUB_ENV
 
       - name: "set up Docker Buildx"
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -107,26 +265,27 @@ jobs:
       - name: "build release tarball"
         run: make pack-app
 
-      - name: "upload tarball to release"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" "${{ env.ASSET }}" --clobber
+      # The chart and image versions both equal the tag, which prepare has checked.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tarball
+          path: ncm-issuer-${{ needs.prepare.outputs.version }}-${{ needs.prepare.outputs.version }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+          # The tarball is already compressed.
+          compression-level: 0
 
   package-utils:
-    name: "build and attach troubleshooting sidecar image tarball"
+    name: "build troubleshooting sidecar image tarball"
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: refs/tags/${{ needs.prepare.outputs.version }}
           persist-credentials: false
-
-      - name: "resolve tarball path"
-        run: |
-          BUILD_VERSION=$(grep -m1 imageVersion main.go | cut -d '"' -f2)
-          echo "ASSET=builds/ncm-issuer-utils-images/ncm-issuer-utils-${BUILD_VERSION}.tgz" >> $GITHUB_ENV
 
       - name: "set up Docker Buildx"
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -134,103 +293,146 @@ jobs:
       - name: "build troubleshooting sidecar image tarball"
         run: make docker-save-utils
 
-      - name: "upload tarball to release"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" "${{ env.ASSET }}" --clobber
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: utils-tarball
+          path: builds/ncm-issuer-utils-images/ncm-issuer-utils-${{ needs.prepare.outputs.version }}.tgz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
 
   sbom:
-    name: "attach an SBOM to the release"
+    name: "generate the SBOMs"
+    # The image SBOM describes the image that was just published, so it has to run after it exists.
+    needs: [prepare, docker]
     runs-on: ubuntu-latest
-    # The SBOM describes the image that was just published, so it has to run after it exists.
-    needs: docker
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: refs/tags/${{ needs.prepare.outputs.version }}
           persist-credentials: false
 
-      - name: "get ncm-issuer image version"
-        run: echo TAG=$(grep -m1 imageVersion main.go | cut -d '"' -f2) >> $GITHUB_ENV
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: "generate the Go module SBOM"
+        run: make sbom
 
       - name: "generate the image SBOM"
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
-          image: ghcr.io/nokia-steward/ncm-issuer:${{ env.TAG }}
+          image: ghcr.io/nokia-steward/ncm-issuer:${{ needs.prepare.outputs.version }}
           format: spdx-json
-          output-file: ncm-issuer-${{ env.TAG }}.spdx.json
+          output-file: builds/ncm-issuer-${{ needs.prepare.outputs.version }}.spdx.json
           upload-artifact: false
           upload-release-assets: false
 
-      - name: "upload the SBOM to the release"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" "ncm-issuer-${{ env.TAG }}.spdx.json" --clobber
+      # Both files sit in builds/, so the artifact holds them without that directory.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: |
+            builds/ncm-issuer-${{ needs.prepare.outputs.version }}-sbom.cdx.json
+            builds/ncm-issuer-${{ needs.prepare.outputs.version }}.spdx.json
+          if-no-files-found: error
+          retention-days: 7
 
-  pages:
-    name: Build mkdocs and helm charts
+  draft:
+    name: "create the draft release"
+    # The draft appears only once every asset is built, so it is never published half complete.
+    needs: [prepare, docker, docker-utils, package, package-utils, sbom]
     runs-on: ubuntu-latest
     permissions:
+      # Creating the release and uploading its assets.
       contents: write
+      # Signing the provenance of the release assets with a short lived identity.
+      id-token: write
+      attestations: write
     steps:
-    - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        ref: main
-        # Nothing pushes to main from this job, so the token is not left in the workspace. The
-        # gh-pages checkout below re-authenticates for the two pushes that do happen.
-        persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.version }}
+          persist-credentials: false
 
-    - name: Install Python
-      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-      with:
-        python-version: 3.x
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
 
-    - name: Install MkDocs and dependencies
-      run: |
-        pip install mkdocs-material mkdocs-awesome-pages-plugin
+      - name: "build the source archives"
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: make source-archives SOURCE_ZIP="dist/ncm-issuer-${VERSION}-source.zip" SOURCE_TAR_GZ="dist/ncm-issuer-${VERSION}-source.tar.gz"
 
-    # The page for this release has to be on main already, because the site is built from main and
-    # the release pull request is what carries it. Fail here rather than publish a site whose
-    # release notes are missing.
-    - name: Verify the release notes page is present
-      run: ./hack/release-notes.sh check
+      # This list is the one place the release assets are named. The attestation and the upload
+      # below both read it. Naming each file rather than matching a glob keeps anything else in
+      # dist, such as the release description, out of the release.
+      - name: "write the release checksums"
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        working-directory: dist
+        run: |
+          sha256sum \
+            "ncm-issuer-${VERSION}-${VERSION}.tar.gz" \
+            "ncm-issuer-utils-${VERSION}.tgz" \
+            "ncm-issuer-${VERSION}-sbom.cdx.json" \
+            "ncm-issuer-${VERSION}.spdx.json" \
+            "ncm-issuer-${VERSION}-source.zip" \
+            "ncm-issuer-${VERSION}-source.tar.gz" \
+            "ncm-issuer-${VERSION}-provenance.sigstore.json" \
+            "ncm-issuer-utils-${VERSION}-provenance.sigstore.json" \
+            > "ncm-issuer-${VERSION}_SHA256SUMS.txt"
+          cat "ncm-issuer-${VERSION}_SHA256SUMS.txt"
 
-    - name: Build MkDocs Configuration
-      run: |
-        mkdocs build
+      - name: "attest the release assets"
+        id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/ncm-issuer-${{ needs.prepare.outputs.version }}_SHA256SUMS.txt
 
-    - name: Package charts
-      run: helm package helm/
+      # Supply chain scanners look for an .intoto.jsonl asset when deciding whether a release
+      # carries provenance. It also lets the assets be verified without the attestations API.
+      - name: "stage the asset provenance for the release"
+        env:
+          PROVENANCE_BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: cp "$PROVENANCE_BUNDLE" "dist/ncm-issuer-${VERSION}.intoto.jsonl"
 
-    - name: Checkout to gh-pages
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        ref: gh-pages
-        clean: false
-        # The git-auto-commit steps below push the rendered site and the packaged charts using
-        # the credentials this checkout leaves in the workspace.
-        persist-credentials: true
-
-    - name: Move files to the pages gh-pages
-      run: |
-        mkdir -p ./docs && rm -rf ./docs/* && mv ./site/* ./docs
-        mkdir -p ./charts && mv ./*.tgz ./charts
-
-    - name: Index charts
-      run: helm repo index ./charts
-
-    - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
-      with:
-        commit_message: Update documentation
-        file_pattern: './docs'
-        skip_checkout: true
-
-    - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
-      with:
-        commit_message: Update helm charts
-        file_pattern: './charts'
-        skip_checkout: true
+      - name: "create or update the draft release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        # The state is looked up again here because this token can see drafts and a release may
+        # have been published while the assets were building. Rebuilding a draft replaces its title
+        # and description, so edit the draft after this run finishes.
+        run: |
+          if lookup="$(gh release view "$VERSION" --json isDraft --jq .isDraft 2>&1)"; then
+            case "$lookup" in
+              true)
+                gh release edit "$VERSION" --draft --notes-file dist/release-body.md --title "$VERSION" --verify-tag
+                ;;
+              false)
+                echo "Release ${VERSION} was published while this run was building it." >&2
+                exit 1
+                ;;
+              *)
+                echo "Unexpected release state for ${VERSION}: ${lookup}" >&2
+                exit 1
+                ;;
+            esac
+          elif printf '%s\n' "$lookup" | grep -q 'release not found'; then
+            gh release create "$VERSION" --draft --notes-file dist/release-body.md --title "$VERSION" --verify-tag
+          else
+            echo "Could not determine whether ${VERSION} is already released: ${lookup}" >&2
+            exit 1
+          fi
+          sums="dist/ncm-issuer-${VERSION}_SHA256SUMS.txt"
+          assets=()
+          while read -r _ name; do
+            assets+=("dist/${name}")
+          done < "$sums"
+          gh release upload "$VERSION" "${assets[@]}" "$sums" "dist/ncm-issuer-${VERSION}.intoto.jsonl" --clobber
+          echo "Draft release: $(gh release view "$VERSION" --json url --jq .url)" >> "$GITHUB_STEP_SUMMARY"

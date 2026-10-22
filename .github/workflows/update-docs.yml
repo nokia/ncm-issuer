@@ -5,10 +5,10 @@ on:
 
 permissions: {}
 
-# Queue overlapping runs rather than cancelling one, so a partial commit is never left on
-# gh-pages.
+# Shared with the pages job of publish.yml, so the two never push to gh-pages at the same time.
+# Queued runs wait rather than cancel, so a partial commit is never left on the branch.
 concurrency:
-  group: ${{ github.workflow }}
+  group: gh-pages
   cancel-in-progress: false
 
 jobs:
