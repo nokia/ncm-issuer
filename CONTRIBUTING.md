@@ -54,7 +54,7 @@ Do not hand-edit `config/crd/bases/` or any `zz_generated.*.go`.
 
 ## Version numbers
 
-The release version is repeated in `main.go`, the Helm chart and the sidecar manifest, and CI fails if they disagree. Use `make set-version VERSION=x.y.z` rather than editing them one at a time, then add the matching `RELEASE_NOTES.md` section by hand. [`.github/TESTING.md`](.github/TESTING.md#version-numbers) lists which file has to match which value.
+The release version is repeated in `main.go`, the Helm chart and the sidecar manifest, and CI fails if they disagree. Use `make set-version VERSION=x.y.z` rather than editing them one at a time, then add the matching `RELEASE_NOTES.md` section by hand. [`.github/TESTING.md`](.github/TESTING.md#version-numbers) lists which file has to match which value. [Releases](.github/TESTING.md#releases) describes how a release is tagged and published.
 
 ## Coding conventions
 
