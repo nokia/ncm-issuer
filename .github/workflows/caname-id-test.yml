@@ -14,12 +14,12 @@ on:
         type: string
         description: "microk8s channel to test against"
         required: false
-        default: "1.35"
+        default: "1.36"
       certmgr-version:
         type: string
         description: "cert-manager version to pin"
         required: false
-        default: "1.20.3"
+        default: "1.21.2"
 
 # These tests only read the repository. Declaring it here keeps the grant minimal no matter
 # which workflow calls this one.

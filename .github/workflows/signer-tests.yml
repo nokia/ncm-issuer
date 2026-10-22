@@ -32,9 +32,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ inputs.full-matrix }}" = "true" ]; then
-            echo 'matrix={"include":[{"k8s":"1.36","certmgr":"1.21.0","experimental":true},{"k8s":"1.35","certmgr":"1.20.3"},{"k8s":"1.32","certmgr":"1.20.3"},{"k8s":"1.35","certmgr":"1.19.6"},{"k8s":"1.31","certmgr":"1.19.6"},{"k8s":"1.33","certmgr":"1.18.6"},{"k8s":"1.29","certmgr":"1.18.6","experimental":true}]}' >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[{"k8s":"1.37","certmgr":"1.21.2","experimental":true},{"k8s":"1.36","certmgr":"1.21.2"},{"k8s":"1.33","certmgr":"1.21.2"},{"k8s":"1.35","certmgr":"1.20.4"},{"k8s":"1.32","certmgr":"1.20.4"},{"k8s":"1.35","certmgr":"1.19.6"},{"k8s":"1.31","certmgr":"1.19.6"}]}' >> "$GITHUB_OUTPUT"
           else
-            echo 'matrix={"include":[{"k8s":"1.35","certmgr":"1.20.3"},{"k8s":"1.31","certmgr":"1.19.6"}]}' >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[{"k8s":"1.36","certmgr":"1.21.2"},{"k8s":"1.32","certmgr":"1.20.4"}]}' >> "$GITHUB_OUTPUT"
           fi
 
   issuer-test:
@@ -164,8 +164,8 @@ jobs:
     - name: "provision cluster and cert-manager"
       uses: ./.github/actions/e2e-setup
       with:
-        k8s-version: "1.35"
-        certmgr-version: "1.20.3"
+        k8s-version: "1.36"
+        certmgr-version: "1.21.2"
         image-artifact-name: ${{ inputs.image-artifact-name }}
 
     - name: "prepare environment / create namespace and secrets"
