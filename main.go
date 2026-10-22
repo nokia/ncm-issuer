@@ -21,9 +21,9 @@ import (
 	"os"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
-	"github.com/nokia/ncm-issuer/pkg/controllers"
-	"github.com/nokia/ncm-issuer/pkg/provisioner"
+	ncmv1 "github.com/nokia-steward/ncm-issuer/api/v1"
+	"github.com/nokia-steward/ncm-issuer/pkg/controllers"
+	"github.com/nokia-steward/ncm-issuer/pkg/provisioner"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"

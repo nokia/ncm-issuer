@@ -33,7 +33,7 @@ import (
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
-	"github.com/nokia/ncm-issuer/pkg/cfg"
+	"github.com/nokia-steward/ncm-issuer/pkg/cfg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

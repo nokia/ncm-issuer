@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/nokia/ncm-issuer/pkg/ncmapi"
+	"github.com/nokia-steward/ncm-issuer/pkg/ncmapi"
 )
 
 func findCA(casResponse *ncmapi.CAsResponse, casHref, casName string) (*ncmapi.CAResponse, bool) {

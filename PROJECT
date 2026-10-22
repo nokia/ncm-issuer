@@ -2,7 +2,7 @@ domain: ncm.nokia.com
 layout:
 - go.kubebuilder.io/v3
 projectName: ncm-issuer
-repo: github.com/nokia/ncm-issuer
+repo: github.com/nokia-steward/ncm-issuer
 resources:
 - api:
     crdVersion: v1
@@ -10,7 +10,7 @@ resources:
   domain: ncm.nokia.com
   group: certmanager.ncm.nokia.com
   kind: ClusterIssuer
-  path: github.com/nokia/ncm-issuer/api/v1
+  path: github.com/nokia-steward/ncm-issuer/api/v1
   version: v1
 - api:
     crdVersion: v1
@@ -19,6 +19,6 @@ resources:
   domain: ncm.nokia.com
   group: certmanager.ncm.nokia.com
   kind: Issuer
-  path: github.com/nokia/ncm-issuer/api/v1
+  path: github.com/nokia-steward/ncm-issuer/api/v1
   version: v1
 version: "3"

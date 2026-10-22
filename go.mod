@@ -1,4 +1,4 @@
-module github.com/nokia/ncm-issuer
+module github.com/nokia-steward/ncm-issuer
 
 go 1.26.10
 

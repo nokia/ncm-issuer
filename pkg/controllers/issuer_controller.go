@@ -22,9 +22,9 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
-	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
-	"github.com/nokia/ncm-issuer/pkg/cfg"
-	"github.com/nokia/ncm-issuer/pkg/provisioner"
+	ncmv1 "github.com/nokia-steward/ncm-issuer/api/v1"
+	"github.com/nokia-steward/ncm-issuer/pkg/cfg"
+	"github.com/nokia-steward/ncm-issuer/pkg/provisioner"
 	core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
