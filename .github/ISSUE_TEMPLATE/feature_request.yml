@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         If you are still shaping the idea, open a
-        [Discussion](https://github.com/nokia/ncm-issuer/discussions) first. Requests that change the
+        [Discussion](https://github.com/nokia-steward/ncm-issuer/discussions) first. Requests that change the
         `Issuer` or `ClusterIssuer` API are easier to agree there before any code is written.
 
   - type: checkboxes
