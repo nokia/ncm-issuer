@@ -109,7 +109,7 @@ jobs:
 
     - name: "check certificate resource"
       run: |
-        sudo -E cmctl status certificate ncm-cert -n ncm-issuer
+        sudo cmctl --kubeconfig "$KUBECONFIG" status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
@@ -125,7 +125,7 @@ jobs:
 
     - name: "renew certificate"
       run: |
-        sudo -E cmctl renew ncm-cert -n ncm-issuer
+        sudo cmctl --kubeconfig "$KUBECONFIG" renew ncm-cert -n ncm-issuer
 
     - name: "sleep for 15s"
       run: sleep 15
@@ -133,9 +133,9 @@ jobs:
     - name: "check certificate resource"
       run: |
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer
-        sudo -E cmctl status certificate ncm-cert -n ncm-issuer
+        sudo cmctl --kubeconfig "$KUBECONFIG" status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
-        sudo -E cmctl status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
+        sudo cmctl --kubeconfig "$KUBECONFIG" status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         openssl x509 -in /tmp/cert.der -text -noout
 
@@ -228,7 +228,7 @@ jobs:
 
     - name: "check certificate resource"
       run: |
-        sudo -E cmctl status certificate ncm-cert -n ncm-issuer
+        sudo cmctl --kubeconfig "$KUBECONFIG" status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
         sudo microk8s.kubectl describe cert ncm-cert -n ncm-issuer  | grep "The certificate has been successfully issued"
@@ -244,7 +244,7 @@ jobs:
 
     - name: "renew certificate"
       run: |
-        sudo -E cmctl renew ncm-cert -n ncm-issuer
+        sudo cmctl --kubeconfig "$KUBECONFIG" renew ncm-cert -n ncm-issuer
 
     - name: "sleep for 15s"
       run: sleep 15
@@ -252,9 +252,9 @@ jobs:
     - name: "check certificate resource"
       run: |
         sudo microk8s.kubectl get certificaterequest -n ncm-issuer
-        sudo -E cmctl status certificate ncm-cert -n ncm-issuer
+        sudo cmctl --kubeconfig "$KUBECONFIG" status certificate ncm-cert -n ncm-issuer
         sudo microk8s.kubectl -n ncm-issuer logs `sudo microk8s.kubectl get pods -A -l app=ncm-issuer -o jsonpath='{.items[0].metadata.name}'`|tail -25
-        sudo -E cmctl status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
+        sudo cmctl --kubeconfig "$KUBECONFIG" status certificate ncm-cert -n ncm-issuer | grep "No CertificateRequest found for this Certificate"
         sudo microk8s.kubectl describe certificaterequest ncm-cert -n ncm-issuer | grep "Certificate:" | awk '{print $2}' | base64 -d > /tmp/cert.der
         openssl x509 -in /tmp/cert.der -text -noout
 

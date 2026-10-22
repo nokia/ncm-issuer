@@ -46,6 +46,8 @@ runs:
     - shell: bash
       run: echo "k8s ${{ env.K8S_VERSION }}"
 
+    # sudo drops this variable, and the sudo-rs shipped on Ubuntu 26.04 runners ignores -E, so
+    # tools run under sudo, such as cmctl, have to be given the path with --kubeconfig.
     - name: "Set KUBECONFIG for MicroK8s"
       shell: bash
       run: echo "KUBECONFIG=/var/snap/microk8s/current/credentials/client.config" >> $GITHUB_ENV
