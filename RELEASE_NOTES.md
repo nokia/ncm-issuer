@@ -1,5 +1,32 @@
 # Release Notes
 
+## Version 1.3.0 (Chart: 1.3.0, Image: 1.3.0) - TBD
+
+ncm-issuer 1.3.0 moves the project to the `nokia-steward` GitHub organization, fixes Go standard library and `golang.org/x/net` vulnerabilities reachable from the controller and adds support for Kubernetes 1.37.
+
+### Security fixes
+
+- Upgraded **Go** to `1.26.10` for the binary and Docker image. This clears vulnerabilities reachable from the controller in `net/http`, `crypto/tls` and `mime/multipart` (GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610, GO-2026-6611, GO-2026-6612, GO-2026-6613, GO-2026-6617) and picks up the `crypto/x509` fixes in 1.26.10. The controller image is now built on Alpine `3.24.3`
+
+- **Updated `golang.org/x/net` to `v0.61.0`**, which carries the module side of the HTTP/2 fixes for GO-2026-6603, GO-2026-6610, GO-2026-6611, GO-2026-6612 and GO-2026-6617. `golang.org/x/text` was updated to `v0.43.0` in the same pass for CVE-2026-56851, which image scanners report but the controller does not call
+
+### :warning: Breaking changes
+
+**ncm-issuer moved from the `nokia` to the `nokia-steward` GitHub organization.** The Kubernetes API group `certmanager.ncm.nokia.com` is unchanged, so existing `Issuer` and `ClusterIssuer` resources keep working. What moved:
+
+- **Helm chart repository** is now `https://nokia-steward.github.io/ncm-issuer/charts`. The old `https://nokia.github.io/ncm-issuer/charts` URL no longer serves the chart, so `helm repo update` fails for a repository added before the move. Repoint it with `helm repo add nokia https://nokia-steward.github.io/ncm-issuer/charts --force-update`. The documentation is now at <https://nokia-steward.github.io/ncm-issuer/>
+- **Container images** from 1.3.0 onwards are published to `ghcr.io/nokia-steward/ncm-issuer` and `ghcr.io/nokia-steward/ncm-issuer-utils`. The chart defaults to them. Images up to 1.2.3 stay at `ghcr.io/nokia`, which gets no new tags. Update any `image.repository` or `sidecar.repository` override and any registry mirror that copies from `ghcr.io/nokia`
+- **Repository and Go module.** The repository is now <https://github.com/nokia-steward/ncm-issuer> and links to `github.com/nokia/ncm-issuer` redirect there. The Go module path is now `github.com/nokia-steward/ncm-issuer`, so Go code that imports `api/v1` has to update its import paths
+
+### Bug fixes and improvements
+
+- Added support for **Kubernetes** `1.37` (supported versions: `1.26 - 1.37`). The chart's `kubeVersion` constraint now admits 1.37 clusters. cert-manager itself does not list 1.37 as supported yet. cert-manager 1.21 covers Kubernetes 1.33 - 1.36
+- Updated `go.mod` dependencies: **Kubernetes API** to `0.37`, **controller-runtime** to `0.25.2`, **cert-manager** to `1.21.2`
+
+### Other changes
+
+- **End to end tests now run against cert-manager 1.21 and 1.20**, with 1.19 kept as the most recently retired line and 1.18 dropped. A Kubernetes 1.37 test is in place and starts running once microk8s publishes a 1.37 release. These are pipeline changes and do not alter the released controller
+
 ## Version 1.2.3 (Chart: 1.2.3, Image: 1.2.3) - 11 Sep 2026
 
 ncm-issuer 1.2.3 fixes an authorization flaw in certificate renewal, clears a dependency vulnerability reachable from the NCM API client and stops duplicate CSRs reaching NCM after a controller restart.
@@ -23,7 +50,7 @@ ncm-issuer 1.2.3 fixes an authorization flaw in certificate renewal, clears a de
 - **Added a security policy** (`SECURITY.md`) explaining how to report a vulnerability privately, plus contributor and support guides (`CONTRIBUTING.md`, `SUPPORT.md`), issue forms, a pull request template and `CODEOWNERS`. Security reports are directed to the private advisory form rather than a public issue
 - **Added a third-party notices document** (`THIRD_PARTY_NOTICES.md`) listing each direct dependency with its pinned version and licence, and the base images the published containers are built on
 - **Each release now carries an SPDX SBOM of the published container image**, attached to the GitHub release as a `.spdx.json` asset next to the existing tarballs
-- **Widened and hardened CI.** Lint, tests and the build now run on pull requests including those from forks. CodeQL, govulncheck, a Trivy image scan and OpenSSF Scorecard run on pull requests and weekly, with findings in the repository [Security tab](https://github.com/nokia/ncm-issuer/security). Every third-party action is pinned to a commit SHA with minimal token permissions, and Dependabot now also proposes weekly Go dependency updates. These are pipeline changes and do not alter the released controller
+- **Widened and hardened CI.** Lint, tests and the build now run on pull requests including those from forks. CodeQL, govulncheck, a Trivy image scan and OpenSSF Scorecard run on pull requests and weekly, with findings in the repository [Security tab](https://github.com/nokia-steward/ncm-issuer/security). Every third-party action is pinned to a commit SHA with minimal token permissions, and Dependabot now also proposes weekly Go dependency updates. These are pipeline changes and do not alter the released controller
 
 ### Acknowledgements
 
@@ -58,7 +85,7 @@ for such an issuer and report `Ready=False` with reason `Error` instead of conne
 
 **What to do before upgrading (pick one):**
 
-- **Recommended:** add the CA bundle as the `cacert` entry of the Secret referenced by `provisioner.tlsRef` (see [TLS without client authentication](https://github.com/nokia/ncm-issuer/blob/1.2.2/README.md#tls-without-client-authentication)). Verification then pins to that bundle.
+- **Recommended:** add the CA bundle as the `cacert` entry of the Secret referenced by `provisioner.tlsRef` (see [TLS without client authentication](https://github.com/nokia-steward/ncm-issuer/blob/1.2.2/README.md#tls-without-client-authentication)). Verification then pins to that bundle.
 - If the NCM certificate is issued by a CA already in the container's system trust store, no change is needed. Verification succeeds automatically.
 - **Not recommended (testing only):** set `provisioner.insecureSkipVerify: true` to explicitly restore the previous no-verification behavior.
 
