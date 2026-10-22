@@ -82,12 +82,12 @@ job. `ignore-unfixed` is set, so a vulnerability with no upstream fix is reporte
 block a pull request.
 
 Results are published to code scanning, and Trivy and CodeQL findings appear under
-[Security](https://github.com/nokia/ncm-issuer/security). A pull request from a fork runs with a
+[Security](https://github.com/nokia-steward/ncm-issuer/security). A pull request from a fork runs with a
 read-only token and cannot write security events, so for those the findings are visible in the job
 log only and the Security tab is fed by the branch and scheduled runs instead.
 
 Every release also gets an SPDX SBOM of the published image, generated from
-`ghcr.io/nokia/ncm-issuer:<tag>` and attached to the GitHub release by the `sbom` job in
+`ghcr.io/nokia-steward/ncm-issuer:<tag>` and attached to the GitHub release by the `sbom` job in
 `release.yml`.
 
 ## Adding a third-party action
