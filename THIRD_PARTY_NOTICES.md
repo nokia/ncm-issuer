@@ -37,5 +37,6 @@ controller image that enumerates its contents.
 
 The tables above cover the modules this project imports directly. The full module graph, including
 indirect dependencies, is recorded in `go.mod` and `go.sum`, and `make vendor` writes each module's
-own license text into `vendor/`. None of these documents replace the license texts distributed by
-the dependency authors.
+own license text into `vendor/`. Each release also ships a CycloneDX SBOM of that module graph with
+the license detected for each module. None of these documents replace the license texts distributed
+by the dependency authors.
