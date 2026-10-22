@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: arnested/go-version-action@83df3d2be676ba748e3c243a7f996e76c28cff23 # v2.1.7
+      - uses: arnested/go-version-action@cc3eac5ef2e6c3e780f3ecc2be9ef9cea799ef9f # v2.1.8
         id: versions
   build-image:
     name: "build ncm-issuer docker image"
@@ -50,7 +50,7 @@ jobs:
           docker save ncm-issuer > ncm-issuer-image.tar
           echo "ncm-issuer image built and saved to ncm-issuer-image.tar"
       - name: "Upload ncm-issuer image"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ncm-issuer-image
           path: ncm-issuer-image.tar
