@@ -40,7 +40,7 @@ The container image will be downloaded automatically from the public registry.
 </figure>
 
 The chart is published on GitHub Pages as a public Helm chart repository at
-`https://nokia.github.io/ncm-issuer/charts` (this URL is consumed by the `helm` CLI
+`https://nokia-steward.github.io/ncm-issuer/charts` (this URL is consumed by the `helm` CLI
 which fetches `/index.yaml` from it).
 
 Pick one of the three install flows below based on your situation. They are equivalent
@@ -55,8 +55,17 @@ in the resulting deployment. The first flow does not require cloning the reposit
 Add the repository:
 
   ```bash
-  helm repo add nokia https://nokia.github.io/ncm-issuer/charts
+  helm repo add nokia https://nokia-steward.github.io/ncm-issuer/charts
   ```
+
+!!! note
+    If you added the repository before ncm-issuer moved to the `nokia-steward` organization,
+    `helm repo update` fails because the old `https://nokia.github.io/ncm-issuer/charts` URL is
+    gone. Repoint the existing alias:
+
+    ```bash
+    helm repo add nokia https://nokia-steward.github.io/ncm-issuer/charts --force-update
+    ```
 
 Update your local Helm chart repository cache:
 
@@ -96,7 +105,7 @@ Install it directly:
   ```
 
 You can also download the `.tgz` manually from the chart repository (URLs are listed in
-[`index.yaml`](https://nokia.github.io/ncm-issuer/charts/index.yaml)) or mirror it to
+[`index.yaml`](https://nokia-steward.github.io/ncm-issuer/charts/index.yaml)) or mirror it to
 an internal artifact store before installing.
 
 ### From a cloned repository (development / customization)
@@ -104,7 +113,7 @@ an internal artifact store before installing.
 Use this flow if you want to modify the chart sources or build everything from `main`:
 
   ```bash
-  git clone https://github.com/nokia/ncm-issuer.git
+  git clone https://github.com/nokia-steward/ncm-issuer.git
   cd ncm-issuer
   helm install \
   ncm-issuer ./helm \
@@ -118,7 +127,7 @@ in the `values.yaml` file in directory that contains Helm files. Then just repea
 mentioned above.
 
   ```bash
-  sed -i "s|ghcr.io/nokia|<your-registry>|g" values.yaml
+  sed -i "s|ghcr.io/nokia-steward|<your-registry>|g" values.yaml
   ```
 
 !!! note
