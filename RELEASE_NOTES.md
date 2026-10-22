@@ -25,6 +25,7 @@ ncm-issuer 1.3.0 moves the project to the `nokia-steward` GitHub organization, f
 
 ### Other changes
 
+- **Releases now carry signed build provenance, a CycloneDX SBOM, source archives and SHA-256 checksums.** Both container images have a provenance attestation in GHCR that `gh attestation verify oci://ghcr.io/nokia-steward/ncm-issuer:1.3.0 --repo nokia-steward/ncm-issuer` checks. `ncm-issuer-1.3.0.intoto.jsonl` covers every file attached to the release. [Verifying images and release assets](https://nokia-steward.github.io/ncm-issuer/docs/documentation/installation/#verifying-images-and-release-assets) lists the assets and how to verify them
 - **End to end tests now run against cert-manager 1.21 and 1.20**, with 1.19 kept as the most recently retired line and 1.18 dropped. A Kubernetes 1.37 test is in place and starts running once microk8s publishes a 1.37 release. These are pipeline changes and do not alter the released controller
 
 ## Version 1.2.3 (Chart: 1.2.3, Image: 1.2.3) - 11 Sep 2026
