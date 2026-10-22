@@ -149,6 +149,46 @@ or (if you also want to save image)
 
 Saved image should appear in the path `./builds/ncm-issuer-images/`.
 
+## Verifying images and release assets
+
+From 1.3.0 every release is built by GitHub Actions, which signs a build provenance attestation for
+both container images and for the files attached to the GitHub release. Verifying them needs the
+[GitHub CLI](https://cli.github.com/).
+
+Check that an image was built from this repository:
+
+  ```bash
+  gh attestation verify oci://ghcr.io/nokia-steward/ncm-issuer:1.3.0 --repo nokia-steward/ncm-issuer
+  gh attestation verify oci://ghcr.io/nokia-steward/ncm-issuer-utils:1.3.0 --repo nokia-steward/ncm-issuer
+  ```
+
+Download the release assets and check them against the published checksums and provenance:
+
+  ```bash
+  gh release download 1.3.0 --repo nokia-steward/ncm-issuer --dir ncm-issuer-1.3.0
+  cd ncm-issuer-1.3.0
+  sha256sum -c ncm-issuer-1.3.0_SHA256SUMS.txt
+  gh attestation verify ncm-issuer-1.3.0-1.3.0.tar.gz --repo nokia-steward/ncm-issuer
+  ```
+
+To verify without querying the GitHub attestations API, for example on a mirror, add
+`--bundle ncm-issuer-1.3.0.intoto.jsonl` for a release asset or
+`--bundle ncm-issuer-1.3.0-provenance.sigstore.json` for the controller image.
+
+Each release carries these assets:
+
+| Asset | Contents |
+|:--|:--|
+| `ncm-issuer-<version>-<version>.tar.gz` | Helm chart, controller image archive for `linux/amd64`, README and release notes |
+| `ncm-issuer-utils-<version>.tgz` | Troubleshooting sidecar image archive for `linux/amd64` |
+| `ncm-issuer-<version>.spdx.json` | SPDX SBOM of the published controller image |
+| `ncm-issuer-<version>-sbom.cdx.json` | CycloneDX SBOM of the Go module dependencies, with their licenses |
+| `ncm-issuer-<version>-source.zip` and `.tar.gz` | Source code of the release tag |
+| `ncm-issuer-<version>-provenance.sigstore.json` | Signed build provenance of the controller image |
+| `ncm-issuer-utils-<version>-provenance.sigstore.json` | Signed build provenance of the sidecar image |
+| `ncm-issuer-<version>_SHA256SUMS.txt` | SHA-256 checksums of all the assets above |
+| `ncm-issuer-<version>.intoto.jsonl` | Signed build provenance of all the assets above |
+
 ## Outbound HTTP(S) proxy
 
 If the cluster has no direct egress to the NCM instance, you can configure proxy environment variables via the Helm chart; see [Troubleshooting - Using an outbound HTTP(S) proxy](troubleshooting.md#using-an-outbound-https-proxy).
