@@ -36,14 +36,16 @@ high Kubernetes boundary of each cert-manager release we care about.
 
 | cert-manager | Kubernetes (low / high) | Notes |
 |:--|:--|:--|
-| 1.21 | 1.36 | newest of both, canary |
-| 1.20 | 1.32 / 1.35 | latest stable |
-| 1.19 | 1.31 / 1.35 | previous supported line |
-| 1.18 | 1.29 / 1.33 | recently retired, still widely deployed |
+| 1.21 | 1.37 | newest Kubernetes, canary |
+| 1.21 | 1.33 / 1.36 | latest stable |
+| 1.20 | 1.32 / 1.35 | previous supported line |
+| 1.19 | 1.31 / 1.35 | recently retired, still widely deployed |
 
 Cells marked experimental in the matrix use `continue-on-error` so that an unreleased
 version or a microk8s channel that has been removed for an end of life Kubernetes release
-does not block the nightly run.
+does not block the nightly run. The Kubernetes 1.37 canary is one of them: microk8s does not
+publish a 1.37 channel yet, so that cell fails at cluster setup until it does, and no
+cert-manager release lists 1.37 as supported yet.
 
 ## Bumping versions
 
