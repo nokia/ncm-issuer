@@ -9,7 +9,7 @@ UTILS_IMG ?= ${UTILS_NAME}:${BUILD_VERSION}
 UTILS_REMOTE_IMG := ${REGISTRY}/${UTILS_NAME}:${BUILD_VERSION}
 UTILS_CONTEXT ?= ncm-issuer-utils/docker
 PLATFORM ?= linux/amd64
-ENVTEST_K8S_VERSION ?= 1.36.0
+ENVTEST_K8S_VERSION ?= 1.37.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -202,7 +202,7 @@ GOVULNCHECK ?= $(LOCALBIN)/govulncheck
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
 CONTROLLER_TOOLS_VERSION    ?= v0.19.0
-ENVTEST_VERSION             ?= release-0.24
+ENVTEST_VERSION             ?= release-0.25
 GOLANGCI_LINT_VERSION       ?= v2.13.2
 ACTIONLINT_VERSION          ?= v1.7.12
 PINACT_VERSION              ?= v4.1.1
