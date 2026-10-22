@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ghcr
-      url: https://github.com/nokia/ncm-issuer/pkgs/container/ncm-issuer
+      url: https://github.com/nokia-steward/ncm-issuer/pkgs/container/ncm-issuer
     permissions:
       contents: read
       packages: write
@@ -44,14 +44,14 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/nokia/ncm-issuer:latest,ghcr.io/nokia/ncm-issuer:${{ env.TAG }}
+          tags: ghcr.io/nokia-steward/ncm-issuer:latest,ghcr.io/nokia-steward/ncm-issuer:${{ env.TAG }}
 
   docker-utils:
     name: "publish troubleshooting sidecar on GitHub Container Registry"
     runs-on: ubuntu-latest
     environment:
       name: ghcr-utils
-      url: https://github.com/nokia/ncm-issuer/pkgs/container/ncm-issuer-utils
+      url: https://github.com/nokia-steward/ncm-issuer/pkgs/container/ncm-issuer-utils
     permissions:
       contents: read
       packages: write
@@ -83,7 +83,7 @@ jobs:
           file: ./ncm-issuer-utils/docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/nokia/ncm-issuer-utils:latest,ghcr.io/nokia/ncm-issuer-utils:${{ env.TAG }}
+          tags: ghcr.io/nokia-steward/ncm-issuer-utils:latest,ghcr.io/nokia-steward/ncm-issuer-utils:${{ env.TAG }}
 
   package:
     name: "build and attach release tarball"
@@ -158,7 +158,7 @@ jobs:
       - name: "generate the image SBOM"
         uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
-          image: ghcr.io/nokia/ncm-issuer:${{ env.TAG }}
+          image: ghcr.io/nokia-steward/ncm-issuer:${{ env.TAG }}
           format: spdx-json
           output-file: ncm-issuer-${{ env.TAG }}.spdx.json
           upload-artifact: false

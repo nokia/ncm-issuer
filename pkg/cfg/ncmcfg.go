@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
+	ncmv1 "github.com/nokia-steward/ncm-issuer/api/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

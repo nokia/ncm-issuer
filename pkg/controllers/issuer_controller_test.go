@@ -28,8 +28,8 @@ import (
 
 	"github.com/go-logr/logr/testr"
 	"github.com/google/go-cmp/cmp"
-	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
-	"github.com/nokia/ncm-issuer/pkg/provisioner"
+	ncmv1 "github.com/nokia-steward/ncm-issuer/api/v1"
+	"github.com/nokia-steward/ncm-issuer/pkg/provisioner"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

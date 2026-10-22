@@ -21,9 +21,9 @@ import (
 	"os"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
-	"github.com/nokia/ncm-issuer/pkg/controllers"
-	"github.com/nokia/ncm-issuer/pkg/provisioner"
+	ncmv1 "github.com/nokia-steward/ncm-issuer/api/v1"
+	"github.com/nokia-steward/ncm-issuer/pkg/controllers"
+	"github.com/nokia-steward/ncm-issuer/pkg/provisioner"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,8 +37,8 @@ import (
 var (
 	scheme           = runtime.NewScheme()
 	setupLog         = ctrl.Log.WithName("setup")
-	chartVersion     = "1.2.3"
-	imageVersion     = "1.2.3"
+	chartVersion     = "1.3.0"
+	imageVersion     = "1.3.0"
 	leaderElectionID = "b84bc1d2.ncm.nokia.com"
 )
 

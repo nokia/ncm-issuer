@@ -21,8 +21,8 @@ import (
 	"strings"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	ncmv1 "github.com/nokia/ncm-issuer/api/v1"
-	ncmutil "github.com/nokia/ncm-issuer/pkg/util"
+	ncmv1 "github.com/nokia-steward/ncm-issuer/api/v1"
+	ncmutil "github.com/nokia-steward/ncm-issuer/pkg/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"

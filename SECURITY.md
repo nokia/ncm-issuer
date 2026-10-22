@@ -7,7 +7,7 @@ Please do not report security vulnerabilities through public GitHub issues, pull
 Use either of these channels:
 
 * **GitHub private vulnerability reporting** (preferred for this repository). Open the
-  [Security tab](https://github.com/nokia/ncm-issuer/security/advisories) and choose *Report a vulnerability*. The report stays
+  [Security tab](https://github.com/nokia-steward/ncm-issuer/security/advisories) and choose *Report a vulnerability*. The report stays
   private until an advisory is published.
 * **Nokia PSIRT** at `security-alert@nokia.com`, which is the entry point of Nokia's
   [Coordinated Vulnerability Disclosure programme](https://www.nokia.com/we-are-nokia/security/products/cvd/). Reports can be
@@ -37,7 +37,7 @@ Please keep the report confidential until a fix is released.
 ## Supported versions
 
 Fixes are made on the latest release line only. Upgrade to the most recent
-[release](https://github.com/nokia/ncm-issuer/releases) before reporting, so the issue can be confirmed against current code.
+[release](https://github.com/nokia-steward/ncm-issuer/releases) before reporting, so the issue can be confirmed against current code.
 
 | Version | Supported |
 | ------- | --------- |

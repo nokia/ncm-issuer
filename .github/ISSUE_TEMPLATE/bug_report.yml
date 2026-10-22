@@ -6,10 +6,10 @@ body:
     attributes:
       value: |
         Do not use this form for security vulnerabilities. Follow
-        [SECURITY.md](https://github.com/nokia/ncm-issuer/blob/main/SECURITY.md) and report privately.
+        [SECURITY.md](https://github.com/nokia-steward/ncm-issuer/blob/main/SECURITY.md) and report privately.
 
         For questions and configuration help, use
-        [Discussions](https://github.com/nokia/ncm-issuer/discussions) instead.
+        [Discussions](https://github.com/nokia-steward/ncm-issuer/discussions) instead.
 
   - type: checkboxes
     id: preflight

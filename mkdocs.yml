@@ -1,6 +1,6 @@
 site_name: ncm-issuer
-repo_url: https://github.com/nokia/ncm-issuer
-repo_name: nokia/ncm-issuer
+repo_url: https://github.com/nokia-steward/ncm-issuer
+repo_name: nokia-steward/ncm-issuer
 copyright: Copyright &copy; 2023 Nokia
 
 theme:
@@ -38,10 +38,10 @@ extra:
       link: https://www.nokia.com/networks/security-portfolio/netguard/certificate-manager/
 
     - icon: fontawesome/brands/github
-      link: https://github.com/nokia
+      link: https://github.com/nokia-steward
 
     - icon: fontawesome/brands/docker
-      link: https://github.com/nokia/ncm-issuer/pkgs/container/ncm-issuer
+      link: https://github.com/nokia-steward/ncm-issuer/pkgs/container/ncm-issuer
 
 extra_css:
   - stylesheets/extra.css

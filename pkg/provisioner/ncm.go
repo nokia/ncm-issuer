@@ -26,10 +26,10 @@ import (
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
-	"github.com/nokia/ncm-issuer/pkg/cfg"
-	"github.com/nokia/ncm-issuer/pkg/ncmapi"
-	crtmetrics "github.com/nokia/ncm-issuer/pkg/provisioner/metrics"
-	ncmutil "github.com/nokia/ncm-issuer/pkg/util"
+	"github.com/nokia-steward/ncm-issuer/pkg/cfg"
+	"github.com/nokia-steward/ncm-issuer/pkg/ncmapi"
+	crtmetrics "github.com/nokia-steward/ncm-issuer/pkg/provisioner/metrics"
+	ncmutil "github.com/nokia-steward/ncm-issuer/pkg/util"
 	"k8s.io/apimachinery/pkg/types"
 )
 

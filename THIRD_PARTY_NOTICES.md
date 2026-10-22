@@ -8,14 +8,14 @@ images. Versions below are the ones pinned in `go.mod`.
 
 | Component | Pinned version | License | Use |
 | --- | --- | --- | --- |
-| [github.com/cert-manager/cert-manager](https://github.com/cert-manager/cert-manager) | v1.20.3 | Apache-2.0 | `CertificateRequest` and issuer API types, plus the helpers that set request conditions |
-| [sigs.k8s.io/controller-runtime](https://github.com/kubernetes-sigs/controller-runtime) | v0.24.1 | Apache-2.0 | Manager and reconciler machinery, Kubernetes client, event predicates, health probes and the metrics registry |
-| [k8s.io/api](https://github.com/kubernetes/api) | v0.36.2 | Apache-2.0 | Core API types, including the `Secret` that holds NCM credentials and TLS material |
-| [k8s.io/apimachinery](https://github.com/kubernetes/apimachinery) | v0.36.2 | Apache-2.0 | Object metadata, scheme and runtime types, and API error classification |
-| [k8s.io/client-go](https://github.com/kubernetes/client-go) | v0.36.2 | Apache-2.0 | Client scheme registration and the event recorder |
-| [k8s.io/utils](https://github.com/kubernetes/utils) | v0.0.0-20260626114624-be93311217bd | Apache-2.0 | Clock abstraction, so retry and renewal timing can be driven in tests |
-| [github.com/go-logr/logr](https://github.com/go-logr/logr) | v1.4.3 | Apache-2.0 | Logging interface used throughout the controller |
-| [github.com/prometheus/client_golang](https://github.com/prometheus/client_golang) | v1.23.2 | Apache-2.0 | Counter types for the enrollment and renewal metrics registered on the controller-runtime registry |
+| [github.com/cert-manager/cert-manager](https://github.com/cert-manager/cert-manager) | v1.21.2 | Apache-2.0 | `CertificateRequest` and issuer API types, plus the helpers that set request conditions |
+| [sigs.k8s.io/controller-runtime](https://github.com/kubernetes-sigs/controller-runtime) | v0.25.2 | Apache-2.0 | Manager and reconciler machinery, Kubernetes client, event predicates, health probes and the metrics registry |
+| [k8s.io/api](https://github.com/kubernetes/api) | v0.37.1 | Apache-2.0 | Core API types, including the `Secret` that holds NCM credentials and TLS material |
+| [k8s.io/apimachinery](https://github.com/kubernetes/apimachinery) | v0.37.1 | Apache-2.0 | Object metadata, scheme and runtime types, and API error classification |
+| [k8s.io/client-go](https://github.com/kubernetes/client-go) | v0.37.1 | Apache-2.0 | Client scheme registration and the event recorder |
+| [k8s.io/utils](https://github.com/kubernetes/utils) | v0.0.0-20260707023825-cf1189d6abe3 | Apache-2.0 | Clock abstraction, so retry and renewal timing can be driven in tests |
+| [github.com/go-logr/logr](https://github.com/go-logr/logr) | v1.4.4 | Apache-2.0 | Logging interface used throughout the controller |
+| [github.com/prometheus/client_golang](https://github.com/prometheus/client_golang) | v1.25.0 | Apache-2.0 | Counter types for the enrollment and renewal metrics registered on the controller-runtime registry |
 
 ## Test-only dependencies
 
@@ -23,7 +23,7 @@ These are imported by the unit tests and are not linked into the released binary
 
 | Component | Pinned version | License | Use |
 | --- | --- | --- | --- |
-| [github.com/stretchr/testify](https://github.com/stretchr/testify) | v1.11.1 | MIT | Assertions and mocks in the unit tests |
+| [github.com/stretchr/testify](https://github.com/stretchr/testify) | v1.12.1 | MIT | Assertions and mocks in the unit tests |
 | [github.com/google/go-cmp](https://github.com/google/go-cmp) | v0.7.0 | BSD-3-Clause | Value comparison in the unit tests |
 
 ## Container base images
