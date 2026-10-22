@@ -81,7 +81,7 @@ CodeQL, govulncheck and a Trivy image scan run on every pull request. If a depen
 
 ## Documentation
 
-User-facing documentation lives in `README.md` and `docs/`. CI builds the site from `main` and pushes it to the `gh-pages` branch, which is served at <https://nokia.github.io/ncm-issuer/>. Update the documentation in the same pull request as the change it describes. To preview the site:
+User-facing documentation lives in `README.md` and `docs/`. CI builds the site from `main` and pushes it to the `gh-pages` branch, which is served at <https://nokia-steward.github.io/ncm-issuer/>. Update the documentation in the same pull request as the change it describes. To preview the site:
 
 ```bash
 pip install mkdocs-material mkdocs-awesome-pages-plugin
