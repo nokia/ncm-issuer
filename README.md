@@ -29,6 +29,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
 * [Installation and configuration](#installation-and-configuration)
   * [Installing using Helm](#installing-using-helm)
     * [Using own (local or remote) registry](#using-own-local-or-remote-registry)
+    * [Verifying images and release assets](#verifying-images-and-release-assets)
     * [Configuration](#configuration)
       * [NCM REST API credentials](#ncm-rest-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
@@ -219,6 +220,16 @@ or (if you also want to save image)
   ```
 
 Saved image should appear in the path `./builds/ncm-issuer-images/`.
+
+#### Verifying images and release assets
+
+From 1.3.0 both container images and the files attached to each GitHub release carry a signed build provenance attestation. Check an image with the [GitHub CLI](https://cli.github.com/):
+
+  ```bash
+  $ gh attestation verify oci://ghcr.io/nokia-steward/ncm-issuer:1.3.0 --repo nokia-steward/ncm-issuer
+  ```
+
+Each release also carries SPDX and CycloneDX SBOMs, source archives and a SHA-256 checksum file. [Verifying images and release assets](https://nokia-steward.github.io/ncm-issuer/docs/documentation/installation/#verifying-images-and-release-assets) lists every asset and shows how to verify the downloads.
 
 ### Configuration
 
