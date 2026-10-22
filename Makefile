@@ -198,6 +198,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ACTIONLINT ?= $(LOCALBIN)/actionlint
 PINACT ?= $(LOCALBIN)/pinact
 GOVULNCHECK ?= $(LOCALBIN)/govulncheck
+CYCLONEDX_GOMOD ?= $(LOCALBIN)/cyclonedx-gomod
 
 ## Tool Versions
 KUSTOMIZE_VERSION           ?= v5.6.0
@@ -207,6 +208,7 @@ GOLANGCI_LINT_VERSION       ?= v2.13.2
 ACTIONLINT_VERSION          ?= v1.7.12
 PINACT_VERSION              ?= v4.1.1
 GOVULNCHECK_VERSION         ?= v1.7.0
+CYCLONEDX_GOMOD_VERSION     ?= v1.12.0
 
 # Each stamp file name carries the version it was installed for, so bumping a tool version
 # reinstalls the binary instead of leaving an older one in place. $(LOCALBIN) is an order-only
@@ -219,6 +221,7 @@ GOLANGCI_LINT_STAMP  = $(LOCALBIN)/.golangci-lint-$(GOLANGCI_LINT_VERSION).stamp
 ACTIONLINT_STAMP     = $(LOCALBIN)/.actionlint-$(ACTIONLINT_VERSION).stamp
 PINACT_STAMP         = $(LOCALBIN)/.pinact-$(PINACT_VERSION).stamp
 GOVULNCHECK_STAMP    = $(LOCALBIN)/.govulncheck-$(GOVULNCHECK_VERSION).stamp
+CYCLONEDX_GOMOD_STAMP = $(LOCALBIN)/.cyclonedx-gomod-$(CYCLONEDX_GOMOD_VERSION).stamp
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 kustomize: $(KUSTOMIZE_STAMP)
@@ -270,6 +273,13 @@ $(GOVULNCHECK_STAMP): | $(LOCALBIN)
 	GOBIN="$(abspath $(LOCALBIN))" go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 	touch "$@"
 
+cyclonedx-gomod: $(CYCLONEDX_GOMOD_STAMP)
+$(CYCLONEDX_GOMOD_STAMP): | $(LOCALBIN)
+	mkdir -p "$(LOCALBIN)"
+	echo "Installing cyclonedx-gomod $(CYCLONEDX_GOMOD_VERSION) into $(LOCALBIN)"
+	GOBIN="$(abspath $(LOCALBIN))" go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@$(CYCLONEDX_GOMOD_VERSION)
+	touch "$@"
+
 pack-app: docker-save
 	rm -rf "builds/$(APP_NAME)" && mkdir -p "builds/$(APP_NAME)/images" "builds/$(APP_NAME)/charts/$(APP_NAME)/"
 	cp -rf builds/$(APP_NAME)-images/*.tgz "builds/$(APP_NAME)/images/"
@@ -277,6 +287,23 @@ pack-app: docker-save
 	cp -rf RELEASE_NOTES.md "builds/$(APP_NAME)/"
 	cp -rf README.md "builds/$(APP_NAME)/"
 	cd builds && tar czvf "../${APP_NAME}-${APP_VERSION}-${BUILD_VERSION}.tar.gz" "$(APP_NAME)"
+
+SBOM_FILE ?= builds/$(APP_NAME)-$(BUILD_VERSION)-sbom.cdx.json
+SOURCE_ZIP ?= builds/$(APP_NAME)-$(BUILD_VERSION)-source.zip
+SOURCE_TAR_GZ ?= builds/$(APP_NAME)-$(BUILD_VERSION)-source.tar.gz
+
+# GOFLAGS=-mod=mod reads modules from the module cache, because a vendor/ directory left by
+# "make build" cannot list every module in the build graph.
+sbom: cyclonedx-gomod ## Write a CycloneDX SBOM of the Go module dependencies to builds/
+	mkdir -p "$(dir $(SBOM_FILE))"
+	GOFLAGS=-mod=mod "$(CYCLONEDX_GOMOD)" mod -licenses -json -output "$(SBOM_FILE)" .
+
+# The archives are taken from the release tag rather than the working tree, so local changes and
+# untracked files never end up in them.
+source-archives: ## Archive the source of the tag named after imageVersion as zip and tar.gz in builds/
+	mkdir -p "$(dir $(SOURCE_ZIP))" "$(dir $(SOURCE_TAR_GZ))"
+	git archive --format=zip --prefix="$(APP_NAME)-$(BUILD_VERSION)/" --output "$(SOURCE_ZIP)" "refs/tags/$(BUILD_VERSION)"
+	git archive --format=tar.gz --prefix="$(APP_NAME)-$(BUILD_VERSION)/" --output "$(SOURCE_TAR_GZ)" "refs/tags/$(BUILD_VERSION)"
 
 clean:
 	rm -rf builds
