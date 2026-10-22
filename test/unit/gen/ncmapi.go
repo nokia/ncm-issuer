@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nokia/ncm-issuer/pkg/ncmapi"
+	"github.com/nokia-steward/ncm-issuer/pkg/ncmapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

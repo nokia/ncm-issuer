@@ -32,7 +32,7 @@ import (
 
 	"github.com/go-logr/logr/testr"
 	"github.com/google/go-cmp/cmp"
-	"github.com/nokia/ncm-issuer/pkg/cfg"
+	"github.com/nokia-steward/ncm-issuer/pkg/cfg"
 )
 
 var (
