@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 1.3.0 (Chart: 1.3.0, Image: 1.3.0) - TBD
+## Version 1.3.0 (Chart: 1.3.0, Image: 1.3.0) - 22 Oct 2026
 
 ncm-issuer 1.3.0 moves the project to the `nokia-steward` GitHub organization, fixes Go standard library and `golang.org/x/net` vulnerabilities reachable from the controller and adds support for Kubernetes 1.37.
 
