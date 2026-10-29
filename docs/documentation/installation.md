@@ -276,6 +276,7 @@ Check every entry for the versions you upgrade across.
   Move existing overrides accordingly.
 * The NCM health check now authenticates and accepts only `2xx` responses. A wrong URL or wrong
   credentials that earlier versions reported as `Ready=True` now give `Ready=False`.
+* Kubernetes 1.26 or later is required. Helm refuses to install the chart on older clusters.
 
 **1.2.2**
 
@@ -290,7 +291,6 @@ Check every entry for the versions you upgrade across.
 
 **1.3.0**
 
-* Kubernetes 1.26 or later is required. Helm refuses to install the chart on older clusters.
 * The chart repository and the images moved to the `nokia-steward` organization. Repoint the Helm
   repository (see [From the public Helm chart repository](#from-the-public-helm-chart-repository-recommended))
   and update registry mirrors and any `image.repository` or `sidecar.repository` override to
