@@ -527,10 +527,11 @@ renewal in the definition of `Issuer` or `ClusterIssuer` resource: set `.spec.re
 to **true**. Use `.spec.privateKey.rotationPolicy` in the `Certificate` instead.
 
 **NOTE:** ncm-issuer records the issued certificate in the `<certificate-name>-details` Secret and uses that
-reference to renew the right certificate in NCM. Before renewing it checks that the referenced certificate still
-carries the identity being requested. If it does not, because the `Certificate` subject or SANs changed or because
-the Secret was edited, ncm-issuer re-enrolls instead of renewing and records a `CertIDRejected` event on the
-`CertificateRequest`.
+reference to renew the right certificate in NCM. Before renewing it checks that the referenced certificate has the
+public key of the request and every requested common name, DNS name, IP address, email address and URI. If it does
+not, for example because the common name changed, names were added to the `Certificate` or the Secret was edited,
+ncm-issuer re-enrolls instead of renewing and records a `CertIDRejected` event on the `CertificateRequest`. Other
+subject fields such as O, OU or C are not compared. Removing a name does not prevent a renewal.
 
 You can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
