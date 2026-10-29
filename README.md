@@ -331,11 +331,13 @@ HTTP(S) proxy for the `ncm-issuer` controller pod. When installed via Helm, set:
 proxy:
   httpsProxy: "http://proxy.example:3128"
   httpProxy: "http://proxy.example:3128"
-  noProxy: "localhost,127.0.0.1,.cluster.local"
+  noProxy: "localhost,127.0.0.1,.cluster.local,10.96.0.0/12"
 ```
 
 This injects `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` (and lowercase equivalents) and is honored by Go's
-HTTP client.
+HTTP client. The variables also apply to the controller's calls to the Kubernetes API server, which it reaches
+by IP address. Add the cluster's service network to `noProxy` (`10.96.0.0/12` above is the kubeadm default),
+otherwise those calls go through the proxy as well.
 
 ## Custom resource definitions (CRDs)
 
