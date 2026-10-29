@@ -522,9 +522,9 @@ means **re-enrollment** (private key rotation) instead of renewal. This aligns n
 cert-manager **v1.18.0+**, where the default rotation policy changed from `Never` to `Always`.
 If you require a true renew-with-same-key flow, set `.spec.privateKey.rotationPolicy` to `Never` explicitly.
 
-**NOTE:** There is also an option for enforcing the re-enrollment on
-renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
-to **true** in `Issuer` or `ClusterIssuer` definition.
+**NOTE:** There is also a deprecated option for enforcing the re-enrollment on
+renewal in the definition of `Issuer` or `ClusterIssuer` resource: set `.spec.reenrollmentOnRenew`
+to **true**. Use `.spec.privateKey.rotationPolicy` in the `Certificate` instead.
 
 **NOTE:** ncm-issuer records the issued certificate in the `<certificate-name>-details` Secret and uses that
 reference to renew the right certificate in NCM. Before renewing it checks that the referenced certificate still
