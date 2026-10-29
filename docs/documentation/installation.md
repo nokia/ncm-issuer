@@ -6,7 +6,7 @@ Prerequisites for using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 24 or later,
 * [Kubernetes](https://kubernetes.io) version 1.26 - 1.37,
-* [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
+* [cert-manager](https://cert-manager.io/) version 1.3.0 or later,
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
