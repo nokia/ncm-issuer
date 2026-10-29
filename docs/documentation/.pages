@@ -1,6 +1,7 @@
 nav:
     - how-it-works.md
     - installation.md
+    - upgrading.md
     - configuration.md
     - CRDs
     - certificates
