@@ -78,13 +78,19 @@ Install ncm-issuer:
   ```bash
   helm install \
   ncm-issuer nokia/ncm-issuer \
+  --version 1.3.0-chart \
   --create-namespace --namespace ncm-issuer
   ```
+
+!!! note
+    Chart versions end in `-chart`, for example `1.3.0-chart`. Helm treats them as pre-releases and
+    skips them unless you pass `--version` or `--devel`. Without either flag it picks the old `1.1.6`
+    chart.
 
 To list available chart versions:
 
   ```bash
-  helm search repo nokia/ncm-issuer -l
+  helm search repo nokia/ncm-issuer --devel -l
   ```
 
 ### From a packaged chart (`.tgz`)
@@ -92,7 +98,7 @@ To list available chart versions:
 Useful when working offline or behind a corporate mirror. Pull the packaged chart:
 
   ```bash
-  helm pull nokia/ncm-issuer
+  helm pull nokia/ncm-issuer --version 1.3.0-chart
   ```
 
 This produces a file like `ncm-issuer-<chart-version>.tgz` in the current directory.
@@ -216,7 +222,8 @@ Save the values set at install time and compare them with the `values.yaml` of t
 
 ### Running the upgrade
 
-From the public Helm chart repository:
+From the public Helm chart repository, with the chart version of the target release (for example
+`1.3.0-chart`):
 
   ```bash
   helm repo update
