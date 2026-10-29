@@ -139,7 +139,7 @@ Install ncm-issuer:
   --create-namespace --namespace ncm-issuer
   ```
 
-Chart versions end in `-chart`, for example `1.3.0-chart`. Helm treats them as pre-releases and skips them unless you pass `--version` or `--devel`. Without either flag it picks the old `1.1.6` chart.
+Chart versions from 1.1.7 on end in `-chart`, for example `1.3.0-chart`. Helm treats them as pre-releases and skips them unless you pass `--version` or `--devel`. Without either flag it picks the old `1.1.6` chart.
 
 To list available chart versions:
 
@@ -227,7 +227,7 @@ Do not uninstall the chart or delete the ncm-issuer CRDs to upgrade, because tha
   ```
 
 Replace `<chart-version>` with the chart version of the target release, for example `1.3.0-chart`.
-Do not use `--reuse-values`. It keeps the defaults of the installed chart and can make the new chart fail to render.
+Do not use `--reuse-values`. It keeps the values of the installed chart, including its image tags, so the upgrade either keeps the old images running or fails to render.
 [Upgrading](https://nokia-steward.github.io/ncm-issuer/docs/documentation/upgrading/) covers the checks before and after the upgrade, rollback and the changes to look at when upgrading across 1.2.0, 1.2.1, 1.2.2 and 1.3.0.
 
 ### Configuration
