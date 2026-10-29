@@ -19,9 +19,9 @@ setting certain PK rotation policy in the `Certificate` resource.
     If you require a true renew-with-same-key flow, set `.spec.privateKey.rotationPolicy` to `Never` explicitly.
 
 !!! note
-    There is also an option for enforcing the re-enrollment on
-    renewal in the definition of `Issuer` or `ClusterIssuer` resource. To do this simply set `.spec.reenrollmentOnRenew`
-    to **true** in `Issuer` or `ClusterIssuer` definition.
+    There is also a deprecated option for enforcing the re-enrollment on
+    renewal in the definition of `Issuer` or `ClusterIssuer` resource: set `.spec.reenrollmentOnRenew`
+    to **true**. Use `.spec.privateKey.rotationPolicy` in the `Certificate` instead.
 
 However, you can also trigger renewal or re-enrolling operation manually using one of the commands below.
 
