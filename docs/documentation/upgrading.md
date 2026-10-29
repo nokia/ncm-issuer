@@ -23,6 +23,11 @@ Save the values set at install time and compare them with the `values.yaml` of t
   helm get values ncm-issuer -n ncm-issuer -o yaml > my-values.yaml
   ```
 
+`helm get values` shows only values passed with `-f` or `--set`. If you installed from a release archive
+and edited the chart's own `values.yaml`, compare that file with the `values.yaml` of the original archive
+and copy the changed settings into `my-values.yaml`. Do this before you extract the new archive over the old
+one. `helm get values ncm-issuer -n ncm-issuer --all` shows every value the running release uses.
+
 ## Running the upgrade
 
 From the public Helm chart repository, with the chart version of the target release (for example
