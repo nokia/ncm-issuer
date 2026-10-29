@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../assets/ncm-issuer-logo.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1618,12 +1618,14 @@ in the NCM that will issue certificates using it.</p>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span><span class="nt">tlsRef</span><span class="p">:</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ncm-tls</span>
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">      </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ncm-ns</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">  </span><span class="nt">profileId</span><span class="p">:</span><span class="w"> </span><span class="s">"101"</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">  </span><span class="nt">useProfileIDForRenew</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span><span class="nt">reenrollmentOnRenew</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">  </span><span class="nt">noRoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">  </span><span class="nt">chainInSigner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">  </span><span class="nt">onlyEECert</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span><span class="c1"># insecureSkipVerify disables server certificate verification (insecure, testing only).</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="c1"># insecureSkipVerify: false</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span><span class="nt">profileId</span><span class="p">:</span><span class="w"> </span><span class="s">"101"</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">  </span><span class="nt">useProfileIDForRenew</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">  </span><span class="nt">reenrollmentOnRenew</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">  </span><span class="nt">noRoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">  </span><span class="nt">chainInSigner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">  </span><span class="nt">onlyEECert</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -1633,6 +1635,23 @@ still supported and can be used (this applies to: <code>CASNAME</code>, <code>CA
 </div>
 <h2 id="fields-description">Fields description</h2>
 <p>The number next to the label icon indicates from which version the fields are supported.</p>
+<blockquote>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5.5 7A1.5 1.5 0 0 1 4 5.5 1.5 1.5 0 0 1 5.5 4 1.5 1.5 0 0 1 7 5.5 1.5 1.5 0 0 1 5.5 7m15.91 4.58-9-9C12.05 2.22 11.55 2 11 2H4c-1.11 0-2 .89-2 2v7c0 .55.22 1.05.59 1.41l8.99 9c.37.36.87.59 1.42.59s1.05-.23 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.56-.23-1.06-.59-1.42"/></svg></span> <a href="../../../release-notes/1.2.2/">1.2.2-1.2.2</a></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Field</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>.spec.provisioner.insecureSkipVerify</code></td>
+<td style="text-align: left;">Disables verification of the NCM API server certificate for HTTPS connections. Insecure, intended only for testing. Default <code>false</code></td>
+</tr>
+</tbody>
+</table>
 <blockquote>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5.5 7A1.5 1.5 0 0 1 4 5.5 1.5 1.5 0 0 1 5.5 4 1.5 1.5 0 0 1 7 5.5 1.5 1.5 0 0 1 5.5 7m15.91 4.58-9-9C12.05 2.22 11.55 2 11 2H4c-1.11 0-2 .89-2 2v7c0 .55.22 1.05.59 1.41l8.99 9c.37.36.87.59 1.42.59s1.05-.23 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.56-.23-1.06-.59-1.42"/></svg></span> <a href="../../../release-notes/1.1.0/">1.1.0-1.1.0</a></p>
 </blockquote>
@@ -1646,11 +1665,11 @@ still supported and can be used (this applies to: <code>CASNAME</code>, <code>CA
 <tbody>
 <tr>
 <td style="text-align: left;"><code>.spec.caName</code></td>
-<td style="text-align: left;">Name of an existing CA in the NCM, which will be used to issue certificates (required if <code>.spec.caID</code> is not specified)</td>
+<td style="text-align: left;">Name of an existing CA in the NCM, which will be used to issue certificates. The name must match exactly (required if <code>.spec.caID</code> is not specified)</td>
 </tr>
 <tr>
 <td style="text-align: left;"><code>.spec.caID</code></td>
-<td style="text-align: left;">Unique href (or ID) identifier for existing CA in the NCM, which will be used to issue certificates (required if <code>.spec.caName</code> is not specified)</td>
+<td style="text-align: left;">ID of an existing CA in the NCM, the last part of its href, which will be used to issue certificates (required if <code>.spec.caName</code> is not specified)</td>
 </tr>
 <tr>
 <td style="text-align: left;"><code>.spec.provisioner.mainAPI</code></td>
@@ -1670,11 +1689,11 @@ still supported and can be used (this applies to: <code>CASNAME</code>, <code>CA
 </tr>
 <tr>
 <td style="text-align: left;"><code>.spec.provisioner.authRef</code></td>
-<td style="text-align: left;">Reference to a <code>secret</code> containing the credentials (user and password) needed for making requests to NCM API (always required)</td>
+<td style="text-align: left;">Reference to a <code>secret</code> containing the credentials (user and password) needed for making requests to NCM API (always required). A namespaced <code>Issuer</code> always reads it from its own namespace and ignores the <code>namespace</code> field</td>
 </tr>
 <tr>
 <td style="text-align: left;"><code>.spec.provisioner.tlsRef</code></td>
-<td style="text-align: left;">Reference to a <code>secret</code> containing CA bundle used to verify connections to the NCM API. If the secret reference is not specified and selected protocol is HTTPS, InsecureSkipVerify will be used. Otherwise, TLS or mTLS connection will be used, depending on provided data</td>
+<td style="text-align: left;">Reference to a <code>secret</code> containing the CA bundle (<code>cacert</code>) used to verify HTTPS connections to the NCM API, together with an optional client key and certificate (<code>key</code>, <code>cert</code>) for mTLS. When <code>cacert</code> is omitted, the server certificate is verified against the system trust store. A namespaced <code>Issuer</code> always reads it from its own namespace and ignores the <code>namespace</code> field</td>
 </tr>
 </tbody>
 </table>
@@ -1712,7 +1731,7 @@ still supported and can be used (this applies to: <code>CASNAME</code>, <code>CA
 <tbody>
 <tr>
 <td style="text-align: left;"><code>.spec.reenrollmentOnRenew</code></td>
-<td style="text-align: left;">Determines whether during renewal, certificate should be re-enrolled instead of renewed</td>
+<td style="text-align: left;">Deprecated, use <code>privateKey.rotationPolicy</code> in the <code>Certificate</code> instead. Forces re-enrollment for certificates that would otherwise be renewed through NCM <code>/update</code>, which happens only with <code>privateKey.rotationPolicy: Never</code></td>
 </tr>
 <tr>
 <td style="text-align: left;"><code>.spec.profileId</code></td>
@@ -1863,10 +1882,10 @@ still supported and can be used (this applies to: <code>CASNAME</code>, <code>CA
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

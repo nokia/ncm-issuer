@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/ncm-issuer-logo.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -590,6 +590,56 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before-you-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you upgrade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-the-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the upgrade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-specific-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version-specific notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1724,6 +1774,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#upgrading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before-you-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you upgrade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-the-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the upgrade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-specific-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version-specific notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#outbound-https-proxy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1760,7 +1860,7 @@
 <ul>
 <li><a href="https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/">NCM</a> release 24 or later,</li>
 <li><a href="https://kubernetes.io">Kubernetes</a> version 1.26 - 1.37,</li>
-<li><a href="https://cert-manager.io/">cert-manager</a> version 1.0.0 or later,</li>
+<li><a href="https://cert-manager.io/">cert-manager</a> version 1.3.0 or later,</li>
 <li>Kubernetes container runtime like Docker, containerd or CRI-O,</li>
 <li><a href="https://helm.sh/docs/intro/install/">Helm</a> v3.</li>
 </ul>
@@ -1842,14 +1942,21 @@ gone. Repoint the existing alias:</p>
 <p>Install ncm-issuer:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>helm<span class="w"> </span>install<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ncm-issuer<span class="w"> </span>nokia/ncm-issuer<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>--create-namespace<span class="w"> </span>--namespace<span class="w"> </span>ncm-issuer
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>--version<span class="w"> </span><span class="m">1</span>.3.0-chart<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>--create-namespace<span class="w"> </span>--namespace<span class="w"> </span>ncm-issuer
 </span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Chart versions end in <code>-chart</code>, for example <code>1.3.0-chart</code>. Helm treats them as pre-releases and
+skips them unless you pass <code>--version</code> or <code>--devel</code>. Without either flag it picks the old <code>1.1.6</code>
+chart.</p>
+</div>
 <p>To list available chart versions:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>helm<span class="w"> </span>search<span class="w"> </span>repo<span class="w"> </span>nokia/ncm-issuer<span class="w"> </span>-l
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>helm<span class="w"> </span>search<span class="w"> </span>repo<span class="w"> </span>nokia/ncm-issuer<span class="w"> </span>--devel<span class="w"> </span>-l
 </span></code></pre></div>
 <h3 id="from-a-packaged-chart-tgz">From a packaged chart (<code>.tgz</code>)</h3>
 <p>Useful when working offline or behind a corporate mirror. Pull the packaged chart:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>helm<span class="w"> </span>pull<span class="w"> </span>nokia/ncm-issuer
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>helm<span class="w"> </span>pull<span class="w"> </span>nokia/ncm-issuer<span class="w"> </span>--version<span class="w"> </span><span class="m">1</span>.3.0-chart
 </span></code></pre></div>
 <p>This produces a file like <code>ncm-issuer-&lt;chart-version&gt;.tgz</code> in the current directory.
 Install it directly:</p>
@@ -1951,6 +2058,93 @@ both container images and for the files attached to the GitHub release. Verifyin
 </tr>
 </tbody>
 </table>
+<h2 id="upgrading">Upgrading</h2>
+<p>Upgrade ncm-issuer in place with <code>helm upgrade</code>. Helm updates the controller, its RBAC and the CRDs.
+Existing <code>Issuer</code>, <code>ClusterIssuer</code> and <code>Certificate</code> resources and their Secrets are kept.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Do not uninstall the chart or delete the ncm-issuer CRDs to upgrade. The CRDs are part of the
+chart, so removing them deletes every <code>Issuer</code> and <code>ClusterIssuer</code> in the cluster. Certificates
+then fail to renew until the issuers are created again.</p>
+</div>
+<h3 id="before-you-upgrade">Before you upgrade</h3>
+<p>Read the release notes of every version between the installed one and the target and check the
+<a href="#version-specific-notes">version-specific notes</a> below. The installed chart version is shown by:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>helm<span class="w"> </span>list<span class="w"> </span>-n<span class="w"> </span>ncm-issuer
+</span></code></pre></div>
+<p>Save the values set at install time and compare them with the <code>values.yaml</code> of the new chart:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>helm<span class="w"> </span>get<span class="w"> </span>values<span class="w"> </span>ncm-issuer<span class="w"> </span>-n<span class="w"> </span>ncm-issuer<span class="w"> </span>-o<span class="w"> </span>yaml<span class="w"> </span>&gt;<span class="w"> </span>my-values.yaml
+</span></code></pre></div>
+<h3 id="running-the-upgrade">Running the upgrade</h3>
+<p>From the public Helm chart repository, with the chart version of the target release (for example
+<code>1.3.0-chart</code>):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>helm<span class="w"> </span>repo<span class="w"> </span>update
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>helm<span class="w"> </span>upgrade<span class="w"> </span>ncm-issuer<span class="w"> </span>nokia/ncm-issuer<span class="w"> </span>--version<span class="w"> </span>&lt;chart-version&gt;<span class="w"> </span>--namespace<span class="w"> </span>ncm-issuer<span class="w"> </span>-f<span class="w"> </span>my-values.yaml
+</span></code></pre></div>
+<p>From a release archive (offline installation), push the images from <code>ncm-issuer/images/</code> to your
+registry as described in <a href="#using-own-local-or-remote-registry">Using own (local or remote) registry</a>
+and upgrade from the extracted chart:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>helm<span class="w"> </span>upgrade<span class="w"> </span>ncm-issuer<span class="w"> </span>./ncm-issuer/charts/ncm-issuer<span class="w"> </span>--namespace<span class="w"> </span>ncm-issuer<span class="w"> </span>-f<span class="w"> </span>my-values.yaml
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Pass your values with <code>-f</code> or, on Helm 3.14 or later, with <code>--reset-then-reuse-values</code>. Do not
+use <code>--reuse-values</code>: it keeps the defaults of the installed chart, so a newer chart can fail to
+render. Upgrading from a version before 1.2.0 fails with
+<code>nil pointer evaluating interface {}.httpProxy</code>. For the same reason, if you customize the
+chart's own <code>values.yaml</code>, edit the file that ships with the new chart instead of copying the
+old one over it.</p>
+</div>
+<p>Check that the new controller is running and that every issuer reports <code>READY</code> <code>True</code>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>helm<span class="w"> </span>list<span class="w"> </span>-n<span class="w"> </span>ncm-issuer
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>ncm-issuer<span class="w"> </span>get<span class="w"> </span>pods
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>kubectl<span class="w"> </span>get<span class="w"> </span>ncmclusterissuers
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>kubectl<span class="w"> </span>get<span class="w"> </span>ncmissuers<span class="w"> </span>-A
+</span></code></pre></div>
+<p>For an issuer with <code>READY</code> <code>False</code> the <code>REASON</code> and <code>MESSAGE</code> columns say why. See also
+<a href="../troubleshooting/#issuer-stuck-in-readyfalse-with-ncm-api-health-check-failed">Troubleshooting</a>.</p>
+<p>To return to the previous release, run <code>helm rollback ncm-issuer --namespace ncm-issuer</code>. Issuers
+and certificates are kept.</p>
+<h3 id="version-specific-notes">Version-specific notes</h3>
+<p>Check every entry for the versions you upgrade across.</p>
+<p><strong>1.2.0</strong></p>
+<ul>
+<li>
+<p>The default name of the cert-manager approver ClusterRole lost a trailing <code>v</code> (<code>...nokia-comv</code>).
+  <code>helm upgrade</code> keeps the name used by the existing ClusterRoleBinding, because its <code>roleRef</code> cannot
+  change. Tools that render the chart with <code>helm template</code>, such as Argo CD, cannot look it up and
+  fail with <code>cannot change roleRef</code>. For them, set <code>certManagerRbac.role</code> to the existing name:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>clusterrolebinding<span class="w"> </span>cert-manager-controller-approve:ncm-certmanager-nokia-com<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.roleRef.name}'</span>
+</span></code></pre></div>
+</li>
+</ul>
+<p><strong>1.2.1</strong></p>
+<ul>
+<li>The chart's <code>securityContext</code> now applies only to the controller container. Pod-level settings
+  moved to <code>podSecurityContext</code> and the troubleshooting sidecar has its own <code>sidecar.securityContext</code>.
+  Move existing overrides accordingly.</li>
+<li>The NCM health check now authenticates and accepts only <code>2xx</code> responses. A wrong URL or wrong
+  credentials that earlier versions reported as <code>Ready=True</code> now give <code>Ready=False</code>.</li>
+<li>Kubernetes 1.26 or later is required. Helm refuses to install the chart on older clusters.</li>
+</ul>
+<p><strong>1.2.2</strong></p>
+<ul>
+<li>HTTPS connections to NCM verify the server certificate by default. If the NCM certificate is
+  signed by a private CA, add that CA as <code>cacert</code> to the Secret referenced by <code>tlsRef</code> (see
+  <a href="../configuration/#tls-without-client-authentication">TLS without client authentication</a>).
+  Otherwise the issuer reports <code>Ready=False</code> with <code>x509: certificate signed by unknown authority</code>.</li>
+<li>A namespaced <code>Issuer</code> reads the Secrets referenced by <code>authRef</code> and <code>tlsRef</code> only from its own
+  namespace and ignores the <code>namespace</code> field. Copy Secrets kept elsewhere into the Issuer's
+  namespace, otherwise it reports <code>Ready=False</code> with reason <code>SecretNotFound</code>. <code>ClusterIssuer</code> is
+  not affected.</li>
+</ul>
+<p><strong>1.3.0</strong></p>
+<ul>
+<li>The chart repository and the images moved to the <code>nokia-steward</code> organization. Repoint the Helm
+  repository (see <a href="#from-the-public-helm-chart-repository-recommended">From the public Helm chart repository</a>)
+  and update registry mirrors and any <code>image.repository</code> or <code>sidecar.repository</code> override to
+  <code>ghcr.io/nokia-steward/ncm-issuer</code> and <code>ghcr.io/nokia-steward/ncm-issuer-utils</code>.</li>
+</ul>
 <h2 id="outbound-https-proxy">Outbound HTTP(S) proxy</h2>
 <p>If the cluster has no direct egress to the NCM instance, you can configure proxy environment variables via the Helm chart; see <a href="../troubleshooting/#using-an-outbound-https-proxy">Troubleshooting - Using an outbound HTTP(S) proxy</a>.</p>
 
@@ -2050,10 +2244,10 @@ both container images and for the files attached to the GitHub release. Verifyin
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>
