@@ -36,10 +36,15 @@ into the sidecar lets you run those tools directly without `sudo`. `allowPrivile
 is intentionally left at `true` on the sidecar so the kernel honours those file capabilities
 on `execve()`; setting it to `false` would set `no_new_privs=1` and silently break both tools.
 
-If your cluster enforces the Pod Security Standards "restricted" profile at the namespace
-level the sidecar will be rejected at admission because of `allowPrivilegeEscalation: true`.
-In that case either keep `sidecar.enabled: false` in those namespaces, or relabel the
-namespace to "baseline" specifically for ncm-issuer.
+If your cluster enforces the Pod Security Standards "baseline" or "restricted" profile at the
+namespace level, the sidecar is rejected at admission. Both profiles reject the added `NET_RAW`,
+`NET_ADMIN` and `SYS_PTRACE` capabilities. "restricted" also rejects `allowPrivilegeEscalation: true`.
+In that case either keep `sidecar.enabled: false` in those namespaces or label the ncm-issuer
+namespace with the "privileged" profile:
+
+  ```bash
+  kubectl label namespace ncm-issuer pod-security.kubernetes.io/enforce=privileged --overwrite
+  ```
 
 ## Issuer stuck in `Ready=False` with `NCM API health check failed`
 
