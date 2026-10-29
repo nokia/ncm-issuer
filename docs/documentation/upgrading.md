@@ -17,7 +17,7 @@ Read the release notes of every version between the installed one and the target
   helm list -n ncm-issuer
   ```
 
-Save the values set at install time and compare them with the `values.yaml` of the new chart:
+Save the values passed at installation or the last upgrade and compare them with the `values.yaml` of the new chart:
 
   ```bash
   helm get values ncm-issuer -n ncm-issuer -o yaml > my-values.yaml
@@ -27,6 +27,9 @@ Save the values set at install time and compare them with the `values.yaml` of t
 and edited the chart's own `values.yaml`, compare that file with the `values.yaml` of the original archive
 and copy the changed settings into `my-values.yaml`. Do this before you extract the new archive over the old
 one. `helm get values ncm-issuer -n ncm-issuer --all` shows every value the running release uses.
+
+If `my-values.yaml` sets `image.tag` or `sidecar.tag`, change them to the target version or remove them.
+Otherwise the old images keep running.
 
 ## Running the upgrade
 
@@ -38,9 +41,21 @@ From the public Helm chart repository, with the chart version of the target rele
   helm upgrade ncm-issuer nokia/ncm-issuer --version <chart-version> --namespace ncm-issuer -f my-values.yaml
   ```
 
-From a release archive (offline installation), push the images from `ncm-issuer/images/` to your
-registry as described in [Using own (local or remote) registry](installation.md#using-own-local-or-remote-registry)
-and upgrade from the extracted chart:
+From a release archive (offline installation), extract the archive in an empty directory and push the
+controller image to your registry. The archive holds only the controller image, built for `linux/amd64`. If
+you use the troubleshooting sidecar, also download `ncm-issuer-utils-<version>.tgz` from the release and push
+it the same way.
+
+  ```bash
+  tar xzf ncm-issuer-<version>-<version>.tar.gz
+  docker load -i ncm-issuer/images/ncm-issuer-<version>.tgz
+  docker tag ghcr.io/nokia-steward/ncm-issuer:<version> <registry>/ncm-issuer:<version>
+  docker push <registry>/ncm-issuer:<version>
+  ```
+
+Set `image.repository` and `image.tag` (and `sidecar.repository` and `sidecar.tag`) in `my-values.yaml` to
+the pushed images. If the file already has an `image` or `sidecar` block, change it instead of adding a
+second one, because Helm uses only the last one. Then upgrade from the extracted chart:
 
   ```bash
   helm upgrade ncm-issuer ./ncm-issuer/charts/ncm-issuer --namespace ncm-issuer -f my-values.yaml
@@ -48,11 +63,11 @@ and upgrade from the extracted chart:
 
 !!! note
     Pass your values with `-f` or, on Helm 3.14 or later, with `--reset-then-reuse-values`. Do not
-    use `--reuse-values`: it keeps the defaults of the installed chart, so a newer chart can fail to
-    render. Upgrading from a version before 1.2.0 fails with
-    `nil pointer evaluating interface {}.httpProxy`. For the same reason, if you customize the
-    chart's own `values.yaml`, edit the file that ships with the new chart instead of copying the
-    old one over it.
+    use `--reuse-values`. It keeps the values of the installed chart, including its image tags. When
+    the installed version is 1.2.0 or later, the upgrade succeeds but the old images keep running.
+    From older versions the new chart fails to render with an error such as
+    `nil pointer evaluating interface {}.httpProxy`. Copying an old `values.yaml` over the one that
+    ships with the new chart has the same effect, so edit the new file instead.
 
 Check that the new controller is running and that every issuer reports `READY` `True`:
 
@@ -78,7 +93,8 @@ Check every entry for the versions you upgrade across.
 * The default name of the cert-manager approver ClusterRole lost a trailing `v` (`...nokia-comv`).
   `helm upgrade` keeps the name used by the existing ClusterRoleBinding, because its `roleRef` cannot
   change. Tools that render the chart with `helm template`, such as Argo CD, cannot look it up and
-  fail with `cannot change roleRef`. For them, set `certManagerRbac.role` to the existing name:
+  fail with `cannot change roleRef` (`roleRef: Invalid value: ...: field is immutable` on Kubernetes
+  1.37). For them, set `certManagerRbac.role` to the existing name:
 
     ```bash
     kubectl get clusterrolebinding cert-manager-controller-approve:ncm-certmanager-nokia-com -o jsonpath='{.roleRef.name}'
@@ -89,9 +105,13 @@ Check every entry for the versions you upgrade across.
 * The chart's `securityContext` now applies only to the controller container. Pod-level settings
   moved to `podSecurityContext` and the troubleshooting sidecar has its own `sidecar.securityContext`.
   Move existing overrides accordingly.
-* The NCM health check now authenticates and accepts only `2xx` responses. A wrong URL or wrong
-  credentials that earlier versions reported as `Ready=True` now give `Ready=False`.
-* Kubernetes 1.26 or later is required. Helm refuses to install the chart on older clusters.
+* The NCM health check now sends `GET /v1/cas` and counts only `2xx` responses as healthy. The
+  issuer's `Ready` condition depends on it. A wrong URL or wrong credentials that earlier versions
+  reported as `Ready=True` now give `Ready=False`.
+* Remove any path after the host and port from `mainAPI`. Requests to the main API ignore it, but the
+  health check calls `<mainAPI>/v1/cas` and fails if NCM does not answer there.
+* The default images moved from `docker.io/misiektoja` to `ghcr.io/nokia`.
+* Kubernetes 1.26 or later is required. Helm refuses to install or upgrade the chart on older clusters.
 
 **1.2.2**
 
@@ -99,6 +119,8 @@ Check every entry for the versions you upgrade across.
   signed by a private CA, add that CA as `cacert` to the Secret referenced by `tlsRef` (see
   [TLS without client authentication](configuration.md#tls-without-client-authentication)).
   Otherwise the issuer reports `Ready=False` with `x509: certificate signed by unknown authority`.
+  The certificate must also list the host name or IP address used in the URL as a subject
+  alternative name. Certificates that carry the name only in the subject CN are rejected.
 * A namespaced `Issuer` reads the Secrets referenced by `authRef` and `tlsRef` only from its own
   namespace and ignores the `namespace` field. Copy Secrets kept elsewhere into the Issuer's
   namespace, otherwise it reports `Ready=False` with reason `SecretNotFound`. `ClusterIssuer` is
@@ -108,5 +130,6 @@ Check every entry for the versions you upgrade across.
 
 * The chart repository and the images moved to the `nokia-steward` organization. Repoint the Helm
   repository (see [From the public Helm chart repository](installation.md#from-the-public-helm-chart-repository-recommended))
-  and update registry mirrors and any `image.repository` or `sidecar.repository` override to
-  `ghcr.io/nokia-steward/ncm-issuer` and `ghcr.io/nokia-steward/ncm-issuer-utils`.
+  Change any `image.repository` or `sidecar.repository` override that points to `ghcr.io/nokia` or
+  `docker.io/misiektoja` to `ghcr.io/nokia-steward/ncm-issuer` and `ghcr.io/nokia-steward/ncm-issuer-utils`.
+  Update registry mirrors that copy from the old locations as well.

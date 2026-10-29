@@ -83,7 +83,7 @@ Install ncm-issuer:
   ```
 
 !!! note
-    Chart versions end in `-chart`, for example `1.3.0-chart`. Helm treats them as pre-releases and
+    Chart versions from 1.1.7 on end in `-chart`, for example `1.3.0-chart`. Helm treats them as pre-releases and
     skips them unless you pass `--version` or `--devel`. Without either flag it picks the old `1.1.6`
     chart.
 
