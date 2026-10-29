@@ -468,6 +468,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../upgrading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../configuration/" class="md-nav__link">
         
   
@@ -512,10 +540,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
         
           
-          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
             
   
   
@@ -533,8 +561,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -631,10 +659,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="">
             
   
   
@@ -652,8 +680,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -722,10 +750,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
         
           
-          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
             
   
   
@@ -743,8 +771,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -813,10 +841,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
         
           
-          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="">
             
   
   
@@ -834,8 +862,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1679,17 +1707,20 @@ on <code>/usr/sbin/tcpdump</code> and <code>cap_sys_ptrace+ep</code> on <code>/u
 into the sidecar lets you run those tools directly without <code>sudo</code>. <code>allowPrivilegeEscalation</code>
 is intentionally left at <code>true</code> on the sidecar so the kernel honours those file capabilities
 on <code>execve()</code>; setting it to <code>false</code> would set <code>no_new_privs=1</code> and silently break both tools.</p>
-<p>If your cluster enforces the Pod Security Standards "restricted" profile at the namespace
-level the sidecar will be rejected at admission because of <code>allowPrivilegeEscalation: true</code>.
-In that case either keep <code>sidecar.enabled: false</code> in those namespaces, or relabel the
-namespace to "baseline" specifically for ncm-issuer.</p>
+<p>If your cluster enforces the Pod Security Standards "baseline" or "restricted" profile at the
+namespace level, the sidecar is rejected at admission. Both profiles reject the added <code>NET_RAW</code>,
+<code>NET_ADMIN</code> and <code>SYS_PTRACE</code> capabilities. "restricted" also rejects <code>allowPrivilegeEscalation: true</code>.
+In that case either keep <code>sidecar.enabled: false</code> in those namespaces or label the ncm-issuer
+namespace with the "privileged" profile:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>kubectl<span class="w"> </span>label<span class="w"> </span>namespace<span class="w"> </span>ncm-issuer<span class="w"> </span>pod-security.kubernetes.io/enforce<span class="o">=</span>privileged<span class="w"> </span>--overwrite
+</span></code></pre></div>
 <h2 id="issuer-stuck-in-readyfalse-with-ncm-api-health-check-failed">Issuer stuck in <code>Ready=False</code> with <code>NCM API health check failed</code></h2>
 <p>From <code>1.2.1</code> onwards, the <code>Issuer</code> (and <code>ClusterIssuer</code>) <code>Ready</code> condition is
 gated on a synchronous health probe of the NCM REST API during reconciliation.
 If you see something like:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>ncmissuers<span class="w"> </span>-n<span class="w"> </span>example-ncm-ns
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>NAME<span class="w">                 </span>AGE<span class="w">   </span>READY<span class="w">   </span>REASON<span class="w">   </span>MESSAGE
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>example-ncm-issuer<span class="w">   </span>5s<span class="w">    </span>False<span class="w">   </span>Error<span class="w">    </span>NCM<span class="w"> </span>API<span class="w"> </span>health<span class="w"> </span>check<span class="w"> </span>failed:<span class="w"> </span>...
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>ncmissuers<span class="w"> </span>-n<span class="w"> </span>example-ncm-ns
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>NAME<span class="w">                 </span>AGE<span class="w">   </span>READY<span class="w">   </span>REASON<span class="w">   </span>MESSAGE
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>example-ncm-issuer<span class="w">   </span>5s<span class="w">    </span>False<span class="w">   </span>Error<span class="w">    </span>NCM<span class="w"> </span>API<span class="w"> </span>health<span class="w"> </span>check<span class="w"> </span>failed:<span class="w"> </span>...
 </span></code></pre></div>
 <p>it means the controller could reach the Kubernetes apiserver but the
 authenticated <code>GET /v1/cas</code> probe against the configured <code>mainAPI</code> (and
@@ -1706,10 +1737,10 @@ besides fixing the underlying connectivity or configuration.</p>
 <h2 id="using-an-outbound-https-proxy">Using an outbound HTTP(S) proxy</h2>
 <p>If your cluster has no direct internet/egress connectivity to the NCM instance, configure an HTTP(S) proxy.</p>
 <p>If you install using Helm, set standard proxy environment variables via chart values:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">proxy</span><span class="p">:</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">httpsProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"http://proxy.example:3128"</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">httpProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"http://proxy.example:3128"</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">noProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"localhost,127.0.0.1,.cluster.local,10.96.0.0/12"</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">proxy</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">httpsProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"http://proxy.example:3128"</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">httpProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"http://proxy.example:3128"</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">noProxy</span><span class="p">:</span><span class="w"> </span><span class="s">"localhost,127.0.0.1,.cluster.local,10.96.0.0/12"</span>
 </span></code></pre></div>
 <p>Under the hood this sets <code>HTTP_PROXY</code> / <code>HTTPS_PROXY</code> / <code>NO_PROXY</code> (and lowercase equivalents) which are
 honored by Go's HTTP client (including HTTPS via CONNECT).</p>
