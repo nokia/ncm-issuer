@@ -76,8 +76,12 @@ If you install using Helm, set standard proxy environment variables via chart va
 proxy:
   httpsProxy: "http://proxy.example:3128"
   httpProxy: "http://proxy.example:3128"
-  noProxy: "localhost,127.0.0.1,.cluster.local"
+  noProxy: "localhost,127.0.0.1,.cluster.local,10.96.0.0/12"
 ```
 
 Under the hood this sets `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` (and lowercase equivalents) which are
 honored by Go's HTTP client (including HTTPS via CONNECT).
+
+The variables apply to every connection the controller makes, including its calls to the Kubernetes API
+server, which it reaches by IP address. Add the cluster's service network to `noProxy` (`10.96.0.0/12` above is
+the kubeadm default), otherwise those calls go through the proxy as well.

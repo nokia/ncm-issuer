@@ -69,33 +69,13 @@ The private key is generated in the cluster by cert-manager. It is never sent to
 For the full walkthrough, including who owns which step and answers to common deployment questions, see
 [How it works](https://nokia-steward.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
 
-## How it works
-
-cert-manager manages the certificate lifecycle in Kubernetes but it cannot talk to NCM. ncm-issuer adds
-that capability as an [external issuer](https://cert-manager.io/docs/contributing/external-issuers/),
-the extension mechanism cert-manager provides for certificate authorities that are not built into it.
-
-The two components never call each other. Both are Kubernetes controllers, so they exchange Kubernetes
-objects instead:
-
-1. You apply a `Certificate` with `issuerRef.group` set to `certmanager.ncm.nokia.com`.
-2. cert-manager generates a private key, builds a CSR and creates an approved `CertificateRequest`.
-3. ncm-issuer picks up requests addressed to its own group, sends the CSR to the NCM REST API and writes
-   the signed certificate back into the status of that same `CertificateRequest`.
-4. cert-manager stores the result in the `Secret` named by `spec.secretName` and later starts renewal.
-
-The private key is generated in the cluster by cert-manager. It is never sent to NCM.
-
-For the full walkthrough, including who owns which step and answers to common deployment questions, see
-[How it works](https://nokia-steward.github.io/ncm-issuer/docs/documentation/how-it-works/) in the documentation.
-
 ## Prerequisites
 
 Prerequisites for building and using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 24 or later,
 * [Kubernetes](https://kubernetes.io) version 1.26 - 1.37,
-* [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
+* [cert-manager](https://cert-manager.io/) version 1.3.0 or later,
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
@@ -155,13 +135,16 @@ Install ncm-issuer:
   ```bash
   $ helm install \
   ncm-issuer nokia/ncm-issuer \
+  --version 1.3.0-chart \
   --create-namespace --namespace ncm-issuer
   ```
+
+Chart versions end in `-chart`, for example `1.3.0-chart`. Helm treats them as pre-releases and skips them unless you pass `--version` or `--devel`. Without either flag it picks the old `1.1.6` chart.
 
 To list available chart versions:
 
   ```bash
-  $ helm search repo nokia/ncm-issuer -l
+  $ helm search repo nokia/ncm-issuer --devel -l
   ```
 
 #### From a packaged chart (`.tgz`)
@@ -169,7 +152,7 @@ To list available chart versions:
 Useful when working offline or behind a corporate mirror. Pull the packaged chart:
 
   ```bash
-  $ helm pull nokia/ncm-issuer
+  $ helm pull nokia/ncm-issuer --version 1.3.0-chart
   ```
 
 This produces a file like `ncm-issuer-<chart-version>.tgz` in the current directory. Install it directly:
@@ -243,6 +226,7 @@ Do not uninstall the chart or delete the ncm-issuer CRDs to upgrade, because tha
   $ helm upgrade ncm-issuer nokia/ncm-issuer --version <chart-version> -n ncm-issuer -f my-values.yaml
   ```
 
+Replace `<chart-version>` with the chart version of the target release, for example `1.3.0-chart`.
 Do not use `--reuse-values`. It keeps the defaults of the installed chart and can make the new chart fail to render.
 [Upgrading](https://nokia-steward.github.io/ncm-issuer/docs/documentation/installation/#upgrading) covers the checks before and after the upgrade, rollback and the changes to look at when upgrading across 1.2.0, 1.2.1, 1.2.2 and 1.3.0.
 
@@ -327,11 +311,13 @@ HTTP(S) proxy for the `ncm-issuer` controller pod. When installed via Helm, set:
 proxy:
   httpsProxy: "http://proxy.example:3128"
   httpProxy: "http://proxy.example:3128"
-  noProxy: "localhost,127.0.0.1,.cluster.local"
+  noProxy: "localhost,127.0.0.1,.cluster.local,10.96.0.0/12"
 ```
 
 This injects `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` (and lowercase equivalents) and is honored by Go's
-HTTP client.
+HTTP client. The variables also apply to the controller's calls to the Kubernetes API server, which it reaches
+by IP address. Add the cluster's service network to `noProxy` (`10.96.0.0/12` above is the kubeadm default),
+otherwise those calls go through the proxy as well.
 
 ## Custom resource definitions (CRDs)
 
@@ -395,16 +381,16 @@ with `Issuer`, and the only differences are in the field `kind` and the non-exis
 
 | Field                                     | Description                                                                                                                                                                                                                                                                     | Supported from |
 |:------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------:|
-| `.spec.caName`                            | Name of an existing CA in the NCM, which will be used to issue certificates (required if `.spec.caID` is not specified)                                                                                                                                                         |  1.1.0-1.1.0   |
-| `.spec.caID`                              | Unique HREF identifier for existing CA in the NCM, which will be used to issue certificates (required if `.spec.caName` is not specified)                                                                                                                                       |  1.1.0-1.1.0   |
+| `.spec.caName`                            | Name of an existing CA in the NCM, which will be used to issue certificates. The name must match exactly (required if `.spec.caID` is not specified) |  1.1.0-1.1.0   |
+| `.spec.caID`                              | ID of an existing CA in the NCM, the last part of its HREF, which will be used to issue certificates (required if `.spec.caName` is not specified) |  1.1.0-1.1.0   |
 | `.spec.provisioner.mainAPI`               | The URL to the main NCM REST API (always required)                                                                                                                                                                                                                              |  1.1.0-1.1.0   |
 | `.spec.provisioner.backupAPI`             | The URL to the backup NCM REST API in case of the lack of connection to the main one                                                                                                                                                                                            |  1.1.0-1.1.0   |
 | `.spec.provisioner.httpClientTimeout`     | Maximum amount of time that the HTTP client will wait for a response from NCM REST API before aborting the request                                                                                                                                                              |  1.1.0-1.1.0   |
 | `.spec.provisioner.healthCheckerInterval` | The time interval between each NCM REST API health check                                                                                                                                                                                                                        |  1.1.0-1.1.0   |
-| `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API (always required)                                                                                                                                               |  1.1.0-1.1.0   |
-| `.spec.provisioner.tlsRef`                | Reference to a Secret containing the CA bundle (`cacert`) used to verify HTTPS connections to the NCM REST API together with an optional client key and cert (`key`, `cert`) for mTLS. When `cacert` is omitted the server certificate is verified against the system trust store. Verification is only disabled when `.spec.provisioner.insecureSkipVerify` is set to `true` |  1.1.0-1.1.0   |
+| `.spec.provisioner.authRef`               | Reference to a Secret containing the credentials (user and password) needed for making requests to NCM REST API (always required). A namespaced `Issuer` always reads it from its own namespace and ignores the `namespace` field |  1.1.0-1.1.0   |
+| `.spec.provisioner.tlsRef`                | Reference to a Secret containing the CA bundle (`cacert`) used to verify HTTPS connections to the NCM REST API together with an optional client key and cert (`key`, `cert`) for mTLS. When `cacert` is omitted the server certificate is verified against the system trust store. Verification is only disabled when `.spec.provisioner.insecureSkipVerify` is set to `true`. A namespaced `Issuer` always reads it from its own namespace and ignores the `namespace` field |  1.1.0-1.1.0   |
 | `.spec.provisioner.insecureSkipVerify`    | Disables verification of the NCM REST API server certificate for HTTPS connections. Insecure and intended only for testing. Defaults to `false` so the server certificate is verified against the `tlsRef` CA bundle when provided or the system trust store                       |  1.2.2-1.2.2   |
-| `.spec.reenrollmentOnRenew`               | Determines whether during renewal, certificate should be re-enrolled instead of renewed                                                                                                                                                                                         |  1.0.1-1.0.0   |
+| `.spec.reenrollmentOnRenew`               | Deprecated, use `privateKey.rotationPolicy` in the `Certificate` instead. Forces re-enrollment for certificates that would otherwise be renewed through NCM `/update`, which happens only with `privateKey.rotationPolicy: Never` |  1.0.1-1.0.0   |
 | `.spec.profileId`                         | Entity profile ID in NCM, optional; needs to be in double quotes                                                                                                                                                                                                                |  1.0.1-1.0.0   |
 | `.spec.noRoot`                            | Determines whether issuing CA certificate should be included in issued certificate CA field (ca.crt) instead of root CA certificate                                                                                                                                             |  1.0.1-1.0.0   |
 | `.spec.chainInSigner`                     | Determines whether certificate chain should be included in issued certificate CA field (ca.crt - root CA certificate + intermediate CA certificates + singing CA certificate)                                                                                                   |  1.0.3-1.0.2   |

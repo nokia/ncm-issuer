@@ -6,7 +6,7 @@ Prerequisites for using ncm-issuer:
 
 * [NCM](https://www.nokia.com/networks/products/pki-authority-with-netguard-certificate-manager/) release 24 or later,
 * [Kubernetes](https://kubernetes.io) version 1.26 - 1.37,
-* [cert-manager](https://cert-manager.io/) version 1.0.0 or later,
+* [cert-manager](https://cert-manager.io/) version 1.3.0 or later,
 * Kubernetes container runtime like Docker, containerd or CRI-O,
 * [Helm](https://helm.sh/docs/intro/install/) v3.
 
@@ -78,13 +78,19 @@ Install ncm-issuer:
   ```bash
   helm install \
   ncm-issuer nokia/ncm-issuer \
+  --version 1.3.0-chart \
   --create-namespace --namespace ncm-issuer
   ```
+
+!!! note
+    Chart versions end in `-chart`, for example `1.3.0-chart`. Helm treats them as pre-releases and
+    skips them unless you pass `--version` or `--devel`. Without either flag it picks the old `1.1.6`
+    chart.
 
 To list available chart versions:
 
   ```bash
-  helm search repo nokia/ncm-issuer -l
+  helm search repo nokia/ncm-issuer --devel -l
   ```
 
 ### From a packaged chart (`.tgz`)
@@ -92,7 +98,7 @@ To list available chart versions:
 Useful when working offline or behind a corporate mirror. Pull the packaged chart:
 
   ```bash
-  helm pull nokia/ncm-issuer
+  helm pull nokia/ncm-issuer --version 1.3.0-chart
   ```
 
 This produces a file like `ncm-issuer-<chart-version>.tgz` in the current directory.
@@ -216,7 +222,8 @@ Save the values set at install time and compare them with the `values.yaml` of t
 
 ### Running the upgrade
 
-From the public Helm chart repository:
+From the public Helm chart repository, with the chart version of the target release (for example
+`1.3.0-chart`):
 
   ```bash
   helm repo update
@@ -276,6 +283,7 @@ Check every entry for the versions you upgrade across.
   Move existing overrides accordingly.
 * The NCM health check now authenticates and accepts only `2xx` responses. A wrong URL or wrong
   credentials that earlier versions reported as `Ready=True` now give `Ready=False`.
+* Kubernetes 1.26 or later is required. Helm refuses to install the chart on older clusters.
 
 **1.2.2**
 
@@ -290,7 +298,6 @@ Check every entry for the versions you upgrade across.
 
 **1.3.0**
 
-* Kubernetes 1.26 or later is required. Helm refuses to install the chart on older clusters.
 * The chart repository and the images moved to the `nokia-steward` organization. Repoint the Helm
   repository (see [From the public Helm chart repository](#from-the-public-helm-chart-repository-recommended))
   and update registry mirrors and any `image.repository` or `sidecar.repository` override to
