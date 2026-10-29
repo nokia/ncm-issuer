@@ -30,6 +30,7 @@ The integration with NCM makes it easy to obtain non-self-signed certificates fo
   * [Installing using Helm](#installing-using-helm)
     * [Using own (local or remote) registry](#using-own-local-or-remote-registry)
     * [Verifying images and release assets](#verifying-images-and-release-assets)
+    * [Upgrading](#upgrading)
     * [Configuration](#configuration)
       * [NCM REST API credentials](#ncm-rest-api-credentials)
       * [TLS without client authentication](#tls-without-client-authentication)
@@ -230,6 +231,20 @@ From 1.3.0 both container images and the files attached to each GitHub release c
   ```
 
 Each release also carries SPDX and CycloneDX SBOMs, source archives and a SHA-256 checksum file. [Verifying images and release assets](https://nokia-steward.github.io/ncm-issuer/docs/documentation/installation/#verifying-images-and-release-assets) lists every asset and shows how to verify the downloads.
+
+### Upgrading
+
+Upgrade ncm-issuer in place with `helm upgrade`. Existing `Issuer`, `ClusterIssuer` and `Certificate` resources are kept.
+Do not uninstall the chart or delete the ncm-issuer CRDs to upgrade, because that deletes every `Issuer` and `ClusterIssuer` in the cluster.
+
+  ```bash
+  $ helm get values ncm-issuer -n ncm-issuer -o yaml > my-values.yaml
+  $ helm repo update
+  $ helm upgrade ncm-issuer nokia/ncm-issuer --version <chart-version> -n ncm-issuer -f my-values.yaml
+  ```
+
+Do not use `--reuse-values`. It keeps the defaults of the installed chart and can make the new chart fail to render.
+[Upgrading](https://nokia-steward.github.io/ncm-issuer/docs/documentation/installation/#upgrading) covers the checks before and after the upgrade, rollback and the changes to look at when upgrading across 1.2.0, 1.2.1, 1.2.2 and 1.3.0.
 
 ### Configuration
 
